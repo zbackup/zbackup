@@ -89,7 +89,7 @@ Most of those limitations can be lifted by implementing the respective features.
 
 # Safety
 
-Is it safe to use `zbackup` for production data? Being free software, the program comes with no warranty of any kind. That said, it's perfectly safe for production, and here's why. When performing a backup, the program never modifies or deletes any existing files -- only new ones are created. It specifically checks for that, and the code paths involved are short and easy to inspect. Furthermore, each backup is protected by its `SHA256` sum, which is calculated before piping the data into the deduplication logic. The code path doing that is also short and easy to inspect. When a backup is being restored, its `SHA256` is calculated again and compared against the stored one. The program would fail on a mismatch. Therefore, to ensure safety it is enough to restore each backup to `/dev/null` immediately after creating it. If it restores fine, it will restore fine ever after.
+Is it safe to use `zbackup` for production data? Being free software, the program comes with no warranty of any kind. That said, it's perfectly safe for production, and here's why. When performing a backup, the program never modifies or deletes any existing files -- only new ones are created. It specifically checks for that, and the code paths involved are short and easy to inspect. Furthermore, each backup is protected by its `SHA256` sum, which is calculated before piping the data into the deduplication logic. The code path doing that is also short and easy to inspect. When a backup is being restored, its `SHA256` is calculated again and compared against the stored one. The program would fail on a mismatch. Therefore, to ensure safety it is enough to restore each backup to `/dev/null` immediately after creating it. If it restores fine, it will restore fine ever after.  
 To add some statistics, the author of the program has been using an older version of `zbackup` internally for over a year. The `SHA256` check never ever failed. Again, even if it does, you would know immediately, so no work would be lost. Therefore you are welcome to try the program in production, and if you like it, stick with it.
 
 # Usage notes
@@ -153,9 +153,9 @@ There's a lot to be improved in the program. It was released with the minimum am
 
 # Communication
 
-The program's website is at <http://zbackup.org/>
-Development happens at <https://github.com/zbackup/zbackup>
-Discussion forum is at <https://groups.google.com/forum/#!forum/zbackup>. Please ask for help there!
+ * The program's website is at <http://zbackup.org/>.
+ * Development happens at <https://github.com/zbackup/zbackup>.
+ * Discussion forum is at <https://groups.google.com/forum/#!forum/zbackup>. Please ask for help there!
 
 The author is reachable over email at <ikm@zbackup.org>. Please be constructive and don't ask for help using the program, though. In most cases it's best to stick to the forum, unless you have something to discuss with the author in private.
 
