@@ -1,0 +1,109 @@
+// Copyright (c) 2012-2013 Konstantin Isakov <ikm@zbackup.org>
+// Part of ZBackup. Licensed under GNU GPLv2 or later
+
+// Protobuffers used in zbackup
+
+// This stores the key used for the encryption of all the blocks. The key itself
+// is stored in the encrypted form. A user supplies a password - it is used
+// together with salt and rounds to generate a decryption key for the actual
+// key used for block encryption. This way we can change the password without
+// re-encrypting all the blocks
+message EncryptionKeyInfo
+{
+  // The decryption key is derived from the password, salt and rounds using
+  // PKCS5_PBKDF2_HMAC_SHA1
+
+  // Salt to use together with the user password
+  required bytes salt = 1;
+  // Rounds of hashing to apply when generating the key used to decrypt the
+  // block key
+  required uint32 rounds = 2;
+  // Stores the block encryption key, in an encrypted form itself
+  required bytes encrypted_key = 3;
+  // Used to check that the key was decrypted correctly - see the next field
+  required bytes key_check_input = 4;
+  // HMAC of key_check_input using the decrypted key. Used to check that the
+  // key was indeed decrypted correctly
+  required bytes key_check_hmac = 5;
+}
+
+message StorageInfo
+{
+  // Maximum chunk size used when storing chunks
+  required uint32 chunk_max_size = 1;
+  // Maximum number of bytes a bundle can hold. Only real chunk bytes are
+  // counted, not metadata. Any bundle should be able to contain at least
+  // one arbitrary single chunk, so this should not be smaller than
+  // chunk_max_size
+  required uint32 bundle_max_payload_size = 2;
+  // If present, used for encryption/decryption of all data
+  optional EncryptionKeyInfo encryption_key = 3;
+}
+
+message BundleInfo
+{
+  // Info about a single chunk stored
+  message ChunkRecord
+  {
+    // Id of the chunk
+    required bytes id = 1;
+    // Size of the chunk
+    required uint32 size = 2;
+  }
+
+  // A sequence of chunk records
+  repeated ChunkRecord chunk_record = 1;
+}
+
+message FileHeader
+{
+  // File format version
+  required uint32 version = 1;
+}
+
+message IndexBundleHeader
+{
+  // Id of the bundle following in the stream. If not present, indicates the
+  // end of log file
+  optional bytes id = 1;
+}
+
+// A single instruction. Backups are made of a sequence of those instructions,
+// which are executed one after another
+message BackupInstruction
+{
+  // Both fields can present simultaneously. They are evaluated in the same
+  // order they are listed here
+
+  // If present, the chunk with that id should be emitted to the data flow
+  optional bytes chunk_to_emit = 1;
+  // If present, the bytes contained in the field should be emitted to the
+  // data flow
+  optional bytes bytes_to_emit = 2;
+}
+
+message BackupInfo
+{
+  // The backup data. Since usually the field is quite large for real life
+  /// backups, we process its serialized data with the same backup algorithm
+  // iteratively until it doesn't shrink. The content of this field represents
+  // the last iteration of that process. If iterations = 0, it directly
+  // represents the user's backup data. If iterations = 1, it represents the
+  // backed up BackupData which would represent the user's backed up data once
+  // it is restored, and so on.
+  // The type is 'bytes' as the result is serialized
+  required bytes backup_data = 1;
+
+  // Number of times backup_data should be restored with the 'restore' algorithm
+  // before we get what we need to restore for the end user
+  optional uint32 iterations = 2 [default = 0];
+
+  // Number of bytes in the backup data
+  required uint64 size = 3;
+
+  // SHA-256 of the original data
+  required bytes sha256 = 4;
+
+  // Time spent creating the backup, in seconds
+  optional int64 time = 5;
+}

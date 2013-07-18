@@ -1,0 +1,1 @@
+Convert those to cmake -- they still use qmake at the moment
