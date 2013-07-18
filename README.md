@@ -66,7 +66,7 @@ tar c /my/precious/data | zbackup --password-file ~/.my_backup_password backup /
 zbackup --password-file ~/.my_backup_password restore /my/backup/repo/backups/backup-`date '+%Y-%m-%d'` > /my/precious/backup-restored.tar
 ```
 
-If you have a 32-bit system and a lot of cores, consider lowering the number of compression threads by passing `--threads 4` or `--threads 2` if the program runs out of address space when backing up (see why [below](#caveats)). There should be no problem on a 64-bit system.
+If you have a 32-bit system and a lot of cores, consider lowering the number of compression threads by passing `--threads 4` or `--threads 2` if the program runs out of address space when backing up (see why [below](#caveats), item 2). There should be no problem on a 64-bit system.
 
 # Caveats
 
@@ -158,6 +158,16 @@ Development happens at <https://github.com/zbackup/zbackup>
 Discussion forum is at <https://groups.google.com/forum/#!forum/zbackup>. Please ask for help there!
 
 The author is reachable over email at <ikm@zbackup.org>. Please be constructive and don't ask for help using the program, though. In most cases it's best to stick to the forum, unless you have something to discuss with the author in private.
+
+# Similar projects
+
+`zbackup` is certainly not the first project to embrace the idea of using a rolling hash for deduplication. Here's a list of other projects the author found on the web:
+
+ * [bup](https://github.com/bup/bup), based on storing data in `git` packs. No possibility of removing old data. This program was the initial inspiration for `zbackup`.
+ * [ddar](http://www.synctus.com/ddar/), seems to be a little bit outdated. Contains a nice list of alternatives with comparisons.
+ * [rdiff-backup](http://www.nongnu.org/rdiff-backup/), based on the original `rsync` algorithm. Does not do global deduplication, only working over the files with the same file name.
+ * [duplicity](http://duplicity.nongnu.org/), which looks similar to `rdiff-backup` with regards to mode of operation.
+ * Some filesystems (most notably [ZFS](http://en.wikipedia.org/wiki/ZFS) and [Btrfs](http://en.wikipedia.org/wiki/Btrfs)) provide deduplication features. They do so only at block level though, without a sliding window, so they can not accomodate to arbitrary byte insertion/deletion in the middle of data.
 
 # Credits
 
