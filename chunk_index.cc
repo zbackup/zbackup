@@ -117,19 +117,19 @@ ChunkIndex::Chain * ChunkIndex::registerNewChunkId( ChunkId const & id,
   HashTable::iterator i =
     hashTable.insert( std::make_pair( id.rollingHash, ( Chain *) 0 ) ).first;
 
-  Chain * & chain = i->second;
+  Chain ** chain = &i->second;
 
   // Check the chains
-  for ( ; chain; chain = chain->next )
-    if ( chain->equalsTo( id ) )
+  for ( ; *chain; chain = &( ( *chain )->next ) )
+    if ( ( *chain )->equalsTo( id ) )
     {
       return NULL; // The entry existed already
     }
 
   // Create a new chain
-  chain = new ( storage.allocateObjects< Chain >( 1 ) ) Chain( id, bundleId );
+  *chain = new ( storage.allocateObjects< Chain >( 1 ) ) Chain( id, bundleId );
 
-  return chain;
+  return *chain;
 }
 
 
