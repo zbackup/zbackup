@@ -1,6 +1,6 @@
 # Introduction
 
-**zbackup** is globally-deduplicating backup tool, based on the ideas found in [rsync](http://rsync.samba.org/).  Feed a large `.tar` into it, and it will store duplicate regions of it only once, then compress and optionally encrypt the result. Feed another `.tar` file, and it will also re-use any data found in any previous backups. This way only new changes are stored, and as long as the files are not very different, the amount of storage required is very low. Any of the backup files stored previously can be read back in full at any time. The program is format-agnostic, so you can feed virtually any files to it (any types of archives, proprietary formats, even raw disk images -- but see [Caveats](#caveats)).
+**zbackup** is a globally-deduplicating backup tool, based on the ideas found in [rsync](http://rsync.samba.org/).  Feed a large `.tar` into it, and it will store duplicate regions of it only once, then compress and optionally encrypt the result. Feed another `.tar` file, and it will also re-use any data found in any previous backups. This way only new changes are stored, and as long as the files are not very different, the amount of storage required is very low. Any of the backup files stored previously can be read back in full at any time. The program is format-agnostic, so you can feed virtually any files to it (any types of archives, proprietary formats, even raw disk images -- but see [Caveats](#caveats)).
 
 This is achieved by sliding a window with a rolling hash over the input at a byte granularity and checking whether the block in focus was ever met already. If a rolling hash matches, an additional full cryptographic hash is calculated to ensure the block is indeed the same. The deduplication happens then.
 
@@ -22,7 +22,7 @@ The program has the following features:
  * `libssl-dev` for all encryption, hashing and random numbers
  * `libprotobuf-dev` and `protobuf-compiler` for data serialization
  * `liblzma-dev` for compression
- * `zlib1g-dev` for adler32 calcuation
+ * `zlib1g-dev` for adler32 calculation
 
 # Quickstart
 
@@ -111,7 +111,7 @@ The repository has the following directory structure:
  * The `backups` directory contain your backups. Those are very small files which are needed for restoration. They are encrypted if encryption is enabled. The names can be arbitrary. It is possible to arrange files in subdirectories, too. Free renaming is also allowed.
  * The `bundles` directory contains the bulk of data. Each bundle internally contains multiple small chunks, compressed together and encrypted. Together all those chunks account for all deduplicated data stored.
  * The `index` directory contains the full index of all chunks in the repository, together with their bundle names. A separate index file is created for each backup session. Technically those files are redundant, all information is contained in the bundles themselves. However, having a separate `index` is nice for two reasons: 1) it's faster to read as it incurs less seeks, and 2) it allows making backups while storing bundles elsewhere. Bundles are only needed when restoring -- otherwise it's sufficient to only have `index`. One could then move all newly created bundles into another machine after each backup.
- * `info` is a very important file, which contains all global repository metadata, such as chunk and bundle sizes, and an encryption key encrypted with the user password. It is paramount not to lose it, so backing it up separately somewhere might be a good idea. On the other hand, if you absolutely don't trust your remote storage provider, you might consider not storing it with the rest of the data. It would then be impossible to decrypt it at all, even if your password gets known later.
+ * `info` is a very important file which contains all global repository metadata, such as chunk and bundle sizes, and an encryption key encrypted with the user password. It is paramount not to lose it, so backing it up separately somewhere might be a good idea. On the other hand, if you absolutely don't trust your remote storage provider, you might consider not storing it with the rest of the data. It would then be impossible to decrypt it at all, even if your password gets known later.
 
 The program does not have any facilities for sending your backup over the network. You can `rsync` the repo to another computer or use any kind of cloud storage capable of storing files. Since `zbackup` never modifies any existing files, the latter is especially easy -- just tell the upload tool you use not to upload any files which already exist on the remote side (e.g. with `gsutil` it's `gsutil cp -R -n /my/backup gs:/mybackup/`).
 
@@ -120,7 +120,7 @@ To aid with creating backups, there's an utility called `tartool` included with 
 # Scalability
 
 This section tries do address the question on the maximum amount of data which can be held in a backup repository. What is meant here is the deduplicated data. The number of bytes in all source files ever fed into the repository doesn't matter, but the total size of the resulting repository does.
-Internally all input data is split into small blocks called chunks (up to `64k` each by default). Blocks are collected into bundles (up to `2MB` each by default), and those bundles are then compressed and encrypted.
+Internally all input data is split into small blocks called chunks (up to `64k` each by default). Chunks are collected into bundles (up to `2MB` each by default), and those bundles are then compressed and encrypted.
 
 There are then two problems with the total number of chunks in the repository:
 
