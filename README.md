@@ -20,7 +20,7 @@ The program has the following features:
 
  * `cmake` >= 6.8.9 (though it should not be too hard to compile the sources by hand if needed)
  * `libssl-dev` for all encryption, hashing and random numbers
- * `libprotobuf-dev` for data serialization
+ * `libprotobuf-dev` and `protobuf-compiler` for data serialization
  * `liblzma-dev` for compression
  * `zlib1g-dev` for adler32 calcuation
 
