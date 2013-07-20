@@ -104,11 +104,11 @@ if (LIBLZMA_LIBRARY)
 endif ()
 
 include(FindPackageHandleStandardArgs)
-FIND_PACKAGE_HANDLE_STANDARD_ARGS(LibLZMA  LIBLZMA_INCLUDE_DIR
-                                                          LIBLZMA_LIBRARY
-                                                          LIBLZMA_HAS_AUTO_DECODER
-                                                          LIBLZMA_HAS_EASY_ENCODER
-                                                          LIBLZMA_HAS_LZMA_PRESET
+FIND_PACKAGE_HANDLE_STANDARD_ARGS(LibLZMA DEFAULT_MSG LIBLZMA_INCLUDE_DIR
+                                                      LIBLZMA_LIBRARY
+                                                      LIBLZMA_HAS_AUTO_DECODER
+                                                      LIBLZMA_HAS_EASY_ENCODER
+                                                      LIBLZMA_HAS_LZMA_PRESET
                                  )
 
 if (LIBLZMA_FOUND)
