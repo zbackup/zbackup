@@ -12,12 +12,21 @@
 #include "check.hh"
 #include "unbuffered_file.hh"
 
+
+#if (defined __APPLE__ || !defined lseek64)
+#define lseek64(a, b, c) lseek(a, b, c)
+#endif
+
+
 UnbufferedFile::UnbufferedFile( char const * fileName, Mode mode )
   throw( exCantOpen )
 {
-  int flags = O_LARGEFILE |
-              ( mode == WriteOnly ? ( O_WRONLY | O_CREAT | O_TRUNC ) :
+
+  int flags = ( mode == WriteOnly ? ( O_WRONLY | O_CREAT | O_TRUNC ) :
                                     O_RDONLY );
+#ifndef __APPLE__
+  flags |= O_LARGEFILE;
+#endif
   fd = open( fileName, flags, 0666 );
   if ( fd < 0 )
     throw exCantOpen( fileName );

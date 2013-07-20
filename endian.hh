@@ -6,7 +6,11 @@
 
 #include <stdint.h>
 #include <arpa/inet.h>
+#ifdef __APPLE__
+#include "/usr/include/machine/endian.h"
+#else
 #include <endian.h>
+#endif
 
 #if __BYTE_ORDER != __LITTLE_ENDIAN
 #error Please add support for architectures different from little-endian.
