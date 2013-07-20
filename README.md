@@ -49,7 +49,7 @@ If you have a lot of RAM to spare, you can use it to speed-up the restore proces
 If encryption is wanted, create a file with your password:
 
 ``` bash
-# more secure to to use an editor
+# more secure to use an editor
 echo mypassword > ~/.my_backup_password
 chmod 600 ~/.my_backup_password
 ```
