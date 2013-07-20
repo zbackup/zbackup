@@ -20,6 +20,13 @@ include_directories( ${OPENSSL_INCLUDE_DIR} )
 find_package( Protobuf REQUIRED )
 include_directories( ${PROTOBUF_INCLUDE_DIRS} )
 include_directories( ${CMAKE_CURRENT_BINARY_DIR} )
+
+find_program(PROTOBUF_PROTOC_CHECK NAMES protoc DOC "Protobuf compiler binary")
+
+IF(${PROTOBUF_PROTOC_CHECK} STREQUAL "PROTOBUF_PROTOC_CHECK-NOTFOUND")
+    MESSAGE(FATAL_ERROR "Could not find protobuf compiler. Make sure protobuf-compiler package is installed.")
+ENDIF(${PROTOBUF_PROTOC_CHECK} STREQUAL "PROTOBUF_PROTOC_CHECK-NOTFOUND")
+
 PROTOBUF_GENERATE_CPP( protoSrcs protoHdrs zbackup.proto )
 
 find_package( Threads REQUIRED )
