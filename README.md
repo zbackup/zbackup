@@ -18,7 +18,7 @@ The program has the following features:
 
 # Build dependencies
 
- * `cmake` >= 6.8.9 (though it should not be too hard to compile the sources by hand if needed)
+ * `cmake` >= 2.8.2 (though it should not be too hard to compile the sources by hand if needed)
  * `libssl-dev` for all encryption, hashing and random numbers
  * `libprotobuf-dev` and `protobuf-compiler` for data serialization
  * `liblzma-dev` for compression
