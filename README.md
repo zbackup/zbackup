@@ -39,7 +39,7 @@ sudo make install
 To use:
 
 ```bash
-zbackup init --non-enrypted /my/backup/repo
+zbackup init --non-encrypted /my/backup/repo
 tar c /my/precious/data | zbackup backup /my/backup/repo/backups/backup-`date '+%Y-%m-%d'`
 zbackup restore /my/backup/repo/backups/backup-`date '+%Y-%m-%d'` > /my/precious/backup-restored.tar
 ```
