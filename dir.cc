@@ -96,8 +96,13 @@ bool Listing::getNext( Entry & result )
     if ( !entryPtr )
       return false;
 
+#ifndef __APPLE__
     if ( fstatat( dirfd( dir ), entry.d_name, &entryStats,
                   AT_SYMLINK_NOFOLLOW ) != 0 )
+#else
+    if ( lstat( addPath( dirName, entry.d_name ).c_str(),
+                &entryStats ) != 0)
+#endif
       throw exCantList( dirName );
 
     bool isDir = S_ISDIR( entryStats.st_mode );
