@@ -1,8 +1,13 @@
 # Copyright (c) 2012-2013 Konstantin Isakov <ikm@zbackup.org>
 # Part of ZBackup. Licensed under GNU GPLv2 or later
 
-cmake_minimum_required( VERSION 2.8.9 )
+cmake_minimum_required( VERSION 2.8.2 )
 project( zbackup )
+
+if( ${CMAKE_VERSION} VERSION_LESS "2.8.9" )
+  # Use the included FindLibLZMA then
+  set( CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" )
+endif()
 
 set( CMAKE_BUILD_TYPE Release )
 
