@@ -7,7 +7,7 @@
 #include <stdint.h>
 #include <arpa/inet.h>
 #ifdef __APPLE__
-#include "/usr/include/machine/endian.h"
+#include "machine/endian.h"
 #else
 #include <endian.h>
 #endif
