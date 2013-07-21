@@ -29,9 +29,10 @@
 
 using std::vector;
 
-// 32-bit specific hash function for unsigned long long which is what uint64_t
-// is on 32-bit platforms
-#if SIZE_MAX == UINT32_MAX
+// 32-bit specific hash function for unsigned long long which is what
+// uint64_t is on 32-bit platforms. Also, on Mac, uint64_t is defined
+// as 'unsigned long long'.
+#if (SIZE_MAX == UINT32_MAX || defined __APPLE__)
 namespace __gnu_cxx
 {
   template<>
