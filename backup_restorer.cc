@@ -23,6 +23,11 @@ void restore( ChunkStorage::Reader & chunkStorageReader,
                                              backupData.size() );
   CodedInputStream cis( &is );
   CodedInputStream::Limit limit = cis.PushLimit( backupData.size() );
+  // The following line prevents it from barfing on large backupData.
+  // TODO: this disables size checks for each separate message. Figure a better
+  // way to do this while keeping them enabled. It seems we need to create an
+  // instance of CodedInputStream for each message, but it might be expensive
+  cis.SetTotalBytesLimit( backupData.size(), -1 );
 
   // Used when emitting chunks
   string chunk;
