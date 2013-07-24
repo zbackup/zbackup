@@ -29,20 +29,20 @@
 
 using std::vector;
 
-// 32-bit specific hash function for unsigned long long which is what
-// uint64_t is on 32-bit platforms. Also, on Mac, uint64_t is defined
-// as 'unsigned long long'.
-#if (SIZE_MAX == UINT32_MAX || defined __APPLE__)
+/// __gnu_cxx::hash is not defined for unsigned long long. As uint64_t is
+/// typedefed as unsigned long long on all 32-bit architectures and on some
+/// 64-bit ones, we need to define this. Our keys should have more or less
+/// uniform bit distribution, so on 32-bit systems returning the lower 32 bits
+/// should be fine
 namespace __gnu_cxx
 {
   template<>
   struct hash< unsigned long long >
   {
     size_t operator()( unsigned long long v ) const
-    { return v ^ ( v >> 32 ); }
+    { return v; }
   };
 }
-#endif
 
 /// Maintains an in-memory hash table allowing to check whether we have a
 /// specific chunk or not, and if we do, get the bundle id it's in
