@@ -372,7 +372,7 @@ int main( int argc, char *argv[] )
     if ( args.size() < 1 )
     {
       fprintf( stderr,
-"ZBackup, a versatile deduplicating backup tool, version 1.1\n"
+"ZBackup, a versatile deduplicating backup tool, version 1.2\n"
 "Copyright (c) 2012-2013 Konstantin Isakov <ikm@zbackup.org>\n"
 "Comes with no warranty. Licensed under GNU GPLv2 or later.\n"
 "Visit the project's home page at http://zbackup.org/\n\n"
