@@ -497,7 +497,9 @@ bool LZO1X_1_Encoder::do_process_no_size( const char* data_in, size_t avail_in,
   output_size = avail_out;
 
   lzo_voidp wrkmem = compression->getWorkmem(LZO1X_1_MEM_COMPRESS);
-  int ret = lzo1x_1_compress( (const lzo_bytep) data_in, avail_in,
+  int ret;
+  //DEBUG: for (int i=0;i<500;i++)
+  ret = lzo1x_1_compress( (const lzo_bytep) data_in, avail_in,
     (lzo_bytep) data_out, &output_size, wrkmem );
   compression->giveBackWorkmem(wrkmem);
 
