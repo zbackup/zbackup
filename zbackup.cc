@@ -13,6 +13,7 @@
 #include "backup_creator.hh"
 #include "backup_file.hh"
 #include "backup_restorer.hh"
+#include "compression.hh"
 #include "debug.hh"
 #include "dir.hh"
 #include "encryption_key.hh"
@@ -308,6 +309,7 @@ int main( int argc, char *argv[] )
     size_t threads = defaultThreads;
     size_t const defaultCacheSizeMb = 40;
     size_t cacheSizeMb = defaultCacheSizeMb;
+    bool print_help = false;
     vector< char const * > args;
 
     for( int x = 1; x < argc; ++x )
@@ -363,13 +365,44 @@ int main( int argc, char *argv[] )
         }
       }
       else
+      if ( strcmp( argv[ x ], "--lzo" ) == 0 )
+      {
+        const Compression* lzo = Compression::findCompression("lzo1x_1");
+        if ( !lzo )
+        {
+          fprintf( stderr, "zbackup is compiled without LZO support, but the code "
+            "would support it. If you install liblzo2 (including development files) "
+            "and recompile zbackup, you can use lzo.\n" );
+          return EXIT_FAILURE;
+        }
+        Compression::default_compression = lzo;
+      }
+      else
+      if ( strcmp( argv[ x ], "--lzma" ) == 0 )
+      {
+        const Compression* lzo = Compression::findCompression("lzma");
+        if ( !lzo )
+        {
+          fprintf( stderr, "zbackup is compiled without LZMA support, but the code "
+            "would support it. If you install liblzma (including development files) "
+            "and recompile zbackup, you can use lzo.\n" );
+          return EXIT_FAILURE;
+        }
+        Compression::default_compression = lzo;
+      }
+      else
+      if ( strcmp( argv[ x ], "--help" ) == 0 || strcmp( argv[ x ], "-h" ) == 0 )
+      {
+        print_help = true;
+      }
+      else
         args.push_back( argv[ x ] );
     }
 
     if ( nonEncrypted && passwordFile )
       throw exNonEncryptedWithKey();
 
-    if ( args.size() < 1 )
+    if ( args.size() < 1 || print_help )
     {
       fprintf( stderr,
 "ZBackup, a versatile deduplicating backup tool, version 1.2\n"
@@ -382,6 +415,7 @@ int main( int argc, char *argv[] )
 "         --silent (default is verbose)\n"
 "         --threads <number> (default is %zu on your system)\n"
 "         --cache-size <number> MB (default is %zu)\n"
+"         --lzma|--lzo\n"
 "  Commands:\n"
 "    init <storage path> - initializes new storage;\n"
 "    backup <backup file name> - performs a backup from stdin;\n"

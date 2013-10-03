@@ -4,24 +4,6 @@
 
 This is achieved by sliding a window with a rolling hash over the input at a byte granularity and checking whether the block in focus was ever met already. If a rolling hash matches, an additional full cryptographic hash is calculated to ensure the block is indeed the same. The deduplication happens then.
 
-This repository is a fork with lzo support. Lzo compresses much faster, but the file are bigger. If you don't
-want your backup process to be cpu-bound, lzo is really nice. However, there are two caveats:
-
-1. LZO is so fast that other parts of zbackup consume significant portions of the CPU. In fact, it is only
-   using one core on my machine because compression is the only thing that can run in parallel.
-2. I've hacked the LZO support in a day. You shouldn't trust it. Please make sure that restore works before
-   you assume that your data is safe. That may still be faster than a backup with LZMA ;-)
-3. LZMA is still the default, so make sure that you use the `--lzo` argument whenever you do a backup.
-
-**If you don't want to use LZO, I suggest that you use
-[the original repository](https://github.com/zbackup/zbackup).**
-
-You can mix LZMA and LZO in a repository. Each bundle file has a field that says how it was compressed, so
-zbackup will use the right method to decompress it. You could use an old zbackup respository with only LZMA
-bundles and start using LZO. However, please think twice before you do that because the normal zbackup won't
-be able to read those bundles. If you go down that route, you will have to use my fork until normal zbackup
-supports LZO (which may never happen or it might be incompatible).
-
 # Features
 
 The program has the following features:
@@ -154,6 +136,24 @@ All in all, as long as the amount of RAM permits, one can go up to several terab
   * `rsync` uses `MD5` as its strong hash. While `MD5` is known to be fast, it is also known to be broken, allowing a malicious user to craft colliding inputs. `zbackup` uses `SHA1` instead. The cost of `SHA1` calculations on modern machines is actually less than that of `MD5` (run `openssl speed md5 sha1` on yours), so it's a win-win situation. We only keep the first 128 bits of the `SHA1` output, and therefore together with the rolling hash we have a 192-bit hash for each chunk. It's a multiple of 8 bytes which is a nice properly on 64-bit machines, and it is long enough not to worry about possible collisions.
   * `AES-128` in `CBC` mode with `PKCS#7` padding is used for encryption. This seems to be a reasonbly safe classic solution. Each encrypted file has a random IV as its first 16 bytes.
   * We use Google's [protocol buffers](https://developers.google.com/protocol-buffers/) to represent data structures in binary form. They are very efficient and relatively simple to use.
+
+# LZO
+
+LZO compresses much faster, but the file are bigger. If you don't
+want your backup process to be cpu-bound, lzo is really nice. However, there are two caveats:
+
+1. LZO is so fast that other parts of zbackup consume significant portions of the CPU. In fact, it is only
+   using one core on my machine because compression is the only thing that can run in parallel.
+2. I've hacked the LZO support in a day. You shouldn't trust it. Please make sure that restore works before
+   you assume that your data is safe. That may still be faster than a backup with LZMA ;-)
+3. LZMA is still the default, so make sure that you use the `--lzo` argument whenever you do a backup.
+
+You can mix LZMA and LZO in a repository. Each bundle file has a field that says how it was compressed, so
+zbackup will use the right method to decompress it. You could use an old zbackup respository with only LZMA
+bundles and start using LZO. However, please think twice before you do that because the normal zbackup won't
+be able to read those bundles. If you go down that route, you will have to use my fork until normal zbackup
+supports LZO (which may never happen or it might be incompatible).
+
 
 # Improvements
 
