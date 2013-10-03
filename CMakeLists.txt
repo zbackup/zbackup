@@ -34,6 +34,15 @@ find_package( Threads REQUIRED )
 find_package( LibLZMA REQUIRED )
 include_directories( ${LIBLZMA_INCLUDE_DIRS} )
 
+find_package( LibLZO COMPONENTS LIBLZO_HAS_LZO1X_DECOMPRESS_SAFE LIBLZO_HAS_LZO1X_1_COMPRESS )
+if (LIBLZO_FOUND)
+  ADD_DEFINITIONS(-DHAVE_LIBLZO)
+  include_directories( ${LIBLZO_INCLUDE_DIRS} )
+else (LIBLZO_FOUND)
+  set(LIBLZO_LIBRARIES)
+endif (LIBLZO_FOUND)
+
+
 file( GLOB sourceFiles "*.cc" )
 add_executable( zbackup ${sourceFiles} ${protoSrcs} ${protoHdrs} )
 
@@ -43,6 +52,7 @@ target_link_libraries( zbackup
   ${CMAKE_THREAD_LIBS_INIT}
   ${ZLIB_LIBRARIES}
   ${LIBLZMA_LIBRARIES}
+  ${LIBLZO_LIBRARIES}
 )
 
 install( TARGETS zbackup DESTINATION bin )
