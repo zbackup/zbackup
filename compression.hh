@@ -31,7 +31,6 @@ public:
   // NOTE You must eventually set finish to true.
   // returns, whether all output bytes have been written
   virtual bool process(bool finish) =0;
-
 };
 
 // compression method
@@ -54,6 +53,27 @@ public:
   static const Compression* findCompression( const std::string& name, bool optional = false );
 
   static const Compression* default_compression;
+
+  class iterator {
+    friend class Compression;
+    
+    const Compression* const* ptr;
+    iterator(const Compression* const* ptr);
+  public:
+    iterator(const iterator& it);
+    iterator& operator =(const iterator& it);
+
+    bool operator ==(const iterator& other) const;
+    bool operator !=(const iterator& other) const;
+
+    bool at_end() const;
+
+    iterator& operator ++();
+
+    const Compression* operator *();
+  };
+  static iterator begin();
+  static iterator end();
 };
 
 #endif

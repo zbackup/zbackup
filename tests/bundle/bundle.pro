@@ -7,8 +7,11 @@ TARGET =
 DEPENDPATH += .
 INCLUDEPATH += .
 
-LIBS += -lcrypto -lprotobuf -lz -lprotobuf -llzma
+CONFIG = debug
+
+LIBS += -lcrypto -lprotobuf -lz -lprotobuf -llzma -llzo2
 DEFINES += __STDC_FORMAT_MACROS
+DEFINES += HAVE_LIBLZO
 
 # Input
 SOURCES += test_bundle.cc \

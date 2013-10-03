@@ -4,6 +4,7 @@
 #include <stdlib.h>
 //TODO don't use printf and sprintf...
 #include <stdio.h>
+#include <vector>
 #include "../../encrypted_file.hh"
 #include "../../encryption_key.hh"
 #include "../../random.hh"
@@ -11,10 +12,12 @@
 #include "../../check.hh"
 #include "../../adler32.hh"
 #include "../../bundle.hh"
+#include "../../compression.hh"
 
 char tmpbuf[100];
 
-void readAndWrite( EncryptionKey const & key )
+void readAndWrite( EncryptionKey const & key,
+  const Compression* compression1, const Compression* compression2 )
 {
   // temporary file for the bundle
   TmpMgr tmpMgr( "/dev/shm" );
@@ -22,9 +25,11 @@ void readAndWrite( EncryptionKey const & key )
 
   // some chunk data
   int     chunk_count = rand() % 30;
-  size_t  chunk_size  = 64*1024;
+  size_t  chunk_size  = rand() % 20 ? 64*1024 : 10;
   char**  chunks      = new char*[chunk_count];
   string* chunkIds    = new string[chunk_count];
+
+  Compression::default_compression = compression1;
 
   // write bundle
   {
@@ -44,6 +49,8 @@ void readAndWrite( EncryptionKey const & key )
 
     bundle.write( tempFile->getFileName().c_str(), key );
   }
+
+  Compression::default_compression = compression2;
 
   // read it and compare
   {
@@ -77,8 +84,23 @@ int main()
   EncryptionKey key( "blah", &keyInfo );
   EncryptionKey noKey( std::string(), NULL );
 
-  for ( size_t iteration = 100; iteration--; )
-    readAndWrite( ( rand() & 1 ) ? key : noKey );
+  std::vector<const Compression*> compressions;
+  for ( Compression::iterator it = Compression::begin(); it!=Compression::end(); ++it ) {
+    printf( "supported compression: %s\n", (*it)->getName().c_str() );
+    compressions.push_back( *it );
+  }
+
+  for ( size_t iteration = 100; iteration--; ) {
+    // default compression while writing the file
+    const Compression* compression1 = compressions[ rand() % compressions.size() ];
+    // default compression while reading the file
+    // The reader should ignore it and always use the compression that was used for the file.
+    const Compression* compression2 = compressions[ rand() % compressions.size() ];
+
+    readAndWrite( ( rand() & 1 ) ? key : noKey, compression1, compression2 );
+  }
 
   printf("\n");
+
+  return 0;
 }
