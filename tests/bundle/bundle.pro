@@ -24,6 +24,7 @@ SOURCES += test_bundle.cc \
     ../../bundle.cc \
     ../../message.cc \
     ../../hex.cc \
+    ../../compression.cc \
     ../../zbackup.pb.cc
 
 HEADERS += \
@@ -41,4 +42,5 @@ HEADERS += \
     ../../bundle.hh \
     ../../message.hh \
     ../../hex.hh \
+    ../../compression.hh \
     ../../zbackup.pb.h
