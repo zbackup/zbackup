@@ -1,0 +1,27 @@
+Source: zbackup
+Section: utils
+Priority: optional
+Maintainer: Benjamin Koch <bbbsnowball@gmail.com>
+Build-Depends: debhelper (>= 8.0.0), cmake (>= 2.8.2), libssl-dev, libprotobuf-dev, liblzma-dev, liblzo2-dev, zlib1g-dev, libc6-dev
+Standards-Version: 3.9.2
+Homepage: http://zbackup.org/
+Vcs-Git: https://github.com/zbackup/zbackup
+Vcs-Browser: https://github.com/zbackup/zbackup
+
+Package: zbackup
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}, libssl1.0.0, libprotobuf7, liblzma5, liblzo2-2, zlib1g, libc6
+Description: <insert up to 60 chars de
+ zbackup is a globally-deduplicating backup tool, based on the ideas found in rsync. Feed a large
+ .tar into it, and it will store duplicate regions of it only once, then compress and optionally 
+ encrypt the result. Feed another .tar file, and it will also re-use any data found in any previous
+ backups. This way only new changes are stored, and as long as the files are not very different, the
+ amount of storage required is very low. Any of the backup files stored previously can be read back in
+ full at any time. The program is format-agnostic, so you can feed virtually any files to it (any types
+ of archives, proprietary formats, even raw disk images -- but see Caveats).
+ .
+ This is achieved by sliding a window with a rolling hash over the input at a byte granularity and
+ checking whether the block in focus was ever met already. If a rolling hash matches, an additional
+ full cryptographic hash is calculated to ensure the block is indeed the same. The deduplication
+ happens then.
+

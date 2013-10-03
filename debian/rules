@@ -1,0 +1,38 @@
+#!/usr/bin/make -f
+# -*- makefile -*-
+# Sample debian/rules that uses debhelper.
+# This file was originally written by Joey Hess and Craig Small.
+# As a special exception, when this file is copied by dh-make into a
+# dh-make output file, you may use that output file without restriction.
+# This special exception was added by Craig Small in version 0.37 of dh-make.
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+#include /usr/share/cdbs/1/rules/debhelper.mk
+#include /usr/share/cdbs/1/class/cmake.mk
+
+%:
+	dh $@ 
+
+clean:
+	[ -e Makefile ] && make clean
+	cd tartool ; [ -e Makefile ] && make clean
+	rm -rf Makefile CMakeCache.txt tartool/Makefile tartool/CMakeCache.txt tests/*/*.o \
+		tests/bundle/bundle tests/encrypted_file/encrypted_file tests/rolling_hash/rolling_hash
+
+build:
+	cmake .
+	make zbackup
+	cd tartool ; cmake . && make tartool
+
+binary:
+	dh_prep
+	dh_gencontrol
+	install -d debian/zbackup/usr/bin
+	install -s -m 0755 zbackup debian/zbackup/usr/bin/zbackup
+	install -s -m 0755 tartool/tartool debian/zbackup/usr/bin/tartool
+	install -d debian/zbackup/usr/share/doc/zbackup
+	install -m 0644 README.md debian/zbackup/usr/share/doc/zbackup/
+	install -m 0644 LICENSE   debian/zbackup/usr/share/doc/zbackup/
+	dh_builddeb
