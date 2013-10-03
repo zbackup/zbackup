@@ -4,11 +4,29 @@
 
 This is achieved by sliding a window with a rolling hash over the input at a byte granularity and checking whether the block in focus was ever met already. If a rolling hash matches, an additional full cryptographic hash is calculated to ensure the block is indeed the same. The deduplication happens then.
 
+This repository is a fork with lzo support. Lzo compresses much faster, but the file are bigger. If you don't
+want your backup process to be cpu-bound, lzo is really nice. However, there are two caveats:
+
+1. LZO is so fast that other parts of zbackup consume significant portions of the CPU. In fact, it is only
+   using one core on my machine because compression is the only thing that can run in parallel.
+2. I've hacked the LZO support in a day. You shouldn't trust it. Please make sure that restore works before
+   you assume that your data is safe. That may still be faster than a backup with LZMA ;-)
+3. LZMA is still the default, so make sure that you use the `--lzo` argument whenever you do a backup.
+
+**If you don't want to use LZO, I suggest that you use
+[the original repository](https://github.com/zbackup/zbackup).**
+
+You can mix LZMA and LZO in a repository. Each bundle file has a field that says how it was compressed, so
+zbackup will use the right method to decompress it. You could use an old zbackup respository with only LZMA
+bundles and start using LZO. However, please think twice before you do that because the normal zbackup won't
+be able to read those bundles. If you go down that route, you will have to use my fork until normal zbackup
+supports LZO (which may never happen or it might be incompatible).
+
 # Features
 
 The program has the following features:
 
- * Parallel LZMA compression of the stored data
+ * Parallel LZMA and LZO compression of the stored data
  * Built-in AES encryption of the stored data
  * Possibility to delete old backup data in the future
  * Use of a 64-bit rolling hash, keeping the amount of soft collisions to zero
@@ -22,6 +40,7 @@ The program has the following features:
  * `libssl-dev` for all encryption, hashing and random numbers
  * `libprotobuf-dev` and `protobuf-compiler` for data serialization
  * `liblzma-dev` for compression
+ * `liblzo2-dev` for compression
  * `zlib1g-dev` for adler32 calculation
 
 # Quickstart
