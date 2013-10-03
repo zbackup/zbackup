@@ -13,6 +13,7 @@ install_manifest.txt
 /tests/*/*.o
 /tests/encrypted_file/encrypted_file
 /tests/rolling_hash/rolling_hash
+/tests/bundle/bundle
 
 # build results
 /zbackup
