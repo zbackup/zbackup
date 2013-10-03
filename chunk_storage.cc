@@ -108,7 +108,6 @@ void Writer::finishCurrentBundle()
 
   // Wait for some compressors to finish if there are too many of them
   Lock _( runningCompressorsMutex );
-  //printf("runningCompressors: %d\n", runningCompressors);
   while ( runningCompressors >= maxCompressorsToRun )
     runningCompressorsCondition.wait( runningCompressorsMutex );
 

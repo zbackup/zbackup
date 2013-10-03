@@ -10,7 +10,6 @@ if( ${CMAKE_VERSION} VERSION_LESS "2.8.9" )
 endif()
 
 set( CMAKE_BUILD_TYPE Release )
-#set( CMAKE_BUILD_TYPE Debug )
 
 find_package( ZLIB REQUIRED )
 include_directories( ${ZLIB_INCLUDE_DIRS} )

@@ -56,7 +56,7 @@ public:
 
   class iterator {
     friend class Compression;
-    
+
     const Compression* const* ptr;
     iterator(const Compression* const* ptr);
   public:

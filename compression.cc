@@ -497,9 +497,7 @@ bool LZO1X_1_Encoder::do_process_no_size( const char* data_in, size_t avail_in,
   output_size = avail_out;
 
   lzo_voidp wrkmem = compression->getWorkmem(LZO1X_1_MEM_COMPRESS);
-  int ret;
-  //DEBUG: for (int i=0;i<500;i++)
-  ret = lzo1x_1_compress( (const lzo_bytep) data_in, avail_in,
+  int ret = lzo1x_1_compress( (const lzo_bytep) data_in, avail_in,
     (lzo_bytep) data_out, &output_size, wrkmem );
   compression->giveBackWorkmem(wrkmem);
 
@@ -507,15 +505,6 @@ bool LZO1X_1_Encoder::do_process_no_size( const char* data_in, size_t avail_in,
     return false;
 
   CHECK( ret >= LZO_E_OK, "lzo1x_1_compress failed (code %d)", ret );
-
-  //DEBUG
-  /*char* tmp = new char[avail_in+10];
-  size_t decompressed = avail_in+10;
-  ret = lzo1x_decompress_safe( (lzo_bytep) data_out, output_size, (lzo_bytep) tmp, &decompressed, NULL );
-  CHECK( ret >= LZO_E_OK, "decompressing immediately after compressing failed (code %d)", ret );
-  CHECK( avail_in == decompressed, "decompressed size is wrong: %lu != %lu", decompressed, avail_in );
-  CHECK( memcmp( tmp, data_in, avail_in ) == 0, "decompressed data is wrong" );
-  delete[] tmp;*/
 
   return true;
 }
