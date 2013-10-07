@@ -367,12 +367,12 @@ int main( int argc, char *argv[] )
       else
       if ( strcmp( argv[ x ], "--lzo" ) == 0 )
       {
-        const Compression* lzo = Compression::findCompression("lzo1x_1");
+        const_sptr<Compression> lzo = Compression::findCompression( "lzo1x_1" );
         if ( !lzo )
         {
           fprintf( stderr, "zbackup is compiled without LZO support, but the code "
             "would support it. If you install liblzo2 (including development files) "
-            "and recompile zbackup, you can use lzo.\n" );
+            "and recompile zbackup, you can use LZO.\n" );
           return EXIT_FAILURE;
         }
         Compression::default_compression = lzo;
@@ -380,15 +380,15 @@ int main( int argc, char *argv[] )
       else
       if ( strcmp( argv[ x ], "--lzma" ) == 0 )
       {
-        const Compression* lzo = Compression::findCompression("lzma");
-        if ( !lzo )
+        const_sptr<Compression> lzma = Compression::findCompression( "lzma" );
+        if ( !lzma )
         {
           fprintf( stderr, "zbackup is compiled without LZMA support, but the code "
             "would support it. If you install liblzma (including development files) "
-            "and recompile zbackup, you can use lzo.\n" );
+            "and recompile zbackup, you can use LZMA.\n" );
           return EXIT_FAILURE;
         }
-        Compression::default_compression = lzo;
+        Compression::default_compression = lzma;
       }
       else
       if ( strcmp( argv[ x ], "--help" ) == 0 || strcmp( argv[ x ], "-h" ) == 0 )

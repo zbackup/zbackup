@@ -8,7 +8,7 @@ This is achieved by sliding a window with a rolling hash over the input at a byt
 
 The program has the following features:
 
- * Parallel LZMA compression of the stored data
+ * Parallel LZMA or LZO compression of the stored data
  * Built-in AES encryption of the stored data
  * Possibility to delete old backup data in the future
  * Use of a 64-bit rolling hash, keeping the amount of soft collisions to zero
@@ -22,6 +22,7 @@ The program has the following features:
  * `libssl-dev` for all encryption, hashing and random numbers
  * `libprotobuf-dev` and `protobuf-compiler` for data serialization
  * `liblzma-dev` for compression
+ * `liblzo2-dev` for compression (optional)
  * `zlib1g-dev` for adler32 calculation
 
 # Quickstart
@@ -135,6 +136,25 @@ All in all, as long as the amount of RAM permits, one can go up to several terab
   * `rsync` uses `MD5` as its strong hash. While `MD5` is known to be fast, it is also known to be broken, allowing a malicious user to craft colliding inputs. `zbackup` uses `SHA1` instead. The cost of `SHA1` calculations on modern machines is actually less than that of `MD5` (run `openssl speed md5 sha1` on yours), so it's a win-win situation. We only keep the first 128 bits of the `SHA1` output, and therefore together with the rolling hash we have a 192-bit hash for each chunk. It's a multiple of 8 bytes which is a nice properly on 64-bit machines, and it is long enough not to worry about possible collisions.
   * `AES-128` in `CBC` mode with `PKCS#7` padding is used for encryption. This seems to be a reasonbly safe classic solution. Each encrypted file has a random IV as its first 16 bytes.
   * We use Google's [protocol buffers](https://developers.google.com/protocol-buffers/) to represent data structures in binary form. They are very efficient and relatively simple to use.
+
+# Compression
+
+zbackup uses LZMA to compress stored data. It compresses very well, but it will slow down your backup (unless
+you have a very fast CPU).
+
+LZO is much faster, but the files will be bigger. If you don't
+want your backup process to be cpu-bound, you should consider using LZO. However, there are some caveats:
+
+1. LZO is so fast that other parts of zbackup consume significant portions of the CPU. In fact, it is only
+   using one core on my machine because compression is the only thing that can run in parallel.
+2. I've hacked the LZO support in a day. You shouldn't trust it. Please make sure that restore works before
+   you assume that your data is safe. That may still be faster than a backup with LZMA ;-)
+3. LZMA is still the default, so make sure that you use the `--lzo` argument whenever you do a backup.
+
+You can mix LZMA and LZO in a repository. Each bundle file has a field that says how it was compressed, so
+zbackup will use the right method to decompress it. You could use an old zbackup respository with only LZMA
+bundles and start using LZO. However, please think twice before you do that because old versions of zbackup
+won't be able to read those bundles.
 
 # Improvements
 

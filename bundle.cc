@@ -37,7 +37,7 @@ void Creator::write( std::string const & fileName, EncryptionKey const & key )
   header.set_version( FileFormatVersion );
   Message::serialize( header, os );
 
-  const Compression* compression = Compression::default_compression;
+  const_sptr<Compression> compression = Compression::default_compression;
   info.set_compression_method( compression->getName() );
 
   Message::serialize( info, os );
@@ -45,7 +45,7 @@ void Creator::write( std::string const & fileName, EncryptionKey const & key )
 
   // Compress
 
-  EnDecoder* encoder = compression->getEncoder();
+  sptr<EnDecoder> encoder = compression->createEncoder();
 
   encoder->setInput( payload.data(), payload.size() );
 
@@ -58,7 +58,6 @@ void Creator::write( std::string const & fileName, EncryptionKey const & key )
       int size;
       if ( !os.Next( &data, &size ) )
       {
-        delete encoder;
         throw exBundleWriteFailed();
       }
       if ( !size )
@@ -74,8 +73,6 @@ void Creator::write( std::string const & fileName, EncryptionKey const & key )
       break;
     }
   }
-
-	delete encoder;
 
   os.writeAdler32();
 }
@@ -102,7 +99,7 @@ Reader::Reader( string const & fileName, EncryptionKey const & key )
 
   payload.resize( payloadSize );
 
-  EnDecoder* decoder = Compression::findCompression( info.compression_method() )->getDecoder();
+  sptr<EnDecoder> decoder = Compression::findCompression( info.compression_method() )->createDecoder();
 
   decoder->setOutput( &payload[ 0 ], payload.size() );
 
@@ -113,7 +110,6 @@ Reader::Reader( string const & fileName, EncryptionKey const & key )
       int size;
       if ( !is.Next( &data, &size ) )
       {
-        delete decoder;
         throw exBundleReadFailed();
       }
       if ( !size )
@@ -130,12 +126,9 @@ Reader::Reader( string const & fileName, EncryptionKey const & key )
     if ( !decoder->getAvailableOutput() && decoder->getAvailableInput() )
     {
       // Apparently we have more data than we were expecting
-      delete decoder;
       throw exTooMuchData();
     }
   }
-
-  delete decoder;
 
   is.checkAdler32();
 

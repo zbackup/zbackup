@@ -74,6 +74,9 @@ public:
   { if ( &other != this ) { reset(); p = other.p; count = other.count; increment(); }
     return * this; }
 
+  operator bool( void ) const
+  { return !!p; }
+
   bool operator ! ( void ) const
   { return !p; }
 

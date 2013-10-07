@@ -1,60 +1,71 @@
 // Copyright (c) 2012-2013 Konstantin Isakov <ikm@zbackup.org>
 // Part of ZBackup. Licensed under GNU GPLv2 or later
 
+#include <string>
+
 #include "compression.hh"
 #include "check.hh"
 
 EnDecoder::EnDecoder() { }
 EnDecoder::EnDecoder(const EnDecoder&) { }
-EnDecoder::~EnDecoder() {}
+EnDecoder::~EnDecoder() { }
 
-Compression::~Compression() {}
+Compression::~Compression() { }
 
 
 // LZMA
 
 #include <lzma.h>
 
-class LZMAEnDecoder : public EnDecoder {
+class LZMAEnDecoder : public EnDecoder
+{
 protected:
   static lzma_stream init_value;
   lzma_stream strm;
 public:
-  LZMAEnDecoder() {
+  LZMAEnDecoder()
+  {
     strm = init_value;
   }
 
-  void setInput(const void* data, size_t size) {
+  void setInput( const void* data, size_t size )
+  {
     strm.next_in  = (const uint8_t *) data;
     strm.avail_in = size;
   }
 
-  void setOutput(void* data, size_t size) {
+  void setOutput( void* data, size_t size )
+  {
     strm.next_out  = (uint8_t *) data;
     strm.avail_out = size;
   }
 
-  size_t getAvailableInput() {
+  size_t getAvailableInput()
+  {
     return strm.avail_in;
   }
 
-  size_t getAvailableOutput() {
+  size_t getAvailableOutput()
+  {
     return strm.avail_out;
   }
 
-  bool process(bool finish) {
+  bool process( bool finish )
+  {
     lzma_ret ret = lzma_code( &strm, ( finish ? LZMA_FINISH : LZMA_RUN ) );
 
     CHECK( ret == LZMA_OK || ret == LZMA_STREAM_END, "lzma_code error: %d", (int) ret );
 
-    return (ret == LZMA_STREAM_END);
+    return ( ret == LZMA_STREAM_END );
   }
 };
 lzma_stream LZMAEnDecoder::init_value = LZMA_STREAM_INIT;
 
-class LZMAEncoder : public LZMAEnDecoder {
+class LZMAEncoder : public LZMAEnDecoder
+{
 public:
-  LZMAEncoder() {
+  LZMAEncoder()
+  {
     uint32_t preset = 6; // TODO: make this customizable, although 6 seems to be
                          // the best option
     lzma_ret ret = lzma_easy_encoder( &strm, preset, LZMA_CHECK_CRC64 );
@@ -62,21 +73,26 @@ public:
   }
 };
 
-class LZMADecoder : public LZMAEnDecoder {
+class LZMADecoder : public LZMAEnDecoder
+{
 public:
-  LZMADecoder() {
+  LZMADecoder()
+  {
     lzma_ret ret = lzma_stream_decoder( &strm, UINT64_MAX, 0 );
     CHECK( ret == LZMA_OK,"lzma_stream_decoder error: %d", (int) ret );
   }
 };
 
-class LZMACompression : public Compression {
+class LZMACompression : public Compression
+{
 public:
-  EnDecoder* getEncoder() const {
+  sptr<EnDecoder> createEncoder() const
+  {
     return new LZMAEncoder();
   }
 
-  EnDecoder* getDecoder() const {
+  sptr<EnDecoder> createDecoder() const
+  {
     return new LZMADecoder();
   }
 
@@ -105,7 +121,8 @@ public:
 // so we can use it, if there is another library like liblzo.
 
 // Collect all data and process it in one pass
-class NoStreamEnDecoder : public EnDecoder {
+class NoStreamEnDecoder : public EnDecoder
+{
   std::string acc_data_in, acc_data_out;
   const char* data_in;
   char* data_out;
@@ -138,42 +155,52 @@ protected:
   virtual bool do_process( const char* data_in, size_t avail_in,
     char* data_out, size_t avail_out, size_t& output_size ) =0;
 
-  void setUnusedInput( size_t unused ) {
+  void setUnusedInput( size_t unused )
+  {
     this->data_in += avail_in - unused;
     this->avail_in = unused;
   }
 public:
-  NoStreamEnDecoder() {
+  NoStreamEnDecoder()
+  {
     data_in = data_out = NULL;
     avail_in = avail_out = pos_in_acc_data_out = 0;
     processed = false;
   }
 
-  void setInput(const void* data, size_t size) {
+  void setInput( const void* data, size_t size )
+  {
     data_in  = (const char *) data;
     avail_in = size;
   }
 
-  void setOutput(void* data, size_t size) {
+  void setOutput( void* data, size_t size )
+  {
     data_out  = (char *) data;
     avail_out = size;
   }
 
-  size_t getAvailableInput() {
+  size_t getAvailableInput()
+  {
     return avail_in;
   }
 
-  size_t getAvailableOutput() {
+  size_t getAvailableOutput()
+  {
     return avail_out;
   }
 
-  bool process(bool finish) {
+  bool process( bool finish )
+  {
     // try to process the input, if we haven't done it, yet
-    if ( !processed ) {
+    if ( !processed )
+    {
       // data has not been encoded
-      if ( acc_data_in.empty() ) {
+      if ( acc_data_in.empty() )
+      {
         // this is the first piece of data
-        if ( finish || isCompleteInput( data_in, avail_in ) ) {
+        if ( finish || isCompleteInput( data_in, avail_in ) )
+        {
           // special case: all the data has been passed at once
           // -> process it without using acc_data_in
           process_finish( data_in, avail_in );
@@ -181,22 +208,26 @@ public:
       }
 
       // if we didn't process the data, put it into accumulator
-      if ( !processed ) {
+      if ( !processed )
+      {
         // accumulate data in acc_data_in
         acc_data_in.append( data_in, avail_in );
 
         // If this was the last bit of data, we process it, now.
-        if ( finish || isCompleteInput( acc_data_in.data(), acc_data_in.size() ) ) {
+        if ( finish || isCompleteInput( acc_data_in.data(), acc_data_in.size() ) )
+        {
           process_finish( acc_data_in.data(), acc_data_in.size() );
         }
       }
     }
 
     // If the input has been processed, try to copy some of it to the output buffer.
-    if ( processed ) {
+    if ( processed )
+    {
       // data has been encoded or decoded, remaining output is in acc_data_out
       // -> copy to output
-      if (avail_out > 0 && acc_data_out.size() - pos_in_acc_data_out > 0) {
+      if (avail_out > 0 && acc_data_out.size() - pos_in_acc_data_out > 0)
+      {
         size_t sz = avail_out;
         if ( sz > acc_data_out.size() - pos_in_acc_data_out )
           sz = acc_data_out.size() - pos_in_acc_data_out;
@@ -216,11 +247,14 @@ public:
   }
 
 private:
-  void process_finish(const char* data_in, size_t avail_in) {
+  void process_finish( const char* data_in, size_t avail_in )
+  {
     // should we try with the existing output buffer?
-    if ( shouldTryWith( data_in, avail_in, avail_out ) ) {
+    if ( shouldTryWith( data_in, avail_in, avail_out ) )
+    {
       size_t output_size;
-      if ( do_process( data_in, avail_in, data_out, avail_out, output_size ) ) {
+      if ( do_process( data_in, avail_in, data_out, avail_out, output_size ) )
+      {
         // it worked :-)
         processed = true;
         avail_out -= output_size;
@@ -236,7 +270,8 @@ private:
       size_t output_size;
       //TODO doc says we mustn't modify the pointer returned by data()...
       if ( do_process( data_in, avail_in,
-          (char*) acc_data_out.data(), buffer_size, output_size ) ) {
+          (char*) acc_data_out.data(), buffer_size, output_size ) )
+      {
         // buffer is big enough
         acc_data_out.resize( output_size );
         processed = true;
@@ -257,7 +292,8 @@ private:
 //     malicious person and there is nothing I can do about it. I could check for
 //     an overflow, but when control gets back to this class, it is already too
 //     late, as one 'ret' instruction is enough to do harm.
-class NoStreamAndUnknownSizeDecoder : public NoStreamEnDecoder {
+class NoStreamAndUnknownSizeDecoder : public NoStreamEnDecoder
+{
 protected:
   // You implement this one:
   // If you don't know the real decoded size, don't change output_size.
@@ -265,12 +301,14 @@ protected:
       char* data_out, size_t avail_out, size_t& output_size ) =0;
 
 
-  bool shouldTryWith( const char* data_in, size_t avail_in, size_t avail_out ) {
+  bool shouldTryWith( const char* data_in, size_t avail_in, size_t avail_out )
+  {
     return suggestOutputSize( data_in, avail_in ) <= avail_out;
   }
 
   // Is this input complete?
-  bool isCompleteInput( const char* data_in, size_t avail_in ) {
+  bool isCompleteInput( const char* data_in, size_t avail_in )
+  {
     if ( avail_in < 2*sizeof(uint64_t) )
       return false;
 
@@ -281,7 +319,8 @@ protected:
     return ( avail_in >= input_size + 2*sizeof(uint64_t) );
   }
 
-  size_t suggestOutputSize( const char* data_in, size_t avail_in ) {
+  size_t suggestOutputSize( const char* data_in, size_t avail_in )
+  {
     CHECK( avail_in >= sizeof(uint64_t), "not enough input data" );
     // We're not using size_t because we need a type that has the same size on all
     // architectures. A 32-bit host won't be able to open files with more than
@@ -294,7 +333,8 @@ protected:
   }
 
   bool do_process( const char* data_in, size_t avail_in,
-      char* data_out, size_t avail_out, size_t& output_size ) {
+      char* data_out, size_t avail_out, size_t& output_size )
+  {
     if ( avail_in < 2*sizeof( uint64_t ) )
       return false;
 
@@ -329,35 +369,41 @@ protected:
 };
 
 // encoder for NoStreamAndUnknownSizeDecoder
-class NoStreamAndUnknownSizeEncoder : public NoStreamEnDecoder {
+class NoStreamAndUnknownSizeEncoder : public NoStreamEnDecoder
+{
 protected:
   // You implement this one:
   virtual bool do_process_no_size( const char* data_in, size_t avail_in,
       char* data_out, size_t avail_out, size_t& output_size ) =0;
 
 
-  bool shouldTryWith( const char*, size_t, size_t avail_out ) {
+  bool shouldTryWith( const char*, size_t, size_t avail_out )
+  {
     // If the compression doesn't use any spaces...
     return avail_out > sizeof( uint64_t );
   }
 
-  bool isCompleteInput( const char* data_in, size_t avail_in ) {
+  bool isCompleteInput( const char* data_in, size_t avail_in )
+  {
     // We cannot know whether the user wants to send more data.
     // -> return false; user must use finish=true to signal end of data
     return false;
   }
 
-  size_t getOverhead() {
+  size_t getOverhead()
+  {
     return 2*sizeof( uint64_t );
   }
 
-  size_t suggestOutputSize( const char*, size_t avail_in ) {
+  size_t suggestOutputSize( const char*, size_t avail_in )
+  {
     // We assume that the compression won't make the data any bigger.
     return avail_in + getOverhead();
   }
 
   bool do_process( const char* data_in, size_t avail_in,
-      char* data_out, size_t avail_out, size_t& output_size ) {
+      char* data_out, size_t avail_out, size_t& output_size )
+  {
     CHECK( avail_in <= UINT32_MAX,
       "You want to compress more than 4GB of data?! Sorry, we don't support that, yet." );
 
@@ -391,10 +437,12 @@ protected:
 #include <lzo/lzo1x.h>
 
 // finally, we can implement lzo
-class LZO1X_1_Decoder : public NoStreamAndUnknownSizeDecoder {
+class LZO1X_1_Decoder : public NoStreamAndUnknownSizeDecoder
+{
 protected:
   bool do_process_no_size( const char* data_in, size_t avail_in,
-      char* data_out, size_t avail_out, size_t& output_size ) {
+      char* data_out, size_t avail_out, size_t& output_size )
+  {
     // same argument is used for available output size and size of decompressed data
     output_size = avail_out;
     int ret = lzo1x_decompress_safe( (const lzo_bytep) data_in, avail_in,
@@ -409,11 +457,13 @@ protected:
   }
 };
 class LZO1X_1_Compression;
-class LZO1X_1_Encoder : public NoStreamAndUnknownSizeEncoder {
+class LZO1X_1_Encoder : public NoStreamAndUnknownSizeEncoder
+{
   const LZO1X_1_Compression* compression;
   static size_t calcMaxCompressedSize(size_t avail_in);
 public:
-  LZO1X_1_Encoder(const LZO1X_1_Compression* compression) {
+  LZO1X_1_Encoder(const LZO1X_1_Compression* compression)
+  {
     this->compression = compression;
   }
 
@@ -423,23 +473,28 @@ protected:
   bool shouldTryWith( const char*, size_t, size_t avail_out );
   size_t suggestOutputSize( const char*, size_t avail_in );
 };
-class LZO1X_1_Compression : public Compression {
+class LZO1X_1_Compression : public Compression
+{
   static bool initialized;
-  static void init() {
+  static void init()
+  {
     //TODO This is not thread-safe. Does it have to be?
-    if (!initialized) {
+    if (!initialized)
+    {
       int ret = lzo_init();
       CHECK( ret == LZO_E_OK, "lzo_init failed (%d)", ret );
       initialized = true;
     }
   }
 public:
-  EnDecoder* getEncoder() const {
+  sptr<EnDecoder> createEncoder() const
+  {
     init();
     return new LZO1X_1_Encoder(this);
   }
 
-  EnDecoder* getDecoder() const {
+  sptr<EnDecoder> createDecoder() const
+  {
     init();
     return new LZO1X_1_Decoder();
   }
@@ -447,11 +502,13 @@ public:
   std::string getName() const { return "lzo1x_1"; }
 
 
-  lzo_voidp getWorkmem(size_t size) const {
+  lzo_voidp getWorkmem( size_t size ) const
+  {
     return new char[size];
   }
 
-  void giveBackWorkmem(lzo_voidp wrkmem) const {
+  void giveBackWorkmem( lzo_voidp wrkmem ) const
+  {
     //TODO I think we should keep the memory around and reuse it. After all
     //     it is only a few kilobytes and we will need it a lot. However, I
     //     won't risk anything here because I don't know whether this will be
@@ -463,7 +520,8 @@ public:
 bool LZO1X_1_Compression::initialized = false;
 
 
-size_t LZO1X_1_Encoder::calcMaxCompressedSize(size_t avail_in) {
+size_t LZO1X_1_Encoder::calcMaxCompressedSize( size_t avail_in )
+{
   // It seems that lzo1x_1_compress does NOT check whether the buffer is big enough.
   // The documentation refers to example/simple.c which says:
   // "Because the input block may be incompressible, we must provide a little more
@@ -472,11 +530,13 @@ size_t LZO1X_1_Encoder::calcMaxCompressedSize(size_t avail_in) {
   return (avail_in + avail_in / 16 + 64 + 3);
 }
 
-bool LZO1X_1_Encoder::shouldTryWith( const char* data_in, size_t avail_in, size_t avail_out ) {
+bool LZO1X_1_Encoder::shouldTryWith( const char* data_in, size_t avail_in, size_t avail_out )
+{
   return avail_out >= suggestOutputSize( data_in, avail_in );
 }
 
-size_t LZO1X_1_Encoder::suggestOutputSize( const char*, size_t avail_in ) {
+size_t LZO1X_1_Encoder::suggestOutputSize( const char*, size_t avail_in )
+{
   // It seems that lzo1x_1_compress does NOT check whether the buffer is big enough.
   // The documentation refers to example/simple.c which says:
   // "Because the input block may be incompressible, we must provide a little more
@@ -486,7 +546,8 @@ size_t LZO1X_1_Encoder::suggestOutputSize( const char*, size_t avail_in ) {
 }
 
 bool LZO1X_1_Encoder::do_process_no_size( const char* data_in, size_t avail_in,
-    char* data_out, size_t avail_out, size_t& output_size ) {
+    char* data_out, size_t avail_out, size_t& output_size )
+{
   // It seems that lzo1x_1_compress does NOT check whether the buffer is big enough.
   // Therefore, we won't try it unless we are sure that the buffer is big enough.
   if ( avail_out < calcMaxCompressedSize( avail_in ) )
@@ -514,7 +575,7 @@ bool LZO1X_1_Encoder::do_process_no_size( const char* data_in, size_t avail_in,
 
 // register them
 
-static const Compression* const compressions[] = {
+static const_sptr<Compression> const compressions[] = {
   new LZMACompression(),
 # ifdef HAVE_LIBLZO
   new LZO1X_1_Compression(),
@@ -523,11 +584,14 @@ static const Compression* const compressions[] = {
   NULL
 };
 
-const Compression* Compression::default_compression = compressions[0];
+const_sptr<Compression> Compression::default_compression = compressions[0];
 
-const Compression* Compression::findCompression( const std::string& name, bool optional ) {
-  for (const Compression* const* c = compressions+0; *c; ++c) {
-    if ( (*c)->getName() == name ) {
+const_sptr<Compression> Compression::findCompression( const std::string& name, bool optional )
+{
+  for ( const const_sptr<Compression>* c = compressions+0; *c; ++c )
+  {
+    if ( (*c)->getName() == name )
+    {
       return (*c);
     }
   }
@@ -537,15 +601,17 @@ const Compression* Compression::findCompression( const std::string& name, bool o
 
 // iterator over compressions
 
-Compression::iterator::iterator(const Compression* const* ptr) : ptr(   ptr) { }
-Compression::iterator::iterator(const iterator&            it) : ptr(it.ptr) { }
+Compression::iterator::iterator( const const_sptr<Compression>* ptr ) : ptr(   ptr) { }
+Compression::iterator::iterator( const iterator&                 it ) : ptr(it.ptr) { }
 
-Compression::iterator& Compression::iterator::operator =(const iterator& it) {
+Compression::iterator& Compression::iterator::operator =( const iterator& it )
+{
   this->ptr = it.ptr;
   return *this;
 }
 
-bool Compression::iterator::operator ==(const iterator& other) const {
+bool Compression::iterator::operator ==( const iterator& other ) const
+{
   // special case: one has ptr==NULL (end iterator returned by end()) and the
   // other has *ptr==NULL (end iterator obtained by calling ++)
   if ( !ptr && ( !other.ptr || !*other.ptr ) )
@@ -555,15 +621,18 @@ bool Compression::iterator::operator ==(const iterator& other) const {
   else
     return (ptr == other.ptr);
 }
-bool Compression::iterator::operator !=(const iterator& other) const {
+bool Compression::iterator::operator !=( const iterator& other ) const
+{
   return !( *this == other );
 }
 
-bool Compression::iterator::at_end() const {
+bool Compression::iterator::at_end() const
+{
   return !ptr || !*ptr;
 }
 
-Compression::iterator& Compression::iterator::operator ++() {
+Compression::iterator& Compression::iterator::operator ++()
+{
   CHECK( ptr && *ptr, "Cannot increment the end iterator" );
 
   ++ptr;
@@ -571,15 +640,18 @@ Compression::iterator& Compression::iterator::operator ++() {
   return *this;
 }
 
-const Compression* Compression::iterator::operator *() {
+const_sptr<Compression> Compression::iterator::operator *()
+{
   CHECK( ptr && *ptr, "Cannot dereference the end iterator" );
 
   return *ptr;
 }
 
-Compression::iterator Compression::begin() {
+Compression::iterator Compression::begin()
+{
   return iterator(compressions);
 }
-Compression::iterator Compression::end() {
+Compression::iterator Compression::end()
+{
   return iterator(NULL);
 }

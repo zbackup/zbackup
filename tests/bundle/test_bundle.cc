@@ -2,7 +2,6 @@
 // Part of ZBackup. Licensed under GNU GPLv2 or later
 
 #include <stdlib.h>
-//TODO don't use printf and sprintf...
 #include <stdio.h>
 #include <vector>
 #include "../../encrypted_file.hh"
@@ -17,7 +16,7 @@
 char tmpbuf[100];
 
 void readAndWrite( EncryptionKey const & key,
-  const Compression* compression1, const Compression* compression2 )
+  const_sptr<Compression> compression1, const_sptr<Compression> compression2 )
 {
   // temporary file for the bundle
   TmpMgr tmpMgr( "/dev/shm" );
@@ -84,7 +83,7 @@ int main()
   EncryptionKey key( "blah", &keyInfo );
   EncryptionKey noKey( std::string(), NULL );
 
-  std::vector<const Compression*> compressions;
+  std::vector< const_sptr<Compression> > compressions;
   for ( Compression::iterator it = Compression::begin(); it!=Compression::end(); ++it ) {
     printf( "supported compression: %s\n", (*it)->getName().c_str() );
     compressions.push_back( *it );
@@ -92,10 +91,10 @@ int main()
 
   for ( size_t iteration = 100; iteration--; ) {
     // default compression while writing the file
-    const Compression* compression1 = compressions[ rand() % compressions.size() ];
+    const_sptr<Compression> compression1 = compressions[ rand() % compressions.size() ];
     // default compression while reading the file
     // The reader should ignore it and always use the compression that was used for the file.
-    const Compression* compression2 = compressions[ rand() % compressions.size() ];
+    const_sptr<Compression> compression2 = compressions[ rand() % compressions.size() ];
 
     readAndWrite( ( rand() & 1 ) ? key : noKey, compression1, compression2 );
   }
