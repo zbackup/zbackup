@@ -33,12 +33,11 @@ void Creator::write( std::string const & fileName, EncryptionKey const & key )
 
   os.writeRandomIv();
 
-  FileHeader header;
+  BundleFileHeader header;
   header.set_version( FileFormatVersion );
-  Message::serialize( header, os );
-
   const_sptr<Compression> compression = Compression::default_compression;
-  info.set_compression_method( compression->getName() );
+  header.set_compression_method( compression->getName() );
+  Message::serialize( header, os );
 
   Message::serialize( info, os );
   os.writeAdler32();
@@ -48,8 +47,6 @@ void Creator::write( std::string const & fileName, EncryptionKey const & key )
   sptr<EnDecoder> encoder = compression->createEncoder();
 
   encoder->setInput( payload.data(), payload.size() );
-
-  // deliberately break the test: ((uint8_t*)strm.next_in)[10] = 7;
 
   for ( ; ; )
   {
@@ -83,7 +80,7 @@ Reader::Reader( string const & fileName, EncryptionKey const & key )
 
   is.consumeRandomIv();
 
-  FileHeader header;
+  BundleFileHeader header;
   Message::parse( header, is );
 
   if ( header.version() != FileFormatVersion )
@@ -99,7 +96,7 @@ Reader::Reader( string const & fileName, EncryptionKey const & key )
 
   payload.resize( payloadSize );
 
-  sptr<EnDecoder> decoder = Compression::findCompression( info.compression_method() )->createDecoder();
+  sptr<EnDecoder> decoder = Compression::findCompression( header.compression_method() )->createDecoder();
 
   decoder->setOutput( &payload[ 0 ], payload.size() );
 

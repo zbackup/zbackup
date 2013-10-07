@@ -53,20 +53,23 @@ message BundleInfo
 
   // A sequence of chunk records
   repeated ChunkRecord chunk_record = 1;
-
-  // Compression method that is used for this file
-  // If the program doesn't support that field, it will try LZMA. If it is
-  // LZMA, that will work. If it isn't, liblzma will recognize this and abort.
-  //NOTE If I was mainting this code (instead of adding this without asking for
-  //     permission or support), I would probably use a string and I would
-  //     definetly use tag 2 instead of 101.
-  optional string compression_method = 101 [default = "lzma"];
 }
 
 message FileHeader
 {
   // File format version
   required uint32 version = 1;
+}
+
+message BundleFileHeader
+{
+  // File format version
+  required uint32 version = 1;
+
+  // Compression method that is used for this file
+  // If the program doesn't support that field, it will try LZMA. If it is
+  // LZMA, that will work. If it isn't, liblzma will recognize this and abort.
+  optional string compression_method = 2 [default = "lzma"];
 }
 
 message IndexBundleHeader

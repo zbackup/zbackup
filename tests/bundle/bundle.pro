@@ -46,4 +46,5 @@ HEADERS += \
     ../../message.hh \
     ../../hex.hh \
     ../../compression.hh \
+    ../../message.hh \
     ../../zbackup.pb.h
