@@ -35,7 +35,7 @@ void Creator::write( std::string const & fileName, EncryptionKey const & key )
 
   BundleFileHeader header;
   header.set_version( FileFormatVersion );
-  const_sptr<Compression> compression = Compression::default_compression;
+  const_sptr<Compression> compression = Compression::defaultCompression;
   header.set_compression_method( compression->getName() );
   Message::serialize( header, os );
 

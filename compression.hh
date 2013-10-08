@@ -54,7 +54,7 @@ public:
   static const_sptr<Compression> findCompression(
     const std::string& name, bool optional = false );
 
-  static const_sptr<Compression> default_compression;
+  static const_sptr<Compression> defaultCompression;
 
   class iterator
   {
@@ -69,7 +69,7 @@ public:
     bool operator ==( const iterator& other ) const;
     bool operator !=( const iterator& other ) const;
 
-    bool at_end() const;
+    bool atEnd() const;
 
     iterator& operator ++();
 

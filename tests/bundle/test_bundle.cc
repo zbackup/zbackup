@@ -82,50 +82,50 @@ void readAndWrite( EncryptionKey const & key,
   sptr< TemporaryFile > tempFile = tmpMgr.makeTemporaryFile();
 
   // some chunk data
-  int     chunk_count = rand() % 30;
-  size_t  chunk_size  = rand() % 20 ? 64*1024 : 10;
-  char**  chunks      = new char*[chunk_count];
-  string* chunkIds    = new string[chunk_count];
+  int     chunkCount = rand() % 30;
+  size_t  chunkSize  = rand() % 20 ? 64*1024 : 10;
+  char**  chunks      = new char*[chunkCount];
+  string* chunkIds    = new string[chunkCount];
 
-  Compression::default_compression = compression1;
+  Compression::defaultCompression = compression1;
 
   // write bundle
   {
     Bundle::Creator bundle;
 
-    for (int i=0;i<chunk_count;i++) {
-      chunks[i] = new char[chunk_size];
-      Random::genaratePseudo( chunks[i], chunk_size );
+    for (int i=0;i<chunkCount;i++) {
+      chunks[i] = new char[chunkSize];
+      Random::genaratePseudo( chunks[i], chunkSize );
 
       //TODO make it look like a real Id (or even let it match the data)
       //TODO make sure we don't have any duplicate Ids
       sprintf(tmpbuf, "0x%08x", rand());
       chunkIds[i] = string(tmpbuf);
 
-      bundle.addChunk( chunkIds[i], chunks[i], chunk_size );
+      bundle.addChunk( chunkIds[i], chunks[i], chunkSize );
     }
 
     bundle.write( tempFile->getFileName().c_str(), key );
   }
 
-  Compression::default_compression = compression2;
+  Compression::defaultCompression = compression2;
 
   // read it and compare
   {
     Bundle::Reader bundle( tempFile->getFileName().c_str(), key );
 
-    for (int i=0;i<chunk_count;i++) {
+    for (int i=0;i<chunkCount;i++) {
       string data;
       size_t size;
       bool ret = bundle.get( chunkIds[i], data, size );
       CHECK( ret, "bundle.get returned false for chunk %d (%s)", i, chunkIds[i].c_str() );
-      CHECK( size == chunk_size, "wrong chunk size for chunk %d (%s)", i, chunkIds[i].c_str() );
-      CHECK( memcmp(data.c_str(), chunks[i], chunk_size) == 0, "wrong chunk data for chunk %d (%s)", i, chunkIds[i].c_str() );
+      CHECK( size == chunkSize, "wrong chunk size for chunk %d (%s)", i, chunkIds[i].c_str() );
+      CHECK( memcmp(data.c_str(), chunks[i], chunkSize) == 0, "wrong chunk data for chunk %d (%s)", i, chunkIds[i].c_str() );
     }
   }
 
   // clean up
-  for (int i=0;i<chunk_count;i++)
+  for (int i=0;i<chunkCount;i++)
     delete[] chunks[i];
   delete[] chunks;
   //TODO does that call the destructors?

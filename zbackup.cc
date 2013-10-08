@@ -309,7 +309,7 @@ int main( int argc, char *argv[] )
     size_t threads = defaultThreads;
     size_t const defaultCacheSizeMb = 40;
     size_t cacheSizeMb = defaultCacheSizeMb;
-    bool print_help = false;
+    bool printHelp = false;
     vector< char const * > args;
 
     for( int x = 1; x < argc; ++x )
@@ -375,7 +375,7 @@ int main( int argc, char *argv[] )
             "and recompile zbackup, you can use LZO.\n" );
           return EXIT_FAILURE;
         }
-        Compression::default_compression = lzo;
+        Compression::defaultCompression = lzo;
       }
       else
       if ( strcmp( argv[ x ], "--lzma" ) == 0 )
@@ -388,12 +388,12 @@ int main( int argc, char *argv[] )
             "and recompile zbackup, you can use LZMA.\n" );
           return EXIT_FAILURE;
         }
-        Compression::default_compression = lzma;
+        Compression::defaultCompression = lzma;
       }
       else
       if ( strcmp( argv[ x ], "--help" ) == 0 || strcmp( argv[ x ], "-h" ) == 0 )
       {
-        print_help = true;
+        printHelp = true;
       }
       else
         args.push_back( argv[ x ] );
@@ -402,7 +402,7 @@ int main( int argc, char *argv[] )
     if ( nonEncrypted && passwordFile )
       throw exNonEncryptedWithKey();
 
-    if ( args.size() < 1 || print_help )
+    if ( args.size() < 1 || printHelp )
     {
       fprintf( stderr,
 "ZBackup, a versatile deduplicating backup tool, version 1.2\n"
