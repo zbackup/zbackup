@@ -87,7 +87,7 @@ void ZBackupBase::initStorage( string const & storageDir,
     EncryptionKey::generate( password,
                              *storageInfo.mutable_encryption_key() );
 
-  storageInfo.set_default_compression_method( Compression::defaultCompression );
+  storageInfo.set_default_compression_method( Compression::CompressionMethod::defaultCompression->getName() );
 
   Paths paths( storageDir );
 
@@ -132,8 +132,9 @@ string ZBackupBase::deriveStorageDirFromBackupsFile( string const &
 void ZBackupBase::useDefaultCompressionMethod()
 {
   std::string compression_method_name = storageInfo.default_compression_method();
-  const_sptr<Compression> compression = Compression::findCompression( compression_method_name );
-  Compression::defaultCompression = compression;
+  const_sptr<Compression::CompressionMethod> compression
+      = Compression::CompressionMethod::findCompression( compression_method_name );
+  Compression::CompressionMethod::defaultCompression = compression;
 }
 
 ZBackup::ZBackup( string const & storageDir, string const & password,
@@ -377,7 +378,7 @@ int main( int argc, char *argv[] )
       else
       if ( strcmp( argv[ x ], "--lzo" ) == 0 )
       {
-        const_sptr<Compression> lzo = Compression::findCompression( "lzo1x_1" );
+        const_sptr<Compression::CompressionMethod> lzo = Compression::CompressionMethod::findCompression( "lzo1x_1" );
         if ( !lzo )
         {
           fprintf( stderr, "zbackup is compiled without LZO support, but the code "
@@ -385,13 +386,13 @@ int main( int argc, char *argv[] )
             "and recompile zbackup, you can use LZO.\n" );
           return EXIT_FAILURE;
         }
-        Compression::defaultCompression = lzo;
+        Compression::CompressionMethod::defaultCompression = lzo;
         forcedCompressionMethod = true;
       }
       else
       if ( strcmp( argv[ x ], "--lzma" ) == 0 )
       {
-        const_sptr<Compression> lzma = Compression::findCompression( "lzma" );
+        const_sptr<Compression::CompressionMethod> lzma = Compression::CompressionMethod::findCompression( "lzma" );
         if ( !lzma )
         {
           fprintf( stderr, "zbackup is compiled without LZMA support, but the code "
@@ -399,7 +400,7 @@ int main( int argc, char *argv[] )
             "and recompile zbackup, you can use LZMA.\n" );
           return EXIT_FAILURE;
         }
-        Compression::defaultCompression = lzma;
+        Compression::CompressionMethod::defaultCompression = lzma;
         forcedCompressionMethod = true;
       }
       else

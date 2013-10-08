@@ -14,6 +14,9 @@
 #include "../../compression.hh"
 #include "../../message.hh"
 
+using namespace Compression;
+
+
 char tmpbuf[100];
 
 void testCompatibility()
@@ -77,7 +80,7 @@ void testCompatibility()
 }
 
 void readAndWrite( EncryptionKey const & key,
-  const_sptr<Compression> compression1, const_sptr<Compression> compression2 )
+  const_sptr<CompressionMethod> compression1, const_sptr<CompressionMethod> compression2 )
 {
   // temporary file for the bundle
   TmpMgr tmpMgr( "/dev/shm" );
@@ -89,7 +92,7 @@ void readAndWrite( EncryptionKey const & key,
   char**  chunks      = new char*[chunkCount];
   string* chunkIds    = new string[chunkCount];
 
-  Compression::defaultCompression = compression1;
+  CompressionMethod::defaultCompression = compression1;
 
   // write bundle
   {
@@ -110,7 +113,7 @@ void readAndWrite( EncryptionKey const & key,
     bundle.write( tempFile->getFileName().c_str(), key );
   }
 
-  Compression::defaultCompression = compression2;
+  CompressionMethod::defaultCompression = compression2;
 
   // read it and compare
   {
@@ -146,18 +149,18 @@ int main()
 
   testCompatibility();
 
-  std::vector< const_sptr<Compression> > compressions;
-  for ( Compression::iterator it = Compression::begin(); it!=Compression::end(); ++it ) {
+  std::vector< const_sptr<CompressionMethod> > compressions;
+  for ( CompressionMethod::iterator it = CompressionMethod::begin(); it!=CompressionMethod::end(); ++it ) {
     printf( "supported compression: %s\n", (*it)->getName().c_str() );
     compressions.push_back( *it );
   }
 
   for ( size_t iteration = 100; iteration--; ) {
     // default compression while writing the file
-    const_sptr<Compression> compression1 = compressions[ rand() % compressions.size() ];
+    const_sptr<CompressionMethod> compression1 = compressions[ rand() % compressions.size() ];
     // default compression while reading the file
     // The reader should ignore it and always use the compression that was used for the file.
-    const_sptr<Compression> compression2 = compressions[ rand() % compressions.size() ];
+    const_sptr<CompressionMethod> compression2 = compressions[ rand() % compressions.size() ];
 
     readAndWrite( ( rand() & 1 ) ? key : noKey, compression1, compression2 );
   }

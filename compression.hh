@@ -5,6 +5,13 @@
 #define COMPRESSION_HH_INCLUDED__
 
 #include "sptr.hh"
+#include "ex.hh"
+
+
+namespace Compression {
+
+DEF_EX( Ex, "Compression exception", std::exception )
+DEF_EX_STR( exUnsupportedCompressionMethod, "Unsupported compression method: ", Ex )
 
 
 // used for encoding or decoding
@@ -35,10 +42,10 @@ public:
 };
 
 // compression method
-class Compression
+class CompressionMethod
 {
 public:
-  virtual ~Compression();
+  virtual ~CompressionMethod();
 
   // returns name of compression method
   // This name is saved in the file header of the compressed file.
@@ -48,20 +55,20 @@ public:
   virtual sptr<EnDecoder> createDecoder() const =0;
 
   // find a compression by name
-  // If optional is false, it will either return a valid Compression
+  // If optional is false, it will either return a valid CompressionMethod
   // object or abort the program. If optional is true, it will return
   // NULL, if it cannot find the a compression with that name.
-  static const_sptr<Compression> findCompression(
+  static const_sptr<CompressionMethod> findCompression(
     const std::string& name, bool optional = false );
 
-  static const_sptr<Compression> defaultCompression;
+  static const_sptr<CompressionMethod> defaultCompression;
 
   class iterator
   {
-    friend class Compression;
+    friend class CompressionMethod;
 
-    const const_sptr<Compression>* ptr;
-    iterator( const const_sptr<Compression>* ptr );
+    const const_sptr<CompressionMethod>* ptr;
+    iterator( const const_sptr<CompressionMethod>* ptr );
   public:
     iterator( const iterator& it );
     iterator& operator =( const iterator& it );
@@ -73,10 +80,12 @@ public:
 
     iterator& operator ++();
 
-    const_sptr<Compression> operator *();
+    const_sptr<CompressionMethod> operator *();
   };
   static iterator begin();
   static iterator end();
 };
+
+}
 
 #endif

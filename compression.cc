@@ -6,11 +6,13 @@
 #include "compression.hh"
 #include "check.hh"
 
+namespace Compression {
+
 EnDecoder::EnDecoder() { }
 EnDecoder::EnDecoder(const EnDecoder&) { }
 EnDecoder::~EnDecoder() { }
 
-Compression::~Compression() { }
+CompressionMethod::~CompressionMethod() { }
 
 
 // LZMA
@@ -83,7 +85,7 @@ public:
   }
 };
 
-class LZMACompression : public Compression
+class LZMACompression : public CompressionMethod
 {
 public:
   sptr<EnDecoder> createEncoder() const
@@ -475,7 +477,7 @@ protected:
   bool shouldTryWith( const char*, size_t, size_t availOut );
   size_t suggestOutputSize( const char*, size_t availIn );
 };
-class LZO1X_1_Compression : public Compression
+class LZO1X_1_Compression : public CompressionMethod
 {
   static bool initialized;
   static void init()
@@ -577,7 +579,7 @@ bool LZO1X_1_Encoder::doProcessNoSize( const char* dataIn, size_t availIn,
 
 // register them
 
-static const_sptr<Compression> const compressions[] = {
+static const_sptr<CompressionMethod> const compressions[] = {
   new LZMACompression(),
 # ifdef HAVE_LIBLZO
   new LZO1X_1_Compression(),
@@ -586,33 +588,36 @@ static const_sptr<Compression> const compressions[] = {
   NULL
 };
 
-const_sptr<Compression> Compression::defaultCompression = compressions[0];
+const_sptr<CompressionMethod> CompressionMethod::defaultCompression = compressions[0];
 
-const_sptr<Compression> Compression::findCompression( const std::string& name, bool optional )
+const_sptr<CompressionMethod> CompressionMethod::findCompression( const std::string& name, bool optional )
 {
-  for ( const const_sptr<Compression>* c = compressions+0; *c; ++c )
+  for ( const const_sptr<CompressionMethod>* c = compressions+0; *c; ++c )
   {
     if ( (*c)->getName() == name )
     {
       return (*c);
     }
   }
-  CHECK( !optional, "Couldn't find compression method '%s'", name.c_str() );
+  if ( !optional )
+  {
+    throw exUnsupportedCompressionMethod( name );
+  }
   return NULL;
 }
 
 // iterator over compressions
 
-Compression::iterator::iterator( const const_sptr<Compression>* ptr ) : ptr(   ptr) { }
-Compression::iterator::iterator( const iterator&                 it ) : ptr(it.ptr) { }
+CompressionMethod::iterator::iterator( const const_sptr<CompressionMethod>* ptr ) : ptr(   ptr) { }
+CompressionMethod::iterator::iterator( const iterator&                 it ) : ptr(it.ptr) { }
 
-Compression::iterator& Compression::iterator::operator =( const iterator& it )
+CompressionMethod::iterator& CompressionMethod::iterator::operator =( const iterator& it )
 {
   this->ptr = it.ptr;
   return *this;
 }
 
-bool Compression::iterator::operator ==( const iterator& other ) const
+bool CompressionMethod::iterator::operator ==( const iterator& other ) const
 {
   // special case: one has ptr==NULL (end iterator returned by end()) and the
   // other has *ptr==NULL (end iterator obtained by calling ++)
@@ -623,17 +628,17 @@ bool Compression::iterator::operator ==( const iterator& other ) const
   else
     return (ptr == other.ptr);
 }
-bool Compression::iterator::operator !=( const iterator& other ) const
+bool CompressionMethod::iterator::operator !=( const iterator& other ) const
 {
   return !( *this == other );
 }
 
-bool Compression::iterator::atEnd() const
+bool CompressionMethod::iterator::atEnd() const
 {
   return !ptr || !*ptr;
 }
 
-Compression::iterator& Compression::iterator::operator ++()
+CompressionMethod::iterator& CompressionMethod::iterator::operator ++()
 {
   CHECK( ptr && *ptr, "Cannot increment the end iterator" );
 
@@ -642,18 +647,20 @@ Compression::iterator& Compression::iterator::operator ++()
   return *this;
 }
 
-const_sptr<Compression> Compression::iterator::operator *()
+const_sptr<CompressionMethod> CompressionMethod::iterator::operator *()
 {
   CHECK( ptr && *ptr, "Cannot dereference the end iterator" );
 
   return *ptr;
 }
 
-Compression::iterator Compression::begin()
+CompressionMethod::iterator CompressionMethod::begin()
 {
   return iterator(compressions);
 }
-Compression::iterator Compression::end()
+CompressionMethod::iterator CompressionMethod::end()
 {
   return iterator(NULL);
+}
+
 }

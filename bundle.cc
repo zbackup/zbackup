@@ -43,7 +43,7 @@ void Creator::write( std::string const & fileName, EncryptionKey const & key )
 
   BundleFileHeader header;
 
-  const_sptr<Compression> compression = Compression::defaultCompression;
+  const_sptr<Compression::CompressionMethod> compression = Compression::CompressionMethod::defaultCompression;
   header.set_compression_method( compression->getName() );
 
   // The old code only support lzma, so we will bump up the version, if we're
@@ -60,7 +60,7 @@ void Creator::write( std::string const & fileName, EncryptionKey const & key )
 
   // Compress
 
-  sptr<EnDecoder> encoder = compression->createEncoder();
+  sptr<Compression::EnDecoder> encoder = compression->createEncoder();
 
   encoder->setInput( payload.data(), payload.size() );
 
@@ -112,7 +112,7 @@ Reader::Reader( string const & fileName, EncryptionKey const & key )
 
   payload.resize( payloadSize );
 
-  sptr<EnDecoder> decoder = Compression::findCompression( header.compression_method() )->createDecoder();
+  sptr<Compression::EnDecoder> decoder = Compression::CompressionMethod::findCompression( header.compression_method() )->createDecoder();
 
   decoder->setOutput( &payload[ 0 ], payload.size() );
 
