@@ -139,8 +139,8 @@ All in all, as long as the amount of RAM permits, one can go up to several terab
 
 # Compression
 
-zbackup uses LZMA to compress stored data. It compresses very well, but it will slow down your backup (unless
-you have a very fast CPU).
+zbackup uses LZMA to compress stored data. It compresses very well, but it will slow down your backup
+(unless you have a very fast CPU).
 
 LZO is much faster, but the files will be bigger. If you don't
 want your backup process to be cpu-bound, you should consider using LZO. However, there are some caveats:
@@ -149,7 +149,8 @@ want your backup process to be cpu-bound, you should consider using LZO. However
    using one core on my machine because compression is the only thing that can run in parallel.
 2. I've hacked the LZO support in a day. You shouldn't trust it. Please make sure that restore works before
    you assume that your data is safe. That may still be faster than a backup with LZMA ;-)
-3. LZMA is still the default, so make sure that you use the `--lzo` argument whenever you do a backup.
+3. LZMA is still the default, so make sure that you use the `--lzo` argument when you init the repo or
+   whenever you do a backup.
 
 You can mix LZMA and LZO in a repository. Each bundle file has a field that says how it was compressed, so
 zbackup will use the right method to decompress it. You could use an old zbackup respository with only LZMA
