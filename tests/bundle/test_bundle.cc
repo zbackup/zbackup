@@ -51,6 +51,8 @@ void testCompatibility()
   }
 
   // Write new header, read as old header
+  //NOTE In the real code, this will only work, if the file uses LZMA. If it doesn't, the version
+  //     field is increased and the old code will refuse to read the file.
   {
     {
       EncryptedFile::OutputStream os( fileName.c_str(), noKey, Encryption::ZeroIv );

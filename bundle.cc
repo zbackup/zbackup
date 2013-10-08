@@ -16,7 +16,15 @@ namespace Bundle {
 
 enum
 {
-  FileFormatVersion = 1
+  FileFormatVersion = 1,
+
+  // This means, we don't use LZMA in this file.
+  FileFormatVersionNotLZMA,
+
+  // <- add more versions here
+
+  // This is the first version, we do not support.
+  FileFormatVersionFirstUnsupported
 };
 
 void Creator::addChunk( string const & id, void const * data, size_t size )
@@ -34,9 +42,17 @@ void Creator::write( std::string const & fileName, EncryptionKey const & key )
   os.writeRandomIv();
 
   BundleFileHeader header;
-  header.set_version( FileFormatVersion );
+
   const_sptr<Compression> compression = Compression::defaultCompression;
   header.set_compression_method( compression->getName() );
+
+  // The old code only support lzma, so we will bump up the version, if we're
+  // using lzma. This will make it fail cleanly.
+  if ( compression->getName() == "lzma" )
+    header.set_version( FileFormatVersion );
+  else
+    header.set_version( FileFormatVersionNotLZMA );
+
   Message::serialize( header, os );
 
   Message::serialize( info, os );
@@ -83,7 +99,7 @@ Reader::Reader( string const & fileName, EncryptionKey const & key )
   BundleFileHeader header;
   Message::parse( header, is );
 
-  if ( header.version() != FileFormatVersion )
+  if ( header.version() >= FileFormatVersionFirstUnsupported )
     throw exUnsupportedVersion();
 
   BundleInfo info;
