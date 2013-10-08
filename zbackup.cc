@@ -87,6 +87,8 @@ void ZBackupBase::initStorage( string const & storageDir,
     EncryptionKey::generate( password,
                              *storageInfo.mutable_encryption_key() );
 
+  storageInfo.set_default_compression_method( Compression::defaultCompression );
+
   Paths paths( storageDir );
 
   if ( !Dir::exists( storageDir ) )
@@ -125,6 +127,13 @@ string ZBackupBase::deriveStorageDirFromBackupsFile( string const &
     throw exCantDeriveStorageDir( backupsFile );
   else
     return realPath.substr( 0, pos );
+}
+
+void ZBackupBase::useDefaultCompressionMethod()
+{
+  std::string compression_method_name = storageInfo.default_compression_method();
+  const_sptr<Compression> compression = Compression::findCompression( compression_method_name );
+  Compression::defaultCompression = compression;
 }
 
 ZBackup::ZBackup( string const & storageDir, string const & password,
@@ -310,6 +319,7 @@ int main( int argc, char *argv[] )
     size_t const defaultCacheSizeMb = 40;
     size_t cacheSizeMb = defaultCacheSizeMb;
     bool printHelp = false;
+    bool forcedCompressionMethod = false;
     vector< char const * > args;
 
     for( int x = 1; x < argc; ++x )
@@ -376,6 +386,7 @@ int main( int argc, char *argv[] )
           return EXIT_FAILURE;
         }
         Compression::defaultCompression = lzo;
+        forcedCompressionMethod = true;
       }
       else
       if ( strcmp( argv[ x ], "--lzma" ) == 0 )
@@ -389,6 +400,7 @@ int main( int argc, char *argv[] )
           return EXIT_FAILURE;
         }
         Compression::defaultCompression = lzma;
+        forcedCompressionMethod = true;
       }
       else
       if ( strcmp( argv[ x ], "--help" ) == 0 || strcmp( argv[ x ], "-h" ) == 0 )
@@ -464,6 +476,8 @@ int main( int argc, char *argv[] )
       }
       ZBackup zb( ZBackup::deriveStorageDirFromBackupsFile( args[ 1 ] ),
                   passwordData, threads );
+      if ( !forcedCompressionMethod )
+        zb.useDefaultCompressionMethod();
       zb.backupFromStdin( args[ 1 ] );
     }
     else
@@ -478,6 +492,8 @@ int main( int argc, char *argv[] )
       }
       ZRestore zr( ZRestore::deriveStorageDirFromBackupsFile( args[ 1 ] ),
                    passwordData, cacheSizeMb * 1048576 );
+      if ( !forcedCompressionMethod )
+        zr.useDefaultCompressionMethod();
       zr.restoreToStdin( args[ 1 ] );
     }
     else

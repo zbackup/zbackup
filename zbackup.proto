@@ -38,6 +38,8 @@ message StorageInfo
   required uint32 bundle_max_payload_size = 2;
   // If present, used for encryption/decryption of all data
   optional EncryptionKeyInfo encryption_key = 3;
+  // Default encryption for new bundles
+  optional string default_compression_method = 4 [default = "lzma"];
 }
 
 message BundleInfo
@@ -68,7 +70,8 @@ message BundleFileHeader
 
   // Compression method that is used for this file
   // If the program doesn't support that field, it will try LZMA. If it is
-  // LZMA, that will work. If it isn't, liblzma will recognize this and abort.
+  // LZMA, that will work. If it isn't, it will have aborted before because
+  // the version in FileHeader is higher than it can support.
   optional string compression_method = 2 [default = "lzma"];
 }
 

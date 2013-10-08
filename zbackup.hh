@@ -60,6 +60,8 @@ public:
   /// storage dir or throws an exception
   static string deriveStorageDirFromBackupsFile( string const & backupsFile );
 
+  void useDefaultCompressionMethod();
+
 protected:
   StorageInfo storageInfo;
   EncryptionKey encryptionkey;
