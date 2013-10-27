@@ -38,7 +38,7 @@ message StorageInfo
   required uint32 bundle_max_payload_size = 2;
   // If present, used for encryption/decryption of all data
   optional EncryptionKeyInfo encryption_key = 3;
-  // Default encryption for new bundles
+  // Default compression for new bundles
   optional string default_compression_method = 4 [default = "lzma"];
 }
 
