@@ -1,4 +1,4 @@
-// Copyright (c) 2012-2013 Konstantin Isakov <ikm@zbackup.org>
+// Copyright (c) 2013 Benjamin Koch <bbbsnowball@gmail.com>
 // Part of ZBackup. Licensed under GNU GPLv2 or later
 
 #ifndef COMPRESSION_HH_INCLUDED__
