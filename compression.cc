@@ -9,7 +9,6 @@
 namespace Compression {
 
 EnDecoder::EnDecoder() { }
-EnDecoder::EnDecoder(const EnDecoder&) { }
 EnDecoder::~EnDecoder() { }
 
 CompressionMethod::~CompressionMethod() { }

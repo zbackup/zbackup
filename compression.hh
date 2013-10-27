@@ -6,6 +6,7 @@
 
 #include "sptr.hh"
 #include "ex.hh"
+#include "nocopy.hh"
 
 
 namespace Compression {
@@ -15,12 +16,10 @@ DEF_EX_STR( exUnsupportedCompressionMethod, "Unsupported compression method: ", 
 
 
 // used for encoding or decoding
-class EnDecoder
+class EnDecoder: NoCopy
 {
 protected:
   EnDecoder();
-  // cannot be copied
-  EnDecoder( const EnDecoder& );
 public:
   virtual ~EnDecoder();
 
