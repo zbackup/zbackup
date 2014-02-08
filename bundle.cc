@@ -6,6 +6,7 @@
 
 #include "bundle.hh"
 #include "check.hh"
+#include "debug.hh"
 #include "dir.hh"
 #include "encrypted_file.hh"
 #include "encryption.hh"
@@ -27,7 +28,7 @@ void Creator::addChunk( string const & id, void const * data, size_t size )
   payload.append( ( char const * ) data, size );
 }
 
-void Creator::write( std::string const & fileName, EncryptionKey const & key )
+void Creator::write( std::string const & fileName, EncryptionKey const & key, size_t compression )
 {
   EncryptedFile::OutputStream os( fileName.c_str(), key, Encryption::ZeroIv );
 
@@ -42,10 +43,11 @@ void Creator::write( std::string const & fileName, EncryptionKey const & key )
 
   // Compress
 
-  uint32_t preset = 6; // TODO: make this customizable, although 6 seems to be
-                       // the best option
-	lzma_stream strm = LZMA_STREAM_INIT;
-	lzma_ret ret;
+  uint32_t preset = ( compression > 9 ) ? ( compression - 10 ) | LZMA_PRESET_EXTREME : compression;
+  dPrintf( "Compression level: %lu, lzma preset %u\n", compression, preset);
+
+  lzma_stream strm = LZMA_STREAM_INIT;
+  lzma_ret ret;
 
   ret = lzma_easy_encoder( &strm, preset, LZMA_CHECK_CRC64 );
   CHECK( ret == LZMA_OK, "lzma_easy_encoder error: %d", (int) ret );
@@ -82,7 +84,9 @@ void Creator::write( std::string const & fileName, EncryptionKey const & key )
     CHECK( ret == LZMA_OK, "lzma_code error: %d", (int) ret );
   }
 
-	lzma_end( &strm );
+  dPrintf( "Waiting for compression to finish\n");
+
+  lzma_end( &strm );
 
   os.writeAdler32();
 }
@@ -154,6 +158,8 @@ Reader::Reader( string const & fileName, EncryptionKey const & key )
     }
   }
 
+  dPrintf( "Waiting for de-compression to finish\n");
+
   lzma_end( &strm );
 
   is.checkAdler32();
@@ -192,13 +198,30 @@ bool Reader::get( string const & chunkId, string & chunkData,
 }
 
 string generateFileName( Id const & id, string const & bundlesDir,
-                         bool createDirs )
+                         bool createDirs, size_t bundleMaxPayloadSize )
 {
   string hex( toHex( ( unsigned char * ) &id, sizeof( id ) ) );
+  // TODO: We might still need a better scaling.
+  // Currently we assume ~18GB repository with 2MB bundles as reference.
+  // 2MB buldes results in ~25k files across 256 folders with ~100 bundles in each
+  // 32MB bundles results in ~1.5K bundles across 256 folders with ~5 files in each.
+  // Assuming above seems rational to have:
+  // 2 character folders for bundles 2MB and lower
+  // 1 character folders for up to 16M bundles
+  // no folders for 32MB bundles 32MB and above
+  // In mean time we will be using 2 characters to be able to restore with older versions
+  size_t BundleScale = 2;
 
-  // TODO: make this scheme more flexible and allow it to scale, or at least
-  // be configurable
-  string level1( Dir::addPath( bundlesDir, hex.substr( 0, 2 ) ) );
+  /*
+  if ( bundleMaxPayloadSize > ( 1024 * 1024 * 16 ) )
+    BundleScale = 1;
+  if ( bundleMaxPayloadSize > ( 1024 * 1024 * 32 ) )
+    BundleScale = 0;
+
+  dPrintf( "Bundle size/scale %lu/%lu\n", bundleMaxPayloadSize, BundleScale);
+  */
+
+  string level1( Dir::addPath( bundlesDir, hex.substr( 0, BundleScale ) ) );
 
   if ( createDirs && !Dir::exists( level1 ) )
       Dir::create( level1 );

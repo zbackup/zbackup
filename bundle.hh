@@ -65,7 +65,7 @@ public:
   /// Compresses and writes the bundle to the given file. The operation is
   /// time-consuming - calling this function from a worker thread could be
   /// warranted
-  void write( string const & fileName, EncryptionKey const & );
+  void write( string const & fileName, EncryptionKey const & , size_t compression);
 
   /// Returns the current BundleInfo record - this is used for index files
   BundleInfo const & getCurrentBundleInfo() const
@@ -100,7 +100,7 @@ public:
 /// is true, any intermediate directories will be created if they don't exist
 /// already
 string generateFileName( Id const &, string const & bundlesDir,
-                         bool createDirs );
+                         bool createDirs, size_t bundleMaxPayloadSize );
 }
 
 #endif

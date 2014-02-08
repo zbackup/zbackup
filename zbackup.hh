@@ -54,7 +54,7 @@ public:
 
   /// Creates new storage
   static void initStorage( string const & storageDir, string const & password,
-                           bool isEncrypted );
+                           bool isEncrypted, size_t chunkMaxSizeKB, size_t bundleMaxSizeMB );
 
   /// For a given file within the backups/ dir in the storage, returns its
   /// storage dir or throws an exception
@@ -76,7 +76,7 @@ class ZBackup: public ZBackupBase
 
 public:
   ZBackup( string const & storageDir, string const & password,
-           size_t threads );
+           size_t threads, size_t compression );
 
   /// Backs up the data from stdin
   void backupFromStdin( string const & outputFileName );

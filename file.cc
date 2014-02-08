@@ -12,8 +12,9 @@
 enum
 {
   // We employ a writing buffer to considerably speed up file operations when
-  // they consists of many small writes. The default size for the buffer is 64k
-  WriteBufferSize = 65536
+  // they consists of many small writes. The default size for the buffer is 64KB
+  // TODO: Make write buffer customizable
+  WriteBufferSize = 64 * 1024
 };
 
 bool File::exists( char const * filename ) throw()
