@@ -76,12 +76,12 @@ StorageInfo ZBackupBase::loadStorageInfo()
 void ZBackupBase::initStorage( string const & storageDir,
                                string const & password,
                                bool isEncrypted,
-                               size_t chunkMaxSizeKB,
-                               size_t bundleMaxSizeMB )
+                               size_t chunkMaxSize,
+                               size_t bundleMaxSize )
 {
   StorageInfo storageInfo;
-  storageInfo.set_chunk_max_size( chunkMaxSizeKB * 1024 );
-  storageInfo.set_bundle_max_payload_size( bundleMaxSizeMB * 1024 * 1024 );
+  storageInfo.set_chunk_max_size( chunkMaxSize );
+  storageInfo.set_bundle_max_payload_size( bundleMaxSize );
 
   verbosePrintf( "Backup repository parameters: chunk_max[%u], bundle_max[%u]\n", storageInfo.chunk_max_size(), storageInfo.bundle_max_payload_size() );
 
@@ -317,14 +317,14 @@ int main( int argc, char *argv[] )
     size_t const defaultCompression = 6;
     size_t compression = defaultCompression;
 
-    size_t const defaultCacheSizeMB = 40;
-    size_t cacheSizeMB = defaultCacheSizeMB;
+    size_t const defaultCacheSize = 40 * 1024 * 1024;
+    size_t cacheSize = defaultCacheSize;
 
-    size_t const defaultChunkMaxSizeKB = 64;
-    size_t chunkMaxSizeKB = defaultChunkMaxSizeKB;
+    size_t const defaultChunkMaxSize = 64 * 1024;
+    size_t chunkMaxSize = defaultChunkMaxSize;
 
-    size_t const defaultBundleMaxSizeMB = 2;
-    size_t bundleMaxSizeMB = defaultBundleMaxSizeMB;
+    size_t const defaultBundleMaxSize = 2 * 1024 * 1024;
+    size_t bundleMaxSize = defaultBundleMaxSize;
 
     vector< char const * > args;
 
@@ -351,7 +351,7 @@ int main( int argc, char *argv[] )
         ++x;
       }
       else
-      if ( strcmp( argv[ x ], "--compression" ) == 0 && x + 1 < argc )
+      if ( strcmp( argv[ x ], "--compression-level" ) == 0 && x + 1 < argc )
       {
         int n;
         if ( sscanf( argv[ x + 1 ], "%zu %n", &compression, &n ) != 1 ||
@@ -365,8 +365,10 @@ int main( int argc, char *argv[] )
         char suffix[ 16 ];
         int n;
         if ( sscanf( argv[ x + 1 ], "%zu %15s %n",
-                     &cacheSizeMB, suffix, &n ) == 2 && !argv[ x + 1 ][ n ] )
+                     &cacheSize, suffix, &n ) == 2 && !argv[ x + 1 ][ n ] )
         {
+          // Convert to bytes
+          cacheSize *= 1024 * 1024;
           // Check the suffix
           for ( char * c = suffix; *c; ++c )
             *c = tolower( *c );
@@ -395,8 +397,11 @@ int main( int argc, char *argv[] )
         char suffix[ 16 ];
         int n;
         if ( sscanf( argv[ x + 1 ], "%zu %15s %n",
-                     &chunkMaxSizeKB, suffix, &n ) == 2 && !argv[ x + 1 ][ n ] )
+                     &chunkMaxSize, suffix, &n ) == 2 && !argv[ x + 1 ][ n ] )
         {
+          // Convert to bytes
+          chunkMaxSize *= 1024;
+
           // Check the suffix
           for ( char * c = suffix; *c; ++c )
             *c = tolower( *c );
@@ -425,8 +430,11 @@ int main( int argc, char *argv[] )
         char suffix[ 16 ];
         int n;
         if ( sscanf( argv[ x + 1 ], "%zu %15s %n",
-                     &bundleMaxSizeMB, suffix, &n ) == 2 && !argv[ x + 1 ][ n ] )
+                     &bundleMaxSize, suffix, &n ) == 2 && !argv[ x + 1 ][ n ] )
         {
+          // Convert to bytes
+          bundleMaxSize *= 1024 * 1024;
+
           // Check the suffix
           for ( char * c = suffix; *c; ++c )
             *c = tolower( *c );
@@ -468,7 +476,7 @@ int main( int argc, char *argv[] )
 "  Flags: --non-encrypted|--password-file <file>\n"
 "         --silent (default is verbose)\n"
 "         --threads <number> (default is %zu on your system)\n"
-"         --compression <number> (default is %zu, 0-9 normal and 10-19 are extra preset)\n"
+"         --compression-level <number> (default is %zu, 0-9 normal and 10-19 are extra preset)\n"
 "         --cache-size <number> MB (default is %zu)\n"
 "         --chunk-max-size <number> KB (default is %zu)\n"
 "         --bundle-max-size <number> MB (default is %zu)\n"
@@ -476,7 +484,7 @@ int main( int argc, char *argv[] )
 "    init <storage path> - initializes new storage;\n"
 "    backup <backup file name> - performs a backup from stdin;\n"
 "    restore <backup file name> - restores a backup to stdout.\n", *argv,
-               defaultThreads, defaultCompression, defaultCacheSizeMB, defaultChunkMaxSizeKB, defaultBundleMaxSizeMB );
+               defaultThreads, defaultCompression, defaultCacheSize, defaultChunkMaxSize, defaultBundleMaxSize );
       return EXIT_FAILURE;
     }
 
@@ -506,7 +514,7 @@ int main( int argc, char *argv[] )
       if ( !nonEncrypted && !passwordFile )
           throw exSpecifyEncryptionOptions();
 
-      ZBackup::initStorage( args[ 1 ], passwordData, !nonEncrypted, chunkMaxSizeKB, bundleMaxSizeMB );
+      ZBackup::initStorage( args[ 1 ], passwordData, !nonEncrypted, chunkMaxSize, bundleMaxSize );
     }
     else
     if ( strcmp( args[ 0 ], "backup" ) == 0 )
@@ -533,7 +541,7 @@ int main( int argc, char *argv[] )
         return EXIT_FAILURE;
       }
       ZRestore zr( ZRestore::deriveStorageDirFromBackupsFile( args[ 1 ] ),
-                   passwordData, cacheSizeMB * 1024 * 1024 );
+                   passwordData, cacheSize );
       zr.restoreToStdin( args[ 1 ] );
     }
     else

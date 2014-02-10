@@ -152,7 +152,7 @@ void * Writer::Compressor::Compressor::threadFunction() throw()
 {
   try
   {
-    bundleCreator->write( fileName, writer.encryptionKey , writer.compression);
+    bundleCreator->write( fileName, writer.encryptionKey, writer.compression );
   }
   catch( std::exception & e )
   {
