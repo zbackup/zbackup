@@ -201,27 +201,10 @@ string generateFileName( Id const & id, string const & bundlesDir,
                          bool createDirs, size_t bundleMaxPayloadSize )
 {
   string hex( toHex( ( unsigned char * ) &id, sizeof( id ) ) );
-  // TODO: We might still need a better scaling.
-  // Currently we assume ~18GB repository with 2MB bundles as reference.
-  // 2MB buldes results in ~25k files across 256 folders with ~100 bundles in each
-  // 32MB bundles results in ~1.5K bundles across 256 folders with ~5 files in each.
-  // Assuming above seems rational to have:
-  // 2 character folders for bundles 2MB and lower
-  // 1 character folders for up to 16M bundles
-  // no folders for 32MB bundles 32MB and above
-  // In mean time we will be using 2 characters to be able to restore with older versions
-  size_t BundleScale = 2;
 
-  /*
-  if ( bundleMaxPayloadSize > ( 1024 * 1024 * 16 ) )
-    BundleScale = 1;
-  if ( bundleMaxPayloadSize > ( 1024 * 1024 * 32 ) )
-    BundleScale = 0;
-
-  dPrintf( "Bundle size/scale %lu/%lu\n", bundleMaxPayloadSize, BundleScale);
-  */
-
-  string level1( Dir::addPath( bundlesDir, hex.substr( 0, BundleScale ) ) );
+  // TODO: make this scheme more flexible and allow it to scale, or at least
+  // be configurable
+  string level1( Dir::addPath( bundlesDir, hex.substr( 0, 2 ) ) );
 
   if ( createDirs && !Dir::exists( level1 ) )
       Dir::create( level1 );
