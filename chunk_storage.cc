@@ -13,14 +13,14 @@ namespace ChunkStorage {
 Writer::Writer( StorageInfo const & storageInfo,
                 EncryptionKey const & encryptionKey,
                 TmpMgr & tmpMgr, ChunkIndex & index, string const & bundlesDir,
-                string const & indexDir, size_t maxCompressorsToRun ):
+                string const & indexDir, size_t maxCompressorsToRun, size_t compressionLevel ):
   storageInfo( storageInfo ), encryptionKey( encryptionKey ),
   tmpMgr( tmpMgr ), index( index ), bundlesDir( bundlesDir ),
   indexDir( indexDir ), hasCurrentBundleId( false ),
-  maxCompressorsToRun( maxCompressorsToRun ), runningCompressors( 0 )
+  maxCompressorsToRun( maxCompressorsToRun ), compressionLevel( compressionLevel ), runningCompressors( 0 )
 {
-  verbosePrintf( "Using up to %zu thread(s) for compression\n",
-                 maxCompressorsToRun );
+  verbosePrintf( "Using up to %zu thread(s) with compression level %zu\n",
+                 maxCompressorsToRun, compressionLevel );
 }
 
 Writer::~Writer()
@@ -119,6 +119,7 @@ void Writer::finishCurrentBundle()
 
   compressor->start();
   ++runningCompressors;
+  dPrintf( "Running compressors: %lu\n", runningCompressors );
 }
 
 void Writer::waitForAllCompressorsToFinish()
@@ -151,7 +152,7 @@ void * Writer::Compressor::Compressor::threadFunction() throw()
 {
   try
   {
-    bundleCreator->write( fileName, writer.encryptionKey );
+    bundleCreator->write( fileName, writer.encryptionKey, writer.compressionLevel );
   }
   catch( std::exception & e )
   {

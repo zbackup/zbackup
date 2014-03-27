@@ -6,6 +6,7 @@
 
 #include "bundle.hh"
 #include "check.hh"
+#include "debug.hh"
 #include "dir.hh"
 #include "encrypted_file.hh"
 #include "encryption.hh"
@@ -27,7 +28,7 @@ void Creator::addChunk( string const & id, void const * data, size_t size )
   payload.append( ( char const * ) data, size );
 }
 
-void Creator::write( std::string const & fileName, EncryptionKey const & key )
+void Creator::write( std::string const & fileName, EncryptionKey const & key, size_t compressionLevel )
 {
   EncryptedFile::OutputStream os( fileName.c_str(), key, Encryption::ZeroIv );
 
@@ -42,10 +43,11 @@ void Creator::write( std::string const & fileName, EncryptionKey const & key )
 
   // Compress
 
-  uint32_t preset = 6; // TODO: make this customizable, although 6 seems to be
-                       // the best option
-	lzma_stream strm = LZMA_STREAM_INIT;
-	lzma_ret ret;
+  uint32_t preset = ( compressionLevel > 9 ) ? ( compressionLevel - 10 ) | LZMA_PRESET_EXTREME : compressionLevel;
+  dPrintf( "LZMA Compression level: %lu, preset %u\n", compressionLevel, preset );
+
+  lzma_stream strm = LZMA_STREAM_INIT;
+  lzma_ret ret;
 
   ret = lzma_easy_encoder( &strm, preset, LZMA_CHECK_CRC64 );
   CHECK( ret == LZMA_OK, "lzma_easy_encoder error: %d", (int) ret );
@@ -82,7 +84,9 @@ void Creator::write( std::string const & fileName, EncryptionKey const & key )
     CHECK( ret == LZMA_OK, "lzma_code error: %d", (int) ret );
   }
 
-	lzma_end( &strm );
+  dPrintf( "Waiting for compression to finish\n" );
+
+  lzma_end( &strm );
 
   os.writeAdler32();
 }
@@ -153,6 +157,8 @@ Reader::Reader( string const & fileName, EncryptionKey const & key )
       throw exTooMuchData();
     }
   }
+
+  dPrintf( "Waiting for de-compression to finish\n" );
 
   lzma_end( &strm );
 
