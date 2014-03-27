@@ -130,10 +130,10 @@ string ZBackupBase::deriveStorageDirFromBackupsFile( string const &
 }
 
 ZBackup::ZBackup( string const & storageDir, string const & password,
-                  size_t threads, size_t compression ):
+                  size_t threads, size_t compressionLevel ):
   ZBackupBase( storageDir, password ),
   chunkStorageWriter( storageInfo, encryptionkey, tmpMgr, chunkIndex,
-                      getBundlesPath(), getIndexPath(), threads, compression )
+                      getBundlesPath(), getIndexPath(), threads, compressionLevel )
 {
 }
 
@@ -156,7 +156,7 @@ void ZBackup::backupFromStdin( string const & outputFileName )
   for ( ; ; )
   {
     size_t toRead = backupCreator.getInputBufferSize();
-//    dPrintf( "Reading up to %u bytes from stdin\n", toRead );
+    //dPrintf( "Reading up to %u bytes from stdin\n", toRead );
 
     void * inputBuffer = backupCreator.getInputBuffer();
     size_t rd = fread( inputBuffer, 1, toRead, stdin );
@@ -315,7 +315,7 @@ int main( int argc, char *argv[] )
     size_t threads = defaultThreads;
 
     size_t const defaultCompression = 6;
-    size_t compression = defaultCompression;
+    size_t compressionLevel = defaultCompression;
 
     size_t const defaultCacheSize = 40 * 1024 * 1024;
     size_t cacheSize = defaultCacheSize;
@@ -351,11 +351,11 @@ int main( int argc, char *argv[] )
         ++x;
       }
       else
-      if ( strcmp( argv[ x ], "--compression-level" ) == 0 && x + 1 < argc )
+      if ( strcmp( argv[ x ], "--lzma-compression-level" ) == 0 && x + 1 < argc )
       {
         int n;
-        if ( sscanf( argv[ x + 1 ], "%zu %n", &compression, &n ) != 1 ||
-             argv[ x + 1 ][ n ] || ( compression < 0 ) || ( compression > 19 ) )
+        if ( sscanf( argv[ x + 1 ], "%zu %n", &compressionLevel, &n ) != 1 ||
+             argv[ x + 1 ][ n ] || ( compressionLevel > 19 ) )
           throw exInvalidCompressionValue( argv[ x + 1 ] );
         ++x;
       }
@@ -476,7 +476,7 @@ int main( int argc, char *argv[] )
 "  Flags: --non-encrypted|--password-file <file>\n"
 "         --silent (default is verbose)\n"
 "         --threads <number> (default is %zu on your system)\n"
-"         --compression-level <number> (default is %zu, 0-9 normal and 10-19 are extra preset)\n"
+"         --lzma-compression-level <number> (default is %zu, 0-9 normal and 10-19 are extra preset)\n"
 "         --cache-size <number> MB (default is %zu)\n"
 "         --chunk-max-size <number> KB (default is %zu)\n"
 "         --bundle-max-size <number> MB (default is %zu)\n"
@@ -527,7 +527,7 @@ int main( int argc, char *argv[] )
         return EXIT_FAILURE;
       }
       ZBackup zb( ZBackup::deriveStorageDirFromBackupsFile( args[ 1 ] ),
-                  passwordData, threads, compression );
+                  passwordData, threads, compressionLevel );
       zb.backupFromStdin( args[ 1 ] );
     }
     else

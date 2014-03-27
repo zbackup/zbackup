@@ -28,7 +28,7 @@ void Creator::addChunk( string const & id, void const * data, size_t size )
   payload.append( ( char const * ) data, size );
 }
 
-void Creator::write( std::string const & fileName, EncryptionKey const & key, size_t compression )
+void Creator::write( std::string const & fileName, EncryptionKey const & key, size_t compressionLevel )
 {
   EncryptedFile::OutputStream os( fileName.c_str(), key, Encryption::ZeroIv );
 
@@ -43,8 +43,8 @@ void Creator::write( std::string const & fileName, EncryptionKey const & key, si
 
   // Compress
 
-  uint32_t preset = ( compression > 9 ) ? ( compression - 10 ) | LZMA_PRESET_EXTREME : compression;
-  dPrintf( "Compression level: %lu, lzma preset %u\n", compression, preset);
+  uint32_t preset = ( compressionLevel > 9 ) ? ( compressionLevel - 10 ) | LZMA_PRESET_EXTREME : compressionLevel;
+  dPrintf( "LZMA Compression level: %lu, preset %u\n", compressionLevel, preset );
 
   lzma_stream strm = LZMA_STREAM_INIT;
   lzma_ret ret;
@@ -84,7 +84,7 @@ void Creator::write( std::string const & fileName, EncryptionKey const & key, si
     CHECK( ret == LZMA_OK, "lzma_code error: %d", (int) ret );
   }
 
-  dPrintf( "Waiting for compression to finish\n");
+  dPrintf( "Waiting for compression to finish\n" );
 
   lzma_end( &strm );
 
@@ -158,7 +158,7 @@ Reader::Reader( string const & fileName, EncryptionKey const & key )
     }
   }
 
-  dPrintf( "Waiting for de-compression to finish\n");
+  dPrintf( "Waiting for de-compression to finish\n" );
 
   lzma_end( &strm );
 
@@ -198,7 +198,7 @@ bool Reader::get( string const & chunkId, string & chunkData,
 }
 
 string generateFileName( Id const & id, string const & bundlesDir,
-                         bool createDirs, size_t bundleMaxPayloadSize )
+                         bool createDirs )
 {
   string hex( toHex( ( unsigned char * ) &id, sizeof( id ) ) );
 

@@ -42,7 +42,7 @@ public:
   /// automatically!
   Writer( StorageInfo const &, EncryptionKey const &,
           TmpMgr &, ChunkIndex & index, string const & bundlesDir,
-          string const & indexDir, size_t maxCompressorsToRun, size_t compression );
+          string const & indexDir, size_t maxCompressorsToRun, size_t compressionLevel );
 
   /// Adds the given chunk to the store. If such a chunk has already existed
   /// in the index, does nothing and returns false
@@ -97,7 +97,7 @@ private:
   bool hasCurrentBundleId;
 
   size_t maxCompressorsToRun;
-  size_t compression;
+  size_t compressionLevel;
   Mutex runningCompressorsMutex;
   Condition runningCompressorsCondition;
   size_t runningCompressors;

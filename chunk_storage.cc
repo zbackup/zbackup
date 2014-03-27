@@ -13,14 +13,14 @@ namespace ChunkStorage {
 Writer::Writer( StorageInfo const & storageInfo,
                 EncryptionKey const & encryptionKey,
                 TmpMgr & tmpMgr, ChunkIndex & index, string const & bundlesDir,
-                string const & indexDir, size_t maxCompressorsToRun, size_t compression ):
+                string const & indexDir, size_t maxCompressorsToRun, size_t compressionLevel ):
   storageInfo( storageInfo ), encryptionKey( encryptionKey ),
   tmpMgr( tmpMgr ), index( index ), bundlesDir( bundlesDir ),
   indexDir( indexDir ), hasCurrentBundleId( false ),
-  maxCompressorsToRun( maxCompressorsToRun ), compression( compression ), runningCompressors( 0 )
+  maxCompressorsToRun( maxCompressorsToRun ), compressionLevel( compressionLevel ), runningCompressors( 0 )
 {
   verbosePrintf( "Using up to %zu thread(s) with compression level %zu\n",
-                 maxCompressorsToRun, compression );
+                 maxCompressorsToRun, compressionLevel );
 }
 
 Writer::~Writer()
@@ -56,7 +56,7 @@ void Writer::commit()
   {
     PendingBundleRename & r = pendingBundleRenames[ x ];
     r.first->moveOverTo( Bundle::generateFileName( r.second, bundlesDir,
-                                                   true, storageInfo.bundle_max_payload_size() ) );
+                                                   true ) );
   }
 
   pendingBundleRenames.clear();
@@ -152,7 +152,7 @@ void * Writer::Compressor::Compressor::threadFunction() throw()
 {
   try
   {
-    bundleCreator->write( fileName, writer.encryptionKey, writer.compression );
+    bundleCreator->write( fileName, writer.encryptionKey, writer.compressionLevel );
   }
   catch( std::exception & e )
   {
@@ -214,7 +214,7 @@ Bundle::Reader & Reader::getReaderFor( Bundle::Id const & id )
   {
     // Load the bundle
     reader =
-      new Bundle::Reader( Bundle::generateFileName( id, bundlesDir, false, storageInfo.bundle_max_payload_size() ),
+      new Bundle::Reader( Bundle::generateFileName( id, bundlesDir, false ),
                           encryptionKey );
   }
 
