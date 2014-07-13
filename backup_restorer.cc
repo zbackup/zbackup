@@ -17,7 +17,7 @@ using google::protobuf::io::CodedInputStream;
 
 void restore( ChunkStorage::Reader & chunkStorageReader,
               std::string const & backupData,
-              DataSink & output )
+              DataSink * output, ChunkSet * chunkSet )
 {
   google::protobuf::io::ArrayInputStream is( backupData.data(),
                                              backupData.size() );
@@ -39,21 +39,58 @@ void restore( ChunkStorage::Reader & chunkStorageReader,
 
     if ( instr.has_chunk_to_emit() )
     {
-      // Need to emit a chunk, reading it from the store
-      size_t chunkSize;
-      chunkStorageReader.get( ChunkId( instr.chunk_to_emit() ), chunk,
-                              chunkSize );
-      output.saveData( chunk.data(), chunkSize );
+      ChunkId id( instr.chunk_to_emit() );
+      if ( output )
+      {
+        // Need to emit a chunk, reading it from the store
+        size_t chunkSize;
+        chunkStorageReader.get( id, chunk, chunkSize );
+        output->saveData( chunk.data(), chunkSize );
+      }
+      if ( chunkSet )
+      {
+        chunkSet->insert( id );
+      }
     }
 
-    if ( instr.has_bytes_to_emit() )
+    if ( output && instr.has_bytes_to_emit() )
     {
       // Need to emit the bytes directly
       string const & bytes = instr.bytes_to_emit();
-      output.saveData( bytes.data(), bytes.size() );
+      output->saveData( bytes.data(), bytes.size() );
     }
   }
 
   cis.PopLimit( limit );
 }
+
+void restoreIterations( ChunkStorage::Reader & chunkStorageReader,
+  BackupInfo & backupInfo, std::string & backupData, ChunkSet * chunkSet )
+{
+  // Perform the iterations needed to get to the actual user backup data
+  for ( ; ; )
+  {
+    backupData.swap( *backupInfo.mutable_backup_data() );
+
+    if ( backupInfo.iterations() )
+    {
+      struct StringWriter: public DataSink
+      {
+        string result;
+
+        virtual void saveData( void const * data, size_t size )
+        {
+          result.append( ( char const * ) data, size );
+        }
+      } stringWriter;
+
+      restore( chunkStorageReader, backupData, &stringWriter, chunkSet );
+      backupInfo.mutable_backup_data()->swap( stringWriter.result );
+      backupInfo.set_iterations( backupInfo.iterations() - 1 );
+    }
+    else
+      break;
+  }
+}
+
 }

@@ -35,4 +35,6 @@ struct ChunkId
   ChunkId( string const & blob );
 };
 
+bool operator <( const ChunkId &lhs, const ChunkId &rhs );
+
 #endif
