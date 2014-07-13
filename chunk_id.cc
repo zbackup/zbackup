@@ -38,6 +38,14 @@ void ChunkId::setFromBlob( void const * data )
   rollingHash = fromLittleEndian( v );
 }
 
+bool operator <( const ChunkId &lhs, const ChunkId &rhs )
+{
+  int r = memcmp( &lhs.cryptoHash, &rhs.cryptoHash, sizeof( lhs.cryptoHash ) );
+  if ( r != 0 )
+    return r < 0;
+  return memcmp( &lhs.rollingHash, &rhs.rollingHash, sizeof( lhs.rollingHash ) ) < 0;
+}
+
 ChunkId::ChunkId( string const & blob )
 {
   CHECK( blob.size() == BlobSize, "incorrect blob sise: %zu", blob.size() );

@@ -44,9 +44,19 @@ namespace __gnu_cxx
   };
 }
 
+class IndexProcessor
+{
+public:
+  virtual void startIndex( string const & ) = 0;
+  virtual void startBundle( Bundle::Id const & ) = 0;
+  virtual void processChunk( ChunkId const & ) = 0;
+  virtual void finishBundle( Bundle::Id const &, BundleInfo const & ) = 0;
+  virtual void finishIndex( string const & ) = 0;
+};
+
 /// Maintains an in-memory hash table allowing to check whether we have a
 /// specific chunk or not, and if we do, get the bundle id it's in
-class ChunkIndex: NoCopy
+class ChunkIndex: NoCopy, IndexProcessor
 {
   struct Chain
   {
@@ -99,9 +109,15 @@ public:
   /// if added, false if existed already
   bool addChunk( ChunkId const &, Bundle::Id const & );
 
-private:
-  void loadIndex();
+  void startIndex( string const & );
+  void startBundle( Bundle::Id const & );
+  void processChunk( ChunkId const & );
+  void finishBundle( Bundle::Id const &, BundleInfo const & );
+  void finishIndex( string const & );
 
+  void loadIndex( IndexProcessor & );
+
+private:
   /// Inserts new chunk id into the in-memory hash table. Returns the created
   /// Chain if it was inserted, NULL if it existed before
   Chain * registerNewChunkId( ChunkId const & id, Bundle::Id const * );
