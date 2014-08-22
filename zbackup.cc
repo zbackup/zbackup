@@ -9,6 +9,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <vector>
+#include <bitset>
 
 #include "backup_creator.hh"
 #include "backup_file.hh"
@@ -23,8 +24,10 @@
 #include "sptr.hh"
 #include "storage_info_file.hh"
 #include "zbackup.hh"
+#include "backup_exchanger.hh"
 
 using std::vector;
+using std::bitset;
 
 Paths::Paths( string const & storageDir ): storageDir( storageDir )
 {
@@ -294,6 +297,8 @@ void ZRestore::restoreToStdin( string const & inputFileName )
     throw exChecksumError();
 }
 
+DEF_EX( exExchangeWithLessThanTwoKeys, "Specify password flag (--non-encrypted or --password-file)"
+   " for import/export operation twice (first for source and second for destination)", std::exception )
 DEF_EX( exNonEncryptedWithKey, "--non-encrypted and --password-file are incompatible", std::exception )
 DEF_EX( exSpecifyEncryptionOptions, "Specify either --password-file or --non-encrypted", std::exception )
 DEF_EX_STR( exInvalidThreadsValue, "Invalid threads value specified:", std::exception )
@@ -302,24 +307,63 @@ int main( int argc, char *argv[] )
 {
   try
   {
-    char const * passwordFile = 0;
-    bool nonEncrypted = false;
     size_t const defaultThreads = getNumberOfCpus();
     size_t threads = defaultThreads;
     size_t const defaultCacheSizeMb = 40;
     size_t cacheSizeMb = defaultCacheSizeMb;
     vector< char const * > args;
+    vector< string > passwords;
+    bitset< BackupExchanger::Flags > exchange;
 
     for( int x = 1; x < argc; ++x )
     {
       if ( strcmp( argv[ x ], "--password-file" ) == 0 && x + 1 < argc )
       {
-        passwordFile = argv[ x + 1 ];
+        // Read the password
+        char const * passwordFile = argv[ x + 1 ];
+        string passwordData;
+        if ( passwordFile )
+        {
+          File f( passwordFile, File::ReadOnly );
+          passwordData.resize( f.size() );
+          f.read( &passwordData[ 0 ], passwordData.size() );
+
+          // If the password ends with \n, remove that last \n. Many editors will
+          // add \n there even if a user doesn't want them to
+          if ( !passwordData.empty() &&
+               passwordData[ passwordData.size() - 1 ] == '\n' )
+            passwordData.resize( passwordData.size() - 1 );
+          passwords.push_back( passwordData );
+        }
+        ++x;
+      }
+      else
+      if ( strcmp( argv[ x ], "--exchange" ) == 0 && x + 1 < argc )
+      {
+        char const * exchangeValue = argv[ x + 1 ];
+        if ( strcmp( exchangeValue, "backups" ) == 0 )
+          exchange.set( BackupExchanger::backups );
+        else
+        if ( strcmp( exchangeValue, "bundles" ) == 0 )
+          exchange.set( BackupExchanger::bundles );
+        else
+        if ( strcmp( exchangeValue, "index" ) == 0 )
+          exchange.set( BackupExchanger::index );
+        else
+        {
+          fprintf( stderr, "Invalid exchange value specified: %s. "
+                   "Must be one of the following: backups, bundles, index\n",
+                   exchangeValue );
+          return EXIT_FAILURE;
+        }
+
         ++x;
       }
       else
       if ( strcmp( argv[ x ], "--non-encrypted" ) == 0 )
-        nonEncrypted = true;
+      {
+          passwords.push_back( "" );
+      }
       else
       if ( strcmp( argv[ x ], "--silent" ) == 0 )
         verboseMode = false;
@@ -366,9 +410,6 @@ int main( int argc, char *argv[] )
         args.push_back( argv[ x ] );
     }
 
-    if ( nonEncrypted && passwordFile )
-      throw exNonEncryptedWithKey();
-
     if ( args.size() < 1 )
     {
       fprintf( stderr,
@@ -379,31 +420,39 @@ int main( int argc, char *argv[] )
 
 "Usage: %s [flags] <command> [command args]\n"
 "  Flags: --non-encrypted|--password-file <file>\n"
+"          password flag should be specified twice if import/export\n"
+"          command specified\n"
 "         --silent (default is verbose)\n"
 "         --threads <number> (default is %zu on your system)\n"
 "         --cache-size <number> MB (default is %zu)\n"
+"         --exchange [backups|bundles|index] (can be\n"
+"          specified multiple times)\n"
 "  Commands:\n"
 "    init <storage path> - initializes new storage;\n"
 "    backup <backup file name> - performs a backup from stdin;\n"
-"    restore <backup file name> - restores a backup to stdout.\n", *argv,
+"    restore <backup file name> - restores a backup to stdout;\n"
+"    export <source storage path> <destination storage path> -\n"
+"            performs export from source to destination storage;\n"
+"    import <source storage path> <destination storage path> -\n"
+"            performs import from source to destination storage.\n"
+"  For export/import storage path must be valid (initialized) storage.\n"
+"", *argv,
                defaultThreads, defaultCacheSizeMb );
       return EXIT_FAILURE;
     }
 
-    // Read the password
-    string passwordData;
-    if ( passwordFile )
-    {
-      File f( passwordFile, File::ReadOnly );
-      passwordData.resize( f.size() );
-      f.read( &passwordData[ 0 ], passwordData.size() );
-
-      // If the password ends with \n, remove that last \n. Many editors will
-      // add \n there even if a user doesn't want them to
-      if ( !passwordData.empty() &&
-           passwordData[ passwordData.size() - 1 ] == '\n' )
-        passwordData.resize( passwordData.size() - 1 );
-    }
+    if ( passwords.size() > 1 &&
+        ( ( passwords[ 0 ].empty() && !passwords[ 1 ].empty() ) ||
+          ( !passwords[ 0 ].empty() && passwords[ 1 ].empty() ) ) &&
+        ( strcmp( args[ 0 ], "export" ) != 0 && strcmp( args[ 0 ], "import" ) != 0 ) )
+      throw exNonEncryptedWithKey();
+    else
+      if ( passwords.size() < 2 &&
+          ( strcmp( args[ 0 ], "export" ) == 0 || strcmp( args[ 0 ], "import" ) == 0 ) )
+        throw exExchangeWithLessThanTwoKeys();
+    else
+      if ( passwords.size() < 1 )
+        throw exSpecifyEncryptionOptions();
 
     if ( strcmp( args[ 0 ], "init" ) == 0 )
     {
@@ -413,10 +462,8 @@ int main( int argc, char *argv[] )
         fprintf( stderr, "Usage: %s init <storage path>\n", *argv );
         return EXIT_FAILURE;
       }
-      if ( !nonEncrypted && !passwordFile )
-          throw exSpecifyEncryptionOptions();
 
-      ZBackup::initStorage( args[ 1 ], passwordData, !nonEncrypted );
+      ZBackup::initStorage( args[ 1 ], passwords[ 0 ], !passwords[ 0 ].empty() );
     }
     else
     if ( strcmp( args[ 0 ], "backup" ) == 0 )
@@ -429,7 +476,7 @@ int main( int argc, char *argv[] )
         return EXIT_FAILURE;
       }
       ZBackup zb( ZBackup::deriveStorageDirFromBackupsFile( args[ 1 ] ),
-                  passwordData, threads );
+                  passwords[ 0 ], threads );
       zb.backupFromStdin( args[ 1 ] );
     }
     else
@@ -443,8 +490,34 @@ int main( int argc, char *argv[] )
         return EXIT_FAILURE;
       }
       ZRestore zr( ZRestore::deriveStorageDirFromBackupsFile( args[ 1 ] ),
-                   passwordData, cacheSizeMb * 1048576 );
+                   passwords[ 0 ], cacheSizeMb * 1048576 );
       zr.restoreToStdin( args[ 1 ] );
+    }
+    else
+    if ( strcmp( args[ 0 ], "export" ) == 0 || strcmp( args[ 0 ], "import" ) == 0 )
+    {
+      if ( args.size() != 3 )
+      {
+        fprintf( stderr, "Usage: %s %s <source storage path> <destination storage path>\n",
+                 *argv, args[ 0 ] );
+        return EXIT_FAILURE;
+      }
+      if ( exchange.none() )
+      {
+        fprintf( stderr, "Specify any --exchange flag\n" );
+        return EXIT_FAILURE;
+      }
+
+      if ( strcmp( args[ 0 ], "export" ) == 0 )
+      {
+
+      }
+      else
+      if ( strcmp( args[ 0 ], "import" ) == 0 )
+      {
+
+      }
+
     }
     else
     {
