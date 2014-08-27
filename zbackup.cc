@@ -297,6 +297,16 @@ void ZRestore::restoreToStdin( string const & inputFileName )
     throw exChecksumError();
 }
 
+ZExchange::ZExchange( string const & srcStorageDir, string const & srcPassword,
+                    string const & dstStorageDir, string const & dstPassword,
+                    bitset< BackupExchanger::Flags > const & exchange )
+{
+}
+
+void ZExchange::exchange()
+{
+}
+
 DEF_EX( exExchangeWithLessThanTwoKeys, "Specify password flag (--non-encrypted or --password-file)"
    " for import/export operation twice (first for source and second for destination)", std::exception )
 DEF_EX( exNonEncryptedWithKey, "--non-encrypted and --password-file are incompatible", std::exception )
@@ -508,16 +518,23 @@ int main( int argc, char *argv[] )
         return EXIT_FAILURE;
       }
 
+      string src, dst = 0;
       if ( strcmp( args[ 0 ], "export" ) == 0 )
       {
-
+        src = args[ 1 ];
+        dst = args[ 2 ];
       }
       else
       if ( strcmp( args[ 0 ], "import" ) == 0 )
       {
-
+        src = args[ 2 ];
+        dst = args[ 1 ];
       }
 
+      ZExchange ze( ZBackup::deriveStorageDirFromBackupsFile( src ), passwords[ 0 ],
+                    ZBackup::deriveStorageDirFromBackupsFile( dst ), passwords[ 1 ],
+                    exchange );
+      ze.exchange();
     }
     else
     {

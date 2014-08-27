@@ -8,6 +8,7 @@
 #include <exception>
 #include <string>
 #include <vector>
+#include <bitset>
 
 #include "chunk_id.hh"
 #include "chunk_index.hh"
@@ -16,9 +17,11 @@
 #include "ex.hh"
 #include "tmp_mgr.hh"
 #include "zbackup.pb.h"
+#include "backup_exchanger.hh"
 
 using std::string;
 using std::vector;
+using std::bitset;
 
 struct Paths
 {
@@ -92,6 +95,17 @@ public:
 
   /// Restores the data to stdin
   void restoreToStdin( string const & inputFileName );
+};
+
+class ZExchange
+{
+public:
+  ZExchange( string const & srcStorageDir, string const & srcPassword,
+            string const & dstStorageDir, string const & dstPassword,
+            bitset< BackupExchanger::Flags > const & exchange );
+
+  /// Exchanges the data between storages
+  void exchange();
 };
 
 #endif

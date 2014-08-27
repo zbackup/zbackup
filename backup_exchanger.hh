@@ -4,6 +4,11 @@
 #define EXCHANGE_HH_INCLUDED__
 
 #include <bitset>
+#include <exception>
+#include <string>
+
+using std::vector;
+using std::string;
 
 namespace BackupExchanger {
 
