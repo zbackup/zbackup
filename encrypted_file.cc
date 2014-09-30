@@ -9,6 +9,7 @@
 #include "endian.hh"
 #include "page_size.hh"
 #include "random.hh"
+#include "debug.hh"
 
 namespace EncryptedFile {
 
@@ -22,6 +23,7 @@ InputStream::InputStream( char const * fileName, EncryptionKey const & key,
   buffer( std::max( getPageSize(), ( unsigned ) BlockSize * 2 ) ),
   fill( 0 ), remainder( 0 ), backedUp( false )
 {
+  dPrintf( "encrypted fileName: %s\n", fileName );
   if ( key.hasKey() )
   {
     memcpy( iv, iv_, sizeof( iv ) );

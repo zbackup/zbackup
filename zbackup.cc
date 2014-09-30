@@ -24,10 +24,10 @@
 #include "sptr.hh"
 #include "storage_info_file.hh"
 #include "zbackup.hh"
-#include "backup_exchanger.hh"
 
 using std::vector;
 using std::bitset;
+using std::iterator;
 
 Paths::Paths( string const & storageDir ): storageDir( storageDir )
 {
@@ -63,7 +63,17 @@ ZBackupBase::ZBackupBase( string const & storageDir, string const & password ):
   encryptionkey( password, storageInfo.has_encryption_key() ?
                    &storageInfo.encryption_key() : 0 ),
   tmpMgr( getTmpPath() ),
-  chunkIndex( encryptionkey, tmpMgr, getIndexPath() )
+  chunkIndex( encryptionkey, tmpMgr, getIndexPath(), false )
+{
+}
+
+ZBackupBase::ZBackupBase( string const & storageDir, string const & password,
+                          bool prohibitChunkIndexLoading ):
+  Paths( storageDir ), storageInfo( loadStorageInfo() ),
+  encryptionkey( password, storageInfo.has_encryption_key() ?
+                   &storageInfo.encryption_key() : 0 ),
+  tmpMgr( getTmpPath() ),
+  chunkIndex( encryptionkey, tmpMgr, getIndexPath(), prohibitChunkIndexLoading )
 {
 }
 
@@ -112,10 +122,13 @@ void ZBackupBase::initStorage( string const & storageDir,
 }
 
 string ZBackupBase::deriveStorageDirFromBackupsFile( string const &
-                                                     backupsFile )
+                                                     backupsFile, bool allowOutside )
 {
   // TODO: handle cases when there's a backup/ folder within the backup/ folder
   // correctly
+  if ( allowOutside )
+    return Dir::getRealPath( backupsFile );
+
   string realPath = Dir::getRealPath( Dir::getDirName( backupsFile ) );
   size_t pos;
   if ( realPath.size() >= 8 && strcmp( realPath.c_str() + realPath.size() - 8,
@@ -299,12 +312,59 @@ void ZRestore::restoreToStdin( string const & inputFileName )
 
 ZExchange::ZExchange( string const & srcStorageDir, string const & srcPassword,
                     string const & dstStorageDir, string const & dstPassword,
-                    bitset< BackupExchanger::Flags > const & exchange )
+                    bool prohibitChunkIndexLoading ):
+  srcZBackupBase( srcStorageDir, srcPassword, prohibitChunkIndexLoading ),
+  dstZBackupBase( dstStorageDir, dstPassword, prohibitChunkIndexLoading )
 {
 }
 
-void ZExchange::exchange()
+void ZExchange::exchange( string const & srcPath, string const & dstPath,
+    bitset< BackupExchanger::Flags > const & exchange )
 {
+  if ( exchange.test( BackupExchanger::backups ) )
+  {
+    BackupInfo backupInfo;
+
+    verbosePrintf( "Searching for backups...\n" );
+    vector< string > backups = BackupExchanger::recreateDirectories(
+        srcZBackupBase.getBackupsPath(), dstZBackupBase.getBackupsPath() );
+
+    for ( std::vector< string >::iterator it = backups.begin(); it != backups.end(); ++it )
+    {
+      verbosePrintf( "Processing backup file %s... ", it->c_str() );
+      string outputFileName ( Dir::addPath( dstZBackupBase.getBackupsPath(), *it ) );
+      if ( !File::exists( outputFileName ) )
+      {
+        BackupFile::load( Dir::addPath( srcZBackupBase.getBackupsPath(), *it ), srcZBackupBase.encryptionkey, backupInfo );
+        sptr< TemporaryFile > tmpFile = dstZBackupBase.tmpMgr.makeTemporaryFile();
+        BackupFile::save( tmpFile->getFileName(), dstZBackupBase.encryptionkey, backupInfo );
+        tmpFile->moveOverTo( outputFileName );
+        verbosePrintf( "done.\n" );
+      }
+      else
+      {
+        verbosePrintf( "file exists - skipped.\n" );
+      }
+    }
+
+    verbosePrintf( "Backup exchange completed.\n" );
+  }
+
+  if ( exchange.test( BackupExchanger::bundles ) )
+  {
+    verbosePrintf( "Searching for bundles...\n" );
+    verbosePrintf( "NOT IMPLEMENTED!\n" );
+
+    verbosePrintf( "Bundle exchange completed.\n" );
+  }
+
+  if ( exchange.test( BackupExchanger::index ) )
+  {
+    verbosePrintf( "Searching for indicies...\n" );
+    verbosePrintf( "NOT IMPLEMENTED!\n" );
+
+    verbosePrintf( "Index exchange completed.\n" );
+  }
 }
 
 DEF_EX( exExchangeWithLessThanTwoKeys, "Specify password flag (--non-encrypted or --password-file)"
@@ -361,7 +421,7 @@ int main( int argc, char *argv[] )
           exchange.set( BackupExchanger::index );
         else
         {
-          fprintf( stderr, "Invalid exchange value specified: %s. "
+          fprintf( stderr, "Invalid exchange value specified: %s\n"
                    "Must be one of the following: backups, bundles, index\n",
                    exchangeValue );
           return EXIT_FAILURE;
@@ -420,7 +480,11 @@ int main( int argc, char *argv[] )
         args.push_back( argv[ x ] );
     }
 
-    if ( args.size() < 1 )
+    if ( args.size() < 1 ||
+        ( args.size() == 1 &&
+          ( strcmp( args[ 0 ], "-h" ) == 0 || strcmp( args[ 0 ], "--help" ) == 0 )
+        )
+       )
     {
       fprintf( stderr,
 "ZBackup, a versatile deduplicating backup tool, version 1.2\n"
@@ -437,6 +501,7 @@ int main( int argc, char *argv[] )
 "         --cache-size <number> MB (default is %zu)\n"
 "         --exchange [backups|bundles|index] (can be\n"
 "          specified multiple times)\n"
+"         --help|-h show this message\n"
 "  Commands:\n"
 "    init <storage path> - initializes new storage;\n"
 "    backup <backup file name> - performs a backup from stdin;\n"
@@ -518,23 +583,25 @@ int main( int argc, char *argv[] )
         return EXIT_FAILURE;
       }
 
-      string src, dst = 0;
+      int src, dst;
       if ( strcmp( args[ 0 ], "export" ) == 0 )
       {
-        src = args[ 1 ];
-        dst = args[ 2 ];
+        src = 1;
+        dst = 2;
       }
       else
       if ( strcmp( args[ 0 ], "import" ) == 0 )
       {
-        src = args[ 2 ];
-        dst = args[ 1 ];
+        src = 2;
+        dst = 1;
       }
+      dPrintf( "%s src: %s\n", args[ 0 ], args[ src ] );
+      dPrintf( "%s dst: %s\n", args[ 0 ], args[ dst ] );
 
-      ZExchange ze( ZBackup::deriveStorageDirFromBackupsFile( src ), passwords[ 0 ],
-                    ZBackup::deriveStorageDirFromBackupsFile( dst ), passwords[ 1 ],
-                    exchange );
-      ze.exchange();
+      ZExchange ze( ZBackupBase::deriveStorageDirFromBackupsFile( args[ src ], true ), passwords[ src - 1 ],
+                    ZBackupBase::deriveStorageDirFromBackupsFile( args[ dst ], true ), passwords[ dst - 1 ],
+                    true );
+      ze.exchange( args[ src ], args[ dst ], exchange );
     }
     else
     {
