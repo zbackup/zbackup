@@ -24,6 +24,7 @@
 #include "sptr.hh"
 #include "storage_info_file.hh"
 #include "zbackup.hh"
+#include "index_file.hh"
 
 using std::vector;
 using std::bitset;
@@ -335,9 +336,11 @@ void ZExchange::exchange( string const & srcPath, string const & dstPath,
       string outputFileName ( Dir::addPath( dstZBackupBase.getBackupsPath(), *it ) );
       if ( !File::exists( outputFileName ) )
       {
-        BackupFile::load( Dir::addPath( srcZBackupBase.getBackupsPath(), *it ), srcZBackupBase.encryptionkey, backupInfo );
+        BackupFile::load( Dir::addPath( srcZBackupBase.getBackupsPath(), *it ),
+            srcZBackupBase.encryptionkey, backupInfo );
         sptr< TemporaryFile > tmpFile = dstZBackupBase.tmpMgr.makeTemporaryFile();
-        BackupFile::save( tmpFile->getFileName(), dstZBackupBase.encryptionkey, backupInfo );
+        BackupFile::save( tmpFile->getFileName(), dstZBackupBase.encryptionkey,
+            backupInfo );
         tmpFile->moveOverTo( outputFileName );
         verbosePrintf( "done.\n" );
       }
@@ -361,7 +364,42 @@ void ZExchange::exchange( string const & srcPath, string const & dstPath,
   if ( exchange.test( BackupExchanger::index ) )
   {
     verbosePrintf( "Searching for indicies...\n" );
-    verbosePrintf( "NOT IMPLEMENTED!\n" );
+    vector< string > backups = BackupExchanger::recreateDirectories(
+        srcZBackupBase.getIndexPath(), dstZBackupBase.getIndexPath() );
+
+    for ( std::vector< string >::iterator it = backups.begin(); it != backups.end(); ++it )
+    {
+      verbosePrintf( "Processing index file %s... ", it->c_str() );
+      string outputFileName ( Dir::addPath( dstZBackupBase.getIndexPath(), *it ) );
+      if ( !File::exists( outputFileName ) )
+      {
+        IndexFile::Reader reader( srcZBackupBase.encryptionkey,
+                                 Dir::addPath( srcZBackupBase.getIndexPath(), *it ) );
+
+        sptr< TemporaryFile > indexTempFile = dstZBackupBase.tmpMgr.makeTemporaryFile();
+        sptr< IndexFile::Writer > writer = new IndexFile::Writer( dstZBackupBase.encryptionkey,
+            indexTempFile->getFileName() );
+
+        BundleInfo bundleInfo;
+        Bundle::Id bundleId;
+        while( reader.readNextRecord( bundleInfo, bundleId ) )
+        {
+          writer->add( bundleInfo, bundleId );
+        }
+
+        if ( writer.get() )
+        {
+          writer.reset();
+          indexTempFile->moveOverTo( outputFileName );
+          indexTempFile.reset();
+          verbosePrintf( "done.\n" );
+        }
+      }
+      else
+      {
+        verbosePrintf( "file exists - skipped.\n" );
+      }
+    }
 
     verbosePrintf( "Index exchange completed.\n" );
   }
@@ -598,8 +636,10 @@ int main( int argc, char *argv[] )
       dPrintf( "%s src: %s\n", args[ 0 ], args[ src ] );
       dPrintf( "%s dst: %s\n", args[ 0 ], args[ dst ] );
 
-      ZExchange ze( ZBackupBase::deriveStorageDirFromBackupsFile( args[ src ], true ), passwords[ src - 1 ],
-                    ZBackupBase::deriveStorageDirFromBackupsFile( args[ dst ], true ), passwords[ dst - 1 ],
+      ZExchange ze( ZBackupBase::deriveStorageDirFromBackupsFile( args[ src ], true ),
+                    passwords[ src - 1 ],
+                    ZBackupBase::deriveStorageDirFromBackupsFile( args[ dst ], true ),
+                    passwords[ dst - 1 ],
                     true );
       ze.exchange( args[ src ], args[ dst ], exchange );
     }
