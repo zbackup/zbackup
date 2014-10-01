@@ -10,6 +10,7 @@
 #include "encryption.hh"
 #include "hex.hh"
 #include "message.hh"
+#include "adler32.hh"
 
 namespace Bundle {
 
@@ -40,10 +41,47 @@ void Creator::write( std::string const & fileName, EncryptionKey const & key,
   Message::serialize( reader.getBundleInfo(), os );
   os.writeAdler32();
 
-  const void * buf;
-  int size;
-  while ( reader.is.Next( &buf, &size ) )
-    os.write( buf, ( int ) size );
+  void * bufPrev = NULL;
+  const void * bufCurr = NULL;
+  int sizePrev = 0, sizeCurr = 0;
+  bool readPrev = false, readCurr = false;
+
+  for ( ; ; )
+  {
+    bool readCurr = reader.is.Next( &bufCurr, &sizeCurr );
+
+    if ( readCurr )
+    {
+      if ( readPrev )
+      {
+        os.write( bufPrev, sizePrev );
+
+        readPrev = readCurr;
+        free( bufPrev );
+        bufPrev = malloc( sizeCurr );
+        memcpy( bufPrev, bufCurr, sizeCurr );
+        sizePrev = sizeCurr;
+      }
+      else
+      {
+        readPrev = readCurr;
+        bufPrev = malloc( sizeCurr );
+        memcpy( bufPrev, bufCurr, sizeCurr );
+        sizePrev = sizeCurr;
+      }
+    }
+    else
+    {
+      if ( readPrev )
+      {
+        sizePrev -= sizeof( Adler32::Value );
+        os.write( bufPrev, sizePrev );
+        os.writeAdler32();
+        free ( bufPrev );
+        break;
+      }
+    }
+  }
 }
 
 void Creator::write( std::string const & fileName, EncryptionKey const & key )
