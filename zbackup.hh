@@ -109,7 +109,8 @@ public:
             bool prohibitChunkIndexLoading );
 
   /// Exchanges the data between storages
-  void exchange( string const & srcFileName, string const & dstFileName, bitset< BackupExchanger::Flags > const & exchange );
+  void exchange( string const & srcFileName, string const & dstFileName,
+      bitset< BackupExchanger::Flags > const & exchange );
 };
 
 #endif

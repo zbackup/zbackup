@@ -25,6 +25,7 @@
 #include "storage_info_file.hh"
 #include "zbackup.hh"
 #include "index_file.hh"
+#include "bundle.hh"
 
 using std::vector;
 using std::bitset;
@@ -322,27 +323,32 @@ ZExchange::ZExchange( string const & srcStorageDir, string const & srcPassword,
 void ZExchange::exchange( string const & srcPath, string const & dstPath,
     bitset< BackupExchanger::Flags > const & exchange )
 {
-  if ( exchange.test( BackupExchanger::backups ) )
+  if ( exchange.test( BackupExchanger::bundles ) )
   {
-    BackupInfo backupInfo;
+    verbosePrintf( "Searching for bundles...\n" );
 
-    verbosePrintf( "Searching for backups...\n" );
-    vector< string > backups = BackupExchanger::recreateDirectories(
-        srcZBackupBase.getBackupsPath(), dstZBackupBase.getBackupsPath() );
+    vector< string > bundles = BackupExchanger::recreateDirectories(
+        srcZBackupBase.getBundlesPath(), dstZBackupBase.getBundlesPath() );
 
-    for ( std::vector< string >::iterator it = backups.begin(); it != backups.end(); ++it )
+    for ( std::vector< string >::iterator it = bundles.begin(); it != bundles.end(); ++it )
     {
-      verbosePrintf( "Processing backup file %s... ", it->c_str() );
-      string outputFileName ( Dir::addPath( dstZBackupBase.getBackupsPath(), *it ) );
+      verbosePrintf( "Processing bundle file %s... ", it->c_str() );
+      string outputFileName ( Dir::addPath( dstZBackupBase.getBundlesPath(), *it ) );
       if ( !File::exists( outputFileName ) )
       {
-        BackupFile::load( Dir::addPath( srcZBackupBase.getBackupsPath(), *it ),
-            srcZBackupBase.encryptionkey, backupInfo );
-        sptr< TemporaryFile > tmpFile = dstZBackupBase.tmpMgr.makeTemporaryFile();
-        BackupFile::save( tmpFile->getFileName(), dstZBackupBase.encryptionkey,
-            backupInfo );
-        tmpFile->moveOverTo( outputFileName );
-        verbosePrintf( "done.\n" );
+        sptr< Bundle::Reader > reader = new Bundle::Reader( Dir::addPath (
+              srcZBackupBase.getBundlesPath(), *it ), srcZBackupBase.encryptionkey, true );
+        sptr< Bundle::Creator > creator = new Bundle::Creator;
+        sptr< TemporaryFile > bundleTempFile = dstZBackupBase.tmpMgr.makeTemporaryFile();
+        creator->write( bundleTempFile->getFileName(), dstZBackupBase.encryptionkey, *reader );
+
+        if ( creator.get() )
+        {
+          creator.reset();
+          bundleTempFile->moveOverTo( outputFileName );
+          bundleTempFile.reset();
+          verbosePrintf( "done.\n" );
+        }
       }
       else
       {
@@ -350,24 +356,16 @@ void ZExchange::exchange( string const & srcPath, string const & dstPath,
       }
     }
 
-    verbosePrintf( "Backup exchange completed.\n" );
-  }
-
-  if ( exchange.test( BackupExchanger::bundles ) )
-  {
-    verbosePrintf( "Searching for bundles...\n" );
-    verbosePrintf( "NOT IMPLEMENTED!\n" );
-
     verbosePrintf( "Bundle exchange completed.\n" );
   }
 
   if ( exchange.test( BackupExchanger::index ) )
   {
     verbosePrintf( "Searching for indicies...\n" );
-    vector< string > backups = BackupExchanger::recreateDirectories(
+    vector< string > indicies = BackupExchanger::recreateDirectories(
         srcZBackupBase.getIndexPath(), dstZBackupBase.getIndexPath() );
 
-    for ( std::vector< string >::iterator it = backups.begin(); it != backups.end(); ++it )
+    for ( std::vector< string >::iterator it = indicies.begin(); it != indicies.end(); ++it )
     {
       verbosePrintf( "Processing index file %s... ", it->c_str() );
       string outputFileName ( Dir::addPath( dstZBackupBase.getIndexPath(), *it ) );
@@ -402,6 +400,37 @@ void ZExchange::exchange( string const & srcPath, string const & dstPath,
     }
 
     verbosePrintf( "Index exchange completed.\n" );
+  }
+
+  if ( exchange.test( BackupExchanger::backups ) )
+  {
+    BackupInfo backupInfo;
+
+    verbosePrintf( "Searching for backups...\n" );
+    vector< string > backups = BackupExchanger::recreateDirectories(
+        srcZBackupBase.getBackupsPath(), dstZBackupBase.getBackupsPath() );
+
+    for ( std::vector< string >::iterator it = backups.begin(); it != backups.end(); ++it )
+    {
+      verbosePrintf( "Processing backup file %s... ", it->c_str() );
+      string outputFileName ( Dir::addPath( dstZBackupBase.getBackupsPath(), *it ) );
+      if ( !File::exists( outputFileName ) )
+      {
+        BackupFile::load( Dir::addPath( srcZBackupBase.getBackupsPath(), *it ),
+            srcZBackupBase.encryptionkey, backupInfo );
+        sptr< TemporaryFile > tmpFile = dstZBackupBase.tmpMgr.makeTemporaryFile();
+        BackupFile::save( tmpFile->getFileName(), dstZBackupBase.encryptionkey,
+            backupInfo );
+        tmpFile->moveOverTo( outputFileName );
+        verbosePrintf( "done.\n" );
+      }
+      else
+      {
+        verbosePrintf( "file exists - skipped.\n" );
+      }
+    }
+
+    verbosePrintf( "Backup exchange completed.\n" );
   }
 }
 

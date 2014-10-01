@@ -7,7 +7,6 @@
 #include "bundle.hh"
 #include "check.hh"
 #include "dir.hh"
-#include "encrypted_file.hh"
 #include "encryption.hh"
 #include "hex.hh"
 #include "message.hh"
@@ -25,6 +24,26 @@ void Creator::addChunk( string const & id, void const * data, size_t size )
   record->set_id( id );
   record->set_size( size );
   payload.append( ( char const * ) data, size );
+}
+
+void Creator::write( std::string const & fileName, EncryptionKey const & key,
+    Reader & reader )
+{
+  EncryptedFile::OutputStream os( fileName.c_str(), key, Encryption::ZeroIv );
+
+  os.writeRandomIv();
+
+  FileHeader header;
+  header.set_version( FileFormatVersion );
+  Message::serialize( header, os );
+
+  Message::serialize( reader.getBundleInfo(), os );
+  os.writeAdler32();
+
+  const void * buf;
+  int size;
+  while ( reader.is.Next( &buf, &size ) )
+    os.write( buf, ( int ) size );
 }
 
 void Creator::write( std::string const & fileName, EncryptionKey const & key )
@@ -87,10 +106,9 @@ void Creator::write( std::string const & fileName, EncryptionKey const & key )
   os.writeAdler32();
 }
 
-Reader::Reader( string const & fileName, EncryptionKey const & key )
+Reader::Reader( string const & fileName, EncryptionKey const & key, bool prohibitProcessing ):
+  is( fileName.c_str(), key, Encryption::ZeroIv )
 {
-  EncryptedFile::InputStream is( fileName.c_str(), key, Encryption::ZeroIv );
-
   is.consumeRandomIv();
 
   FileHeader header;
@@ -99,7 +117,6 @@ Reader::Reader( string const & fileName, EncryptionKey const & key )
   if ( header.version() != FileFormatVersion )
     throw exUnsupportedVersion();
 
-  BundleInfo info;
   Message::parse( info, is );
   is.checkAdler32();
 
@@ -108,6 +125,9 @@ Reader::Reader( string const & fileName, EncryptionKey const & key )
     payloadSize += info.chunk_record( x ).size();
 
   payload.resize( payloadSize );
+
+  if ( prohibitProcessing )
+    return;
 
   lzma_stream strm = LZMA_STREAM_INIT;
 
