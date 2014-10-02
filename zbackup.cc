@@ -323,6 +323,8 @@ ZExchange::ZExchange( string const & srcStorageDir, string const & srcPassword,
 void ZExchange::exchange( string const & srcPath, string const & dstPath,
     bitset< BackupExchanger::Flags > const & exchange )
 {
+  vector< BackupExchanger::PendingExchangeRename > pendingExchangeRenames;
+
   if ( exchange.test( BackupExchanger::bundles ) )
   {
     verbosePrintf( "Searching for bundles...\n" );
@@ -342,11 +344,12 @@ void ZExchange::exchange( string const & srcPath, string const & dstPath,
         sptr< TemporaryFile > bundleTempFile = dstZBackupBase.tmpMgr.makeTemporaryFile();
         creator->write( bundleTempFile->getFileName(), dstZBackupBase.encryptionkey, *reader );
 
-        if ( creator.get() )
+        if ( creator.get() && reader.get() )
         {
           creator.reset();
-          bundleTempFile->moveOverTo( outputFileName );
-          bundleTempFile.reset();
+          reader.reset();
+          pendingExchangeRenames.push_back( BackupExchanger::PendingExchangeRename(
+                bundleTempFile, outputFileName ) );
           verbosePrintf( "done.\n" );
         }
       }
@@ -371,25 +374,25 @@ void ZExchange::exchange( string const & srcPath, string const & dstPath,
       string outputFileName ( Dir::addPath( dstZBackupBase.getIndexPath(), *it ) );
       if ( !File::exists( outputFileName ) )
       {
-        IndexFile::Reader reader( srcZBackupBase.encryptionkey,
+        sptr< IndexFile::Reader > reader = new IndexFile::Reader( srcZBackupBase.encryptionkey,
                                  Dir::addPath( srcZBackupBase.getIndexPath(), *it ) );
-
         sptr< TemporaryFile > indexTempFile = dstZBackupBase.tmpMgr.makeTemporaryFile();
         sptr< IndexFile::Writer > writer = new IndexFile::Writer( dstZBackupBase.encryptionkey,
             indexTempFile->getFileName() );
 
         BundleInfo bundleInfo;
         Bundle::Id bundleId;
-        while( reader.readNextRecord( bundleInfo, bundleId ) )
+        while( reader->readNextRecord( bundleInfo, bundleId ) )
         {
           writer->add( bundleInfo, bundleId );
         }
 
-        if ( writer.get() )
+        if ( writer.get() && reader.get() )
         {
           writer.reset();
-          indexTempFile->moveOverTo( outputFileName );
-          indexTempFile.reset();
+          reader.reset();
+          pendingExchangeRenames.push_back( BackupExchanger::PendingExchangeRename(
+                indexTempFile, outputFileName ) );
           verbosePrintf( "done.\n" );
         }
       }
@@ -421,7 +424,8 @@ void ZExchange::exchange( string const & srcPath, string const & dstPath,
         sptr< TemporaryFile > tmpFile = dstZBackupBase.tmpMgr.makeTemporaryFile();
         BackupFile::save( tmpFile->getFileName(), dstZBackupBase.encryptionkey,
             backupInfo );
-        tmpFile->moveOverTo( outputFileName );
+        pendingExchangeRenames.push_back( BackupExchanger::PendingExchangeRename(
+                tmpFile, outputFileName ) );
         verbosePrintf( "done.\n" );
       }
       else
@@ -431,6 +435,22 @@ void ZExchange::exchange( string const & srcPath, string const & dstPath,
     }
 
     verbosePrintf( "Backup exchange completed.\n" );
+  }
+
+  if ( pendingExchangeRenames.size() > 0 )
+  {
+    verbosePrintf( "Moving files from temp directory to appropriate places... " );
+    for ( size_t x = pendingExchangeRenames.size(); x--; )
+    {
+      BackupExchanger::PendingExchangeRename & r = pendingExchangeRenames[ x ];
+      r.first->moveOverTo( r.second );
+      if ( r.first.get() )
+      {
+        r.first.reset();
+      }
+    }
+    pendingExchangeRenames.clear();
+    verbosePrintf( "done.\n" );
   }
 }
 

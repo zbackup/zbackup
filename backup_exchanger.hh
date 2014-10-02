@@ -3,15 +3,16 @@
 #ifndef BACKUP_EXCHANGER_HH_INCLUDED__
 #define BACKUP_EXCHANGER_HH_INCLUDED__
 
-#include <bitset>
-#include <exception>
 #include <string>
 #include <vector>
+#include "sptr.hh"
+#include "tmp_mgr.hh"
+
+namespace BackupExchanger {
 
 using std::string;
 using std::vector;
-
-namespace BackupExchanger {
+using std::pair;
 
 enum {
   backups,
@@ -21,7 +22,8 @@ enum {
 };
 
 /// Recreate source directory structure in destination
-vector< string > recreateDirectories( string const & src, string const & dst, string const & relaPath = std::string() );
+vector< string > recreateDirectories( string const & src, string const & dst, string const & relativePath = std::string() );
+typedef pair< sptr< TemporaryFile >, string > PendingExchangeRename;
 }
 
 #endif
