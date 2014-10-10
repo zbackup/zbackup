@@ -23,7 +23,7 @@ bool ChunkIndex::Chain::equalsTo( ChunkId const & id )
   return memcmp( cryptoHash, id.cryptoHash, sizeof ( cryptoHash ) ) == 0;
 }
 
-void ChunkIndex::loadIndex()
+void ChunkIndex::loadIndex( IndexProcessor & ip )
 {
   Dir::Listing lst( indexPath );
 
@@ -35,8 +35,10 @@ void ChunkIndex::loadIndex()
   {
     verbosePrintf( "Loading index file %s...\n", entry.getFileName().c_str() );
 
-    IndexFile::Reader reader( key,
-                             Dir::addPath( indexPath, entry.getFileName() ) );
+    string indexFn = Dir::addPath( indexPath, entry.getFileName() );
+    IndexFile::Reader reader( key, indexFn );
+
+    ip.startIndex( indexFn );
 
     BundleInfo info;
     Bundle::Id bundleId;
@@ -45,9 +47,9 @@ void ChunkIndex::loadIndex()
       Bundle::Id * savedId = storage.allocateObjects< Bundle::Id >( 1 );
       memcpy( savedId, &bundleId, sizeof( bundleId ) );
 
-      lastBundleId = savedId;
-
       ChunkId id;
+
+      ip.startBundle( *savedId );
 
       for ( int x = info.chunk_record_size(); x--; )
       {
@@ -57,20 +59,49 @@ void ChunkIndex::loadIndex()
           throw exIncorrectChunkIdSize();
 
         id.setFromBlob( record.id().data() );
-        registerNewChunkId( id, savedId );
+        ip.processChunk( id );
       }
+
+      ip.finishBundle( *savedId, info );
     }
+
+    ip.finishIndex( indexFn );
   }
 
   verbosePrintf( "Index loaded.\n" );
 }
 
+void ChunkIndex::startIndex( string const & )
+{
+}
+
+void ChunkIndex::startBundle( Bundle::Id const & bundleId )
+{
+  lastBundleId = &bundleId;
+}
+
+void ChunkIndex::processChunk( ChunkId const & chunkId )
+{
+  registerNewChunkId( chunkId, lastBundleId );
+}
+
+void ChunkIndex::finishBundle( Bundle::Id const &, BundleInfo const & )
+{
+}
+
+void ChunkIndex::finishIndex( string const & )
+{
+}
+
 ChunkIndex::ChunkIndex( EncryptionKey const & key, TmpMgr & tmpMgr,
-                        string const & indexPath ):
+                        string const & indexPath, bool load ):
   key( key ), tmpMgr( tmpMgr ), indexPath( indexPath ), storage( 65536, 1 ),
   lastBundleId( NULL )
 {
-  loadIndex();
+  if ( load )
+  {
+    loadIndex( *this );
+  }
 }
 
 Bundle::Id const * ChunkIndex::findChunk( ChunkId::RollingHashPart rollingHash,

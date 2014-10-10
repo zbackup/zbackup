@@ -85,13 +85,16 @@ public:
 class ZRestore: public ZBackupBase
 {
   ChunkStorage::Reader chunkStorageReader;
+  size_t threads;
 
 public:
   ZRestore( string const & storageDir, string const & password,
-            size_t cacheSize );
+            size_t threads, size_t cacheSize );
 
   /// Restores the data to stdin
   void restoreToStdin( string const & inputFileName );
+
+  void gc();
 };
 
 #endif

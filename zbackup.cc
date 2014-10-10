@@ -233,11 +233,12 @@ void ZBackup::backupFromStdin( string const & outputFileName )
 }
 
 ZRestore::ZRestore( string const & storageDir, string const & password,
-                    size_t cacheSize ):
+                    size_t threads, size_t cacheSize ):
   ZBackupBase( storageDir, password ),
   chunkStorageReader( storageInfo, encryptionkey, chunkIndex, getBundlesPath(),
                       cacheSize )
 {
+  this->threads = threads;
 }
 
 void ZRestore::restoreToStdin( string const & inputFileName )
@@ -252,29 +253,7 @@ void ZRestore::restoreToStdin( string const & inputFileName )
   string backupData;
 
   // Perform the iterations needed to get to the actual user backup data
-  for ( ; ; )
-  {
-    backupData.swap( *backupInfo.mutable_backup_data() );
-
-    if ( backupInfo.iterations() )
-    {
-      struct StringWriter: public DataSink
-      {
-        string result;
-
-        virtual void saveData( void const * data, size_t size )
-        {
-          result.append( ( char const * ) data, size );
-        }
-      } stringWriter;
-
-      BackupRestorer::restore( chunkStorageReader, backupData, stringWriter );
-      backupInfo.mutable_backup_data()->swap( stringWriter.result );
-      backupInfo.set_iterations( backupInfo.iterations() - 1 );
-    }
-    else
-      break;
-  }
+  BackupRestorer::restoreIterations( chunkStorageReader, backupInfo, backupData, NULL );
 
   struct StdoutWriter: public DataSink
   {
@@ -288,10 +267,163 @@ void ZRestore::restoreToStdin( string const & inputFileName )
     }
   } stdoutWriter;
 
-  BackupRestorer::restore( chunkStorageReader, backupData, stdoutWriter );
+  BackupRestorer::restore( chunkStorageReader, backupData, &stdoutWriter, NULL );
 
   if ( stdoutWriter.sha256.finish() != backupInfo.sha256() )
     throw exChecksumError();
+}
+
+void ZRestore::gc()
+{
+  ChunkIndex chunkReindex( encryptionkey, tmpMgr, getIndexPath(), false );
+
+  ChunkStorage::Writer chunkStorageWriter( storageInfo, encryptionkey, tmpMgr, chunkReindex,
+                      getBundlesPath(), getIndexPath(), threads );
+
+  string fileName;
+  string backupsPath = getBackupsPath();
+
+  Dir::Listing lst( backupsPath );
+
+  Dir::Entry entry;
+
+  class BundleChecker: public IndexProcessor
+  {
+  private:
+    Bundle::Id savedId;
+    int totalChunks, usedChunks, indexTotalChunks, indexUsedChunks;
+    int indexModifiedBundles, indexKeptBundles, indexRemovedBundles;
+    bool indexModified;
+    vector< string > filesToUnlink;
+
+  public:
+    string bundlesPath;
+    bool verbose;
+    ChunkStorage::Reader *chunkStorageReader;
+    ChunkStorage::Writer *chunkStorageWriter;
+    BackupRestorer::ChunkSet usedChunkSet;
+
+    void startIndex( string const & indexFn )
+    {
+      indexModified = false;
+      indexTotalChunks = indexUsedChunks = 0;
+      indexModifiedBundles = indexKeptBundles = indexRemovedBundles = 0;
+    }
+
+    void finishIndex( string const & indexFn )
+    {
+      if ( indexModified )
+      {
+        verbosePrintf( "Chunks: %d used / %d total, bundles: %d kept / %d modified / %d removed\n",
+          indexUsedChunks, indexTotalChunks, indexKeptBundles, indexModifiedBundles, indexRemovedBundles);
+        filesToUnlink.push_back( indexFn );
+        commit();
+      }
+      else
+      {
+        chunkStorageWriter->reset();
+      }
+    }
+
+    void startBundle( Bundle::Id const & bundleId )
+    {
+      savedId = bundleId;
+      totalChunks = 0;
+      usedChunks = 0;
+    }
+
+    void processChunk( ChunkId const & chunkId )
+    {
+      totalChunks++;
+      if ( usedChunkSet.find( chunkId ) != usedChunkSet.end() )
+      {
+        usedChunks++;
+      }
+    }
+
+    void finishBundle( Bundle::Id const & bundleId, BundleInfo const & info )
+    {
+      string i = Bundle::generateFileName( savedId, "", false );
+      indexTotalChunks += totalChunks;
+      indexUsedChunks += usedChunks;
+      if ( usedChunks == 0 )
+      {
+        if ( verbose )
+          printf( "delete %s\n", i.c_str() );
+        filesToUnlink.push_back( Dir::addPath( bundlesPath, i ) );
+        indexModified = true;
+        indexRemovedBundles++;
+      }
+      else if ( usedChunks < totalChunks )
+      {
+        if ( verbose )
+          printf( "%s: used %d/%d\n", i.c_str(), usedChunks, totalChunks );
+        filesToUnlink.push_back( Dir::addPath( bundlesPath, i ) );
+        indexModified = true;
+        // Copy used chunks to the new index
+        string chunk;
+        size_t chunkSize;
+        for ( int x = info.chunk_record_size(); x--; )
+        {
+          BundleInfo_ChunkRecord const & record = info.chunk_record( x );
+          ChunkId id( record.id() );
+          if ( usedChunkSet.find( id ) != usedChunkSet.end() )
+          {
+            chunkStorageReader->get( id, chunk, chunkSize );
+            chunkStorageWriter->add( id, chunk.data(), chunkSize );
+          }
+        }
+        indexModifiedBundles++;
+      }
+      else
+      {
+        chunkStorageWriter->addBundle( info, savedId );
+        if ( verbose )
+          printf( "keep %s\n", i.c_str() );
+        indexKeptBundles++;
+      }
+    }
+
+    void commit()
+    {
+      for ( int i = filesToUnlink.size(); i--; )
+      {
+        unlink( filesToUnlink[i].c_str() );
+      }
+      filesToUnlink.clear();
+      chunkStorageWriter->commit();
+    }
+  } checker;
+
+  checker.bundlesPath = getBundlesPath();
+  checker.chunkStorageReader = &this->chunkStorageReader;
+  checker.chunkStorageWriter = &chunkStorageWriter;
+  checker.verbose = false;
+
+  verbosePrintf( "Checking used chunks...\n" );
+
+  while( lst.getNext( entry ) )
+  {
+    verbosePrintf( "Checking backup %s...\n", entry.getFileName().c_str() );
+
+    BackupInfo backupInfo;
+
+    BackupFile::load( Dir::addPath( backupsPath, entry.getFileName() ), encryptionkey, backupInfo );
+
+    string backupData;
+
+    BackupRestorer::restoreIterations( chunkStorageReader, backupInfo, backupData, &checker.usedChunkSet );
+
+    BackupRestorer::restore( chunkStorageReader, backupData, NULL, &checker.usedChunkSet );
+  }
+
+  verbosePrintf( "Checking bundles...\n" );
+
+  chunkIndex.loadIndex( checker );
+
+  checker.commit();
+
+  verbosePrintf( "Garbage collection complete\n" );
 }
 
 DEF_EX( exNonEncryptedWithKey, "--non-encrypted and --password-file are incompatible", std::exception )
@@ -443,8 +575,21 @@ int main( int argc, char *argv[] )
         return EXIT_FAILURE;
       }
       ZRestore zr( ZRestore::deriveStorageDirFromBackupsFile( args[ 1 ] ),
-                   passwordData, cacheSizeMb * 1048576 );
+                   passwordData, threads, cacheSizeMb * 1048576 );
       zr.restoreToStdin( args[ 1 ] );
+    }
+    else
+    if ( strcmp( args[ 0 ], "gc" ) == 0 )
+    {
+      // Perform the restore
+      if ( args.size() != 2 )
+      {
+        fprintf( stderr, "Usage: %s gc <backup directory>\n",
+                 *argv );
+        return EXIT_FAILURE;
+      }
+      ZRestore zr( args[ 1 ], passwordData, threads, cacheSizeMb * 1048576 );
+      zr.gc();
     }
     else
     {
