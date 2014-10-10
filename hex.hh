@@ -1,5 +1,5 @@
-// Copyright (c) 2012-2013 Konstantin Isakov <ikm@zbackup.org>
-// Part of ZBackup. Licensed under GNU GPLv2 or later
+// Copyright (c) 2012-2014 Konstantin Isakov <ikm@zbackup.org>
+// Part of ZBackup. Licensed under GNU GPLv2 or later + OpenSSL, see LICENSE
 
 #ifndef HEX_HH_INCLUDED__
 #define HEX_HH_INCLUDED__

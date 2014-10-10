@@ -1,5 +1,5 @@
-// Copyright (c) 2012-2013 Konstantin Isakov <ikm@zbackup.org>
-// Part of ZBackup. Licensed under GNU GPLv2 or later
+// Copyright (c) 2012-2014 Konstantin Isakov <ikm@zbackup.org>
+// Part of ZBackup. Licensed under GNU GPLv2 or later + OpenSSL, see LICENSE
 
 #include <google/protobuf/io/coded_stream.h>
 #include <google/protobuf/io/zero_copy_stream_impl_lite.h>
