@@ -7,10 +7,10 @@
 #include "bundle.hh"
 #include "check.hh"
 #include "dir.hh"
-#include "encrypted_file.hh"
 #include "encryption.hh"
 #include "hex.hh"
 #include "message.hh"
+#include "adler32.hh"
 
 namespace Bundle {
 
@@ -25,6 +25,63 @@ void Creator::addChunk( string const & id, void const * data, size_t size )
   record->set_id( id );
   record->set_size( size );
   payload.append( ( char const * ) data, size );
+}
+
+void Creator::write( std::string const & fileName, EncryptionKey const & key,
+    Reader & reader )
+{
+  EncryptedFile::OutputStream os( fileName.c_str(), key, Encryption::ZeroIv );
+
+  os.writeRandomIv();
+
+  FileHeader header;
+  header.set_version( FileFormatVersion );
+  Message::serialize( header, os );
+
+  Message::serialize( reader.getBundleInfo(), os );
+  os.writeAdler32();
+
+  void * bufPrev = NULL;
+  const void * bufCurr = NULL;
+  int sizePrev = 0, sizeCurr = 0;
+  bool readPrev = false, readCurr = false;
+
+  for ( ; ; )
+  {
+    bool readCurr = reader.is.Next( &bufCurr, &sizeCurr );
+
+    if ( readCurr )
+    {
+      if ( readPrev )
+      {
+        os.write( bufPrev, sizePrev );
+
+        readPrev = readCurr;
+        free( bufPrev );
+        bufPrev = malloc( sizeCurr );
+        memcpy( bufPrev, bufCurr, sizeCurr );
+        sizePrev = sizeCurr;
+      }
+      else
+      {
+        readPrev = readCurr;
+        bufPrev = malloc( sizeCurr );
+        memcpy( bufPrev, bufCurr, sizeCurr );
+        sizePrev = sizeCurr;
+      }
+    }
+    else
+    {
+      if ( readPrev )
+      {
+        sizePrev -= sizeof( Adler32::Value );
+        os.write( bufPrev, sizePrev );
+        os.writeAdler32();
+        free ( bufPrev );
+        break;
+      }
+    }
+  }
 }
 
 void Creator::write( std::string const & fileName, EncryptionKey const & key )
@@ -87,10 +144,9 @@ void Creator::write( std::string const & fileName, EncryptionKey const & key )
   os.writeAdler32();
 }
 
-Reader::Reader( string const & fileName, EncryptionKey const & key )
+Reader::Reader( string const & fileName, EncryptionKey const & key, bool prohibitProcessing ):
+  is( fileName.c_str(), key, Encryption::ZeroIv )
 {
-  EncryptedFile::InputStream is( fileName.c_str(), key, Encryption::ZeroIv );
-
   is.consumeRandomIv();
 
   FileHeader header;
@@ -99,7 +155,6 @@ Reader::Reader( string const & fileName, EncryptionKey const & key )
   if ( header.version() != FileFormatVersion )
     throw exUnsupportedVersion();
 
-  BundleInfo info;
   Message::parse( info, is );
   is.checkAdler32();
 
@@ -108,6 +163,9 @@ Reader::Reader( string const & fileName, EncryptionKey const & key )
     payloadSize += info.chunk_record( x ).size();
 
   payload.resize( payloadSize );
+
+  if ( prohibitProcessing )
+    return;
 
   lzma_stream strm = LZMA_STREAM_INIT;
 

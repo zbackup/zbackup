@@ -16,6 +16,7 @@
 #include "nocopy.hh"
 #include "static_assert.hh"
 #include "zbackup.pb.h"
+#include "encrypted_file.hh"
 
 namespace Bundle {
 
@@ -44,6 +45,38 @@ struct Id
 
 STATIC_ASSERT( sizeof( Id ) == IdSize );
 
+/// Reads the bundle and allows accessing chunks
+class Reader: NoCopy
+{
+  BundleInfo info;
+  /// Unpacked payload
+  string payload;
+  /// Maps chunk id blob to its contents and size
+  typedef map< string, pair< char const *, size_t > > Chunks;
+  Chunks chunks;
+
+public:
+  DEF_EX( Ex, "Bundle reader exception", std::exception )
+  DEF_EX( exBundleReadFailed, "Bundle read failed", Ex )
+  DEF_EX( exUnsupportedVersion, "Unsupported version of the index file format", Ex )
+  DEF_EX( exTooMuchData, "More data than expected in a bundle", Ex )
+  DEF_EX( exDuplicateChunks, "Chunks with the same id found in a bundle", Ex )
+
+  Reader( string const & fileName, EncryptionKey const & key,
+      bool prohibitProcessing = false );
+
+  /// Reads the chunk into chunkData and returns true, or returns false if there
+  /// was no such chunk in the bundle. chunkData may be enlarged but won't
+  /// be shrunk. The size of the actual chunk would be stored in chunkDataSize
+  bool get( string const & chunkId, string & chunkData, size_t & chunkDataSize );
+  BundleInfo getBundleInfo()
+  { return info; }
+  string getPayload()
+  { return payload; }
+
+  EncryptedFile::InputStream is;
+};
+
 /// Creates a bundle by adding chunks to it until it's full, then compressing
 /// it and writing out to disk
 class Creator
@@ -66,34 +99,12 @@ public:
   /// time-consuming - calling this function from a worker thread could be
   /// warranted
   void write( string const & fileName, EncryptionKey const & );
+  void write( string const & fileName, EncryptionKey const &,
+      Bundle::Reader & reader );
 
   /// Returns the current BundleInfo record - this is used for index files
   BundleInfo const & getCurrentBundleInfo() const
   { return info; }
-};
-
-/// Reads the bundle and allows accessing chunks
-class Reader: NoCopy
-{
-  /// Unpacked payload
-  string payload;
-  /// Maps chunk id blob to its contents and size
-  typedef map< string, pair< char const *, size_t > > Chunks;
-  Chunks chunks;
-
-public:
-  DEF_EX( Ex, "Bundle reader exception", std::exception )
-  DEF_EX( exBundleReadFailed, "Bundle read failed", Ex )
-  DEF_EX( exUnsupportedVersion, "Unsupported version of the index file format", Ex )
-  DEF_EX( exTooMuchData, "More data than expected in a bundle", Ex )
-  DEF_EX( exDuplicateChunks, "Chunks with the same id found in a bundle", Ex )
-
-  Reader( string const & fileName, EncryptionKey const & );
-
-  /// Reads the chunk into chunkData and returns true, or returns false if there
-  /// was no such chunk in the bundle. chunkData may be enlarged but won't
-  /// be shrunk. The size of the actual chunk would be stored in chunkDataSize
-  bool get( string const & chunkId, string & chunkData, size_t & chunkDataSize );
 };
 
 /// Generates a full file name for a bundle with the given id. If createDirs

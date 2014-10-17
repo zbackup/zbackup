@@ -15,6 +15,7 @@ The program has the following features:
  * Repository consists of immutable files. No existing files are ever modified
  * Written in C++ only with only modest library dependencies
  * Safe to use in production (see [below](#safety))
+ * Possibility to exchange data between repos without recompression
 
 # Build dependencies
 

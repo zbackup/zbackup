@@ -9,6 +9,7 @@
 #include <time.h>
 #include <unistd.h>
 #include <vector>
+#include <bitset>
 
 #include "backup_creator.hh"
 #include "backup_file.hh"
@@ -23,8 +24,12 @@
 #include "sptr.hh"
 #include "storage_info_file.hh"
 #include "zbackup.hh"
+#include "index_file.hh"
+#include "bundle.hh"
 
 using std::vector;
+using std::bitset;
+using std::iterator;
 
 Paths::Paths( string const & storageDir ): storageDir( storageDir )
 {
@@ -60,7 +65,17 @@ ZBackupBase::ZBackupBase( string const & storageDir, string const & password ):
   encryptionkey( password, storageInfo.has_encryption_key() ?
                    &storageInfo.encryption_key() : 0 ),
   tmpMgr( getTmpPath() ),
-  chunkIndex( encryptionkey, tmpMgr, getIndexPath() )
+  chunkIndex( encryptionkey, tmpMgr, getIndexPath(), false )
+{
+}
+
+ZBackupBase::ZBackupBase( string const & storageDir, string const & password,
+                          bool prohibitChunkIndexLoading ):
+  Paths( storageDir ), storageInfo( loadStorageInfo() ),
+  encryptionkey( password, storageInfo.has_encryption_key() ?
+                   &storageInfo.encryption_key() : 0 ),
+  tmpMgr( getTmpPath() ),
+  chunkIndex( encryptionkey, tmpMgr, getIndexPath(), prohibitChunkIndexLoading )
 {
 }
 
@@ -109,10 +124,13 @@ void ZBackupBase::initStorage( string const & storageDir,
 }
 
 string ZBackupBase::deriveStorageDirFromBackupsFile( string const &
-                                                     backupsFile )
+                                                     backupsFile, bool allowOutside )
 {
   // TODO: handle cases when there's a backup/ folder within the backup/ folder
   // correctly
+  if ( allowOutside )
+    return Dir::getRealPath( backupsFile );
+
   string realPath = Dir::getRealPath( Dir::getDirName( backupsFile ) );
   size_t pos;
   if ( realPath.size() >= 8 && strcmp( realPath.c_str() + realPath.size() - 8,
@@ -294,6 +312,150 @@ void ZRestore::restoreToStdin( string const & inputFileName )
     throw exChecksumError();
 }
 
+ZExchange::ZExchange( string const & srcStorageDir, string const & srcPassword,
+                    string const & dstStorageDir, string const & dstPassword,
+                    bool prohibitChunkIndexLoading ):
+  srcZBackupBase( srcStorageDir, srcPassword, prohibitChunkIndexLoading ),
+  dstZBackupBase( dstStorageDir, dstPassword, prohibitChunkIndexLoading )
+{
+}
+
+void ZExchange::exchange( string const & srcPath, string const & dstPath,
+    bitset< BackupExchanger::Flags > const & exchange )
+{
+  vector< BackupExchanger::PendingExchangeRename > pendingExchangeRenames;
+
+  if ( exchange.test( BackupExchanger::bundles ) )
+  {
+    verbosePrintf( "Searching for bundles...\n" );
+
+    vector< string > bundles = BackupExchanger::recreateDirectories(
+        srcZBackupBase.getBundlesPath(), dstZBackupBase.getBundlesPath() );
+
+    for ( std::vector< string >::iterator it = bundles.begin(); it != bundles.end(); ++it )
+    {
+      verbosePrintf( "Processing bundle file %s... ", it->c_str() );
+      string outputFileName ( Dir::addPath( dstZBackupBase.getBundlesPath(), *it ) );
+      if ( !File::exists( outputFileName ) )
+      {
+        sptr< Bundle::Reader > reader = new Bundle::Reader( Dir::addPath (
+              srcZBackupBase.getBundlesPath(), *it ), srcZBackupBase.encryptionkey, true );
+        sptr< Bundle::Creator > creator = new Bundle::Creator;
+        sptr< TemporaryFile > bundleTempFile = dstZBackupBase.tmpMgr.makeTemporaryFile();
+        creator->write( bundleTempFile->getFileName(), dstZBackupBase.encryptionkey, *reader );
+
+        if ( creator.get() && reader.get() )
+        {
+          creator.reset();
+          reader.reset();
+          pendingExchangeRenames.push_back( BackupExchanger::PendingExchangeRename(
+                bundleTempFile, outputFileName ) );
+          verbosePrintf( "done.\n" );
+        }
+      }
+      else
+      {
+        verbosePrintf( "file exists - skipped.\n" );
+      }
+    }
+
+    verbosePrintf( "Bundle exchange completed.\n" );
+  }
+
+  if ( exchange.test( BackupExchanger::index ) )
+  {
+    verbosePrintf( "Searching for indicies...\n" );
+    vector< string > indicies = BackupExchanger::recreateDirectories(
+        srcZBackupBase.getIndexPath(), dstZBackupBase.getIndexPath() );
+
+    for ( std::vector< string >::iterator it = indicies.begin(); it != indicies.end(); ++it )
+    {
+      verbosePrintf( "Processing index file %s... ", it->c_str() );
+      string outputFileName ( Dir::addPath( dstZBackupBase.getIndexPath(), *it ) );
+      if ( !File::exists( outputFileName ) )
+      {
+        sptr< IndexFile::Reader > reader = new IndexFile::Reader( srcZBackupBase.encryptionkey,
+                                 Dir::addPath( srcZBackupBase.getIndexPath(), *it ) );
+        sptr< TemporaryFile > indexTempFile = dstZBackupBase.tmpMgr.makeTemporaryFile();
+        sptr< IndexFile::Writer > writer = new IndexFile::Writer( dstZBackupBase.encryptionkey,
+            indexTempFile->getFileName() );
+
+        BundleInfo bundleInfo;
+        Bundle::Id bundleId;
+        while( reader->readNextRecord( bundleInfo, bundleId ) )
+        {
+          writer->add( bundleInfo, bundleId );
+        }
+
+        if ( writer.get() && reader.get() )
+        {
+          writer.reset();
+          reader.reset();
+          pendingExchangeRenames.push_back( BackupExchanger::PendingExchangeRename(
+                indexTempFile, outputFileName ) );
+          verbosePrintf( "done.\n" );
+        }
+      }
+      else
+      {
+        verbosePrintf( "file exists - skipped.\n" );
+      }
+    }
+
+    verbosePrintf( "Index exchange completed.\n" );
+  }
+
+  if ( exchange.test( BackupExchanger::backups ) )
+  {
+    BackupInfo backupInfo;
+
+    verbosePrintf( "Searching for backups...\n" );
+    vector< string > backups = BackupExchanger::recreateDirectories(
+        srcZBackupBase.getBackupsPath(), dstZBackupBase.getBackupsPath() );
+
+    for ( std::vector< string >::iterator it = backups.begin(); it != backups.end(); ++it )
+    {
+      verbosePrintf( "Processing backup file %s... ", it->c_str() );
+      string outputFileName ( Dir::addPath( dstZBackupBase.getBackupsPath(), *it ) );
+      if ( !File::exists( outputFileName ) )
+      {
+        BackupFile::load( Dir::addPath( srcZBackupBase.getBackupsPath(), *it ),
+            srcZBackupBase.encryptionkey, backupInfo );
+        sptr< TemporaryFile > tmpFile = dstZBackupBase.tmpMgr.makeTemporaryFile();
+        BackupFile::save( tmpFile->getFileName(), dstZBackupBase.encryptionkey,
+            backupInfo );
+        pendingExchangeRenames.push_back( BackupExchanger::PendingExchangeRename(
+                tmpFile, outputFileName ) );
+        verbosePrintf( "done.\n" );
+      }
+      else
+      {
+        verbosePrintf( "file exists - skipped.\n" );
+      }
+    }
+
+    verbosePrintf( "Backup exchange completed.\n" );
+  }
+
+  if ( pendingExchangeRenames.size() > 0 )
+  {
+    verbosePrintf( "Moving files from temp directory to appropriate places... " );
+    for ( size_t x = pendingExchangeRenames.size(); x--; )
+    {
+      BackupExchanger::PendingExchangeRename & r = pendingExchangeRenames[ x ];
+      r.first->moveOverTo( r.second );
+      if ( r.first.get() )
+      {
+        r.first.reset();
+      }
+    }
+    pendingExchangeRenames.clear();
+    verbosePrintf( "done.\n" );
+  }
+}
+
+DEF_EX( exExchangeWithLessThanTwoKeys, "Specify password flag (--non-encrypted or --password-file)"
+   " for import/export operation twice (first for source and second for destination)", std::exception )
 DEF_EX( exNonEncryptedWithKey, "--non-encrypted and --password-file are incompatible", std::exception )
 DEF_EX( exSpecifyEncryptionOptions, "Specify either --password-file or --non-encrypted", std::exception )
 DEF_EX_STR( exInvalidThreadsValue, "Invalid threads value specified:", std::exception )
@@ -302,24 +464,63 @@ int main( int argc, char *argv[] )
 {
   try
   {
-    char const * passwordFile = 0;
-    bool nonEncrypted = false;
     size_t const defaultThreads = getNumberOfCpus();
     size_t threads = defaultThreads;
     size_t const defaultCacheSizeMb = 40;
     size_t cacheSizeMb = defaultCacheSizeMb;
     vector< char const * > args;
+    vector< string > passwords;
+    bitset< BackupExchanger::Flags > exchange;
 
     for( int x = 1; x < argc; ++x )
     {
       if ( strcmp( argv[ x ], "--password-file" ) == 0 && x + 1 < argc )
       {
-        passwordFile = argv[ x + 1 ];
+        // Read the password
+        char const * passwordFile = argv[ x + 1 ];
+        string passwordData;
+        if ( passwordFile )
+        {
+          File f( passwordFile, File::ReadOnly );
+          passwordData.resize( f.size() );
+          f.read( &passwordData[ 0 ], passwordData.size() );
+
+          // If the password ends with \n, remove that last \n. Many editors will
+          // add \n there even if a user doesn't want them to
+          if ( !passwordData.empty() &&
+               passwordData[ passwordData.size() - 1 ] == '\n' )
+            passwordData.resize( passwordData.size() - 1 );
+          passwords.push_back( passwordData );
+        }
+        ++x;
+      }
+      else
+      if ( strcmp( argv[ x ], "--exchange" ) == 0 && x + 1 < argc )
+      {
+        char const * exchangeValue = argv[ x + 1 ];
+        if ( strcmp( exchangeValue, "backups" ) == 0 )
+          exchange.set( BackupExchanger::backups );
+        else
+        if ( strcmp( exchangeValue, "bundles" ) == 0 )
+          exchange.set( BackupExchanger::bundles );
+        else
+        if ( strcmp( exchangeValue, "index" ) == 0 )
+          exchange.set( BackupExchanger::index );
+        else
+        {
+          fprintf( stderr, "Invalid exchange value specified: %s\n"
+                   "Must be one of the following: backups, bundles, index\n",
+                   exchangeValue );
+          return EXIT_FAILURE;
+        }
+
         ++x;
       }
       else
       if ( strcmp( argv[ x ], "--non-encrypted" ) == 0 )
-        nonEncrypted = true;
+      {
+          passwords.push_back( "" );
+      }
       else
       if ( strcmp( argv[ x ], "--silent" ) == 0 )
         verboseMode = false;
@@ -366,10 +567,11 @@ int main( int argc, char *argv[] )
         args.push_back( argv[ x ] );
     }
 
-    if ( nonEncrypted && passwordFile )
-      throw exNonEncryptedWithKey();
-
-    if ( args.size() < 1 )
+    if ( args.size() < 1 ||
+        ( args.size() == 1 &&
+          ( strcmp( args[ 0 ], "-h" ) == 0 || strcmp( args[ 0 ], "--help" ) == 0 )
+        )
+       )
     {
       fprintf( stderr,
 "ZBackup, a versatile deduplicating backup tool, version 1.3\n"
@@ -379,31 +581,40 @@ int main( int argc, char *argv[] )
 
 "Usage: %s [flags] <command> [command args]\n"
 "  Flags: --non-encrypted|--password-file <file>\n"
+"          password flag should be specified twice if import/export\n"
+"          command specified\n"
 "         --silent (default is verbose)\n"
 "         --threads <number> (default is %zu on your system)\n"
 "         --cache-size <number> MB (default is %zu)\n"
+"         --exchange [backups|bundles|index] (can be\n"
+"          specified multiple times)\n"
+"         --help|-h show this message\n"
 "  Commands:\n"
 "    init <storage path> - initializes new storage;\n"
 "    backup <backup file name> - performs a backup from stdin;\n"
-"    restore <backup file name> - restores a backup to stdout.\n", *argv,
+"    restore <backup file name> - restores a backup to stdout;\n"
+"    export <source storage path> <destination storage path> -\n"
+"            performs export from source to destination storage;\n"
+"    import <source storage path> <destination storage path> -\n"
+"            performs import from source to destination storage.\n"
+"  For export/import storage path must be valid (initialized) storage.\n"
+"", *argv,
                defaultThreads, defaultCacheSizeMb );
       return EXIT_FAILURE;
     }
 
-    // Read the password
-    string passwordData;
-    if ( passwordFile )
-    {
-      File f( passwordFile, File::ReadOnly );
-      passwordData.resize( f.size() );
-      f.read( &passwordData[ 0 ], passwordData.size() );
-
-      // If the password ends with \n, remove that last \n. Many editors will
-      // add \n there even if a user doesn't want them to
-      if ( !passwordData.empty() &&
-           passwordData[ passwordData.size() - 1 ] == '\n' )
-        passwordData.resize( passwordData.size() - 1 );
-    }
+    if ( passwords.size() > 1 &&
+        ( ( passwords[ 0 ].empty() && !passwords[ 1 ].empty() ) ||
+          ( !passwords[ 0 ].empty() && passwords[ 1 ].empty() ) ) &&
+        ( strcmp( args[ 0 ], "export" ) != 0 && strcmp( args[ 0 ], "import" ) != 0 ) )
+      throw exNonEncryptedWithKey();
+    else
+      if ( passwords.size() < 2 &&
+          ( strcmp( args[ 0 ], "export" ) == 0 || strcmp( args[ 0 ], "import" ) == 0 ) )
+        throw exExchangeWithLessThanTwoKeys();
+    else
+      if ( passwords.size() < 1 )
+        throw exSpecifyEncryptionOptions();
 
     if ( strcmp( args[ 0 ], "init" ) == 0 )
     {
@@ -413,10 +624,8 @@ int main( int argc, char *argv[] )
         fprintf( stderr, "Usage: %s init <storage path>\n", *argv );
         return EXIT_FAILURE;
       }
-      if ( !nonEncrypted && !passwordFile )
-          throw exSpecifyEncryptionOptions();
 
-      ZBackup::initStorage( args[ 1 ], passwordData, !nonEncrypted );
+      ZBackup::initStorage( args[ 1 ], passwords[ 0 ], !passwords[ 0 ].empty() );
     }
     else
     if ( strcmp( args[ 0 ], "backup" ) == 0 )
@@ -429,7 +638,7 @@ int main( int argc, char *argv[] )
         return EXIT_FAILURE;
       }
       ZBackup zb( ZBackup::deriveStorageDirFromBackupsFile( args[ 1 ] ),
-                  passwordData, threads );
+                  passwords[ 0 ], threads );
       zb.backupFromStdin( args[ 1 ] );
     }
     else
@@ -443,8 +652,45 @@ int main( int argc, char *argv[] )
         return EXIT_FAILURE;
       }
       ZRestore zr( ZRestore::deriveStorageDirFromBackupsFile( args[ 1 ] ),
-                   passwordData, cacheSizeMb * 1048576 );
+                   passwords[ 0 ], cacheSizeMb * 1048576 );
       zr.restoreToStdin( args[ 1 ] );
+    }
+    else
+    if ( strcmp( args[ 0 ], "export" ) == 0 || strcmp( args[ 0 ], "import" ) == 0 )
+    {
+      if ( args.size() != 3 )
+      {
+        fprintf( stderr, "Usage: %s %s <source storage path> <destination storage path>\n",
+                 *argv, args[ 0 ] );
+        return EXIT_FAILURE;
+      }
+      if ( exchange.none() )
+      {
+        fprintf( stderr, "Specify any --exchange flag\n" );
+        return EXIT_FAILURE;
+      }
+
+      int src, dst;
+      if ( strcmp( args[ 0 ], "export" ) == 0 )
+      {
+        src = 1;
+        dst = 2;
+      }
+      else
+      if ( strcmp( args[ 0 ], "import" ) == 0 )
+      {
+        src = 2;
+        dst = 1;
+      }
+      dPrintf( "%s src: %s\n", args[ 0 ], args[ src ] );
+      dPrintf( "%s dst: %s\n", args[ 0 ], args[ dst ] );
+
+      ZExchange ze( ZBackupBase::deriveStorageDirFromBackupsFile( args[ src ], true ),
+                    passwords[ src - 1 ],
+                    ZBackupBase::deriveStorageDirFromBackupsFile( args[ dst ], true ),
+                    passwords[ dst - 1 ],
+                    true );
+      ze.exchange( args[ src ], args[ dst ], exchange );
     }
     else
     {

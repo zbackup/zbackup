@@ -66,11 +66,12 @@ void ChunkIndex::loadIndex()
 }
 
 ChunkIndex::ChunkIndex( EncryptionKey const & key, TmpMgr & tmpMgr,
-                        string const & indexPath ):
+                        string const & indexPath, bool prohibitChunkIndexLoading ):
   key( key ), tmpMgr( tmpMgr ), indexPath( indexPath ), storage( 65536, 1 ),
   lastBundleId( NULL )
 {
-  loadIndex();
+  if ( !prohibitChunkIndexLoading )
+    loadIndex();
 }
 
 Bundle::Id const * ChunkIndex::findChunk( ChunkId::RollingHashPart rollingHash,
