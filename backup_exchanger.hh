@@ -1,4 +1,4 @@
-// Part of ZBackup. Licensed under GNU GPLv2 or later
+// Part of ZBackup. Licensed under GNU GPLv2 or later + OpenSSL, see LICENSE
 
 #ifndef BACKUP_EXCHANGER_HH_INCLUDED__
 #define BACKUP_EXCHANGER_HH_INCLUDED__
