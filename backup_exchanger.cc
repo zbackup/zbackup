@@ -1,4 +1,4 @@
-// Part of ZBackup. Licensed under GNU GPLv2 or later
+// Part of ZBackup. Licensed under GNU GPLv2 or later + OpenSSL, see LICENSE
 
 #include "backup_exchanger.hh"
 #include "dir.hh"
