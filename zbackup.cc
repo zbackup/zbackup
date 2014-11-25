@@ -80,7 +80,7 @@ void ZBackupBase::initStorage( string const & storageDir,
   StorageInfo storageInfo;
   // TODO: make the following configurable
   storageInfo.set_chunk_max_size( 65536 );
-  storageInfo.set_bundle_max_payload_size( 0x200000 );
+  storageInfo.set_bundle_max_payload_size( 0x2000000 );
 
   if ( isEncrypted )
     EncryptionKey::generate( password,
