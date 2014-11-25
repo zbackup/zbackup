@@ -436,6 +436,18 @@ void ZRestore::gc()
 
   checker.commit();
 
+  verbosePrintf( "Cleaning up...\n" );
+
+  string bundlesPath = getBundlesPath();
+  Dir::Listing bundleLst( bundlesPath );
+  while( bundleLst.getNext( entry ) )
+  {
+    const string dirPath = Dir::addPath( bundlesPath, entry.getFileName());
+    if (entry.isDir() && Dir::isDirEmpty(dirPath)) {
+      Dir::remove(dirPath);
+    }
+  }
+  
   verbosePrintf( "Garbage collection complete\n" );
 }
 
