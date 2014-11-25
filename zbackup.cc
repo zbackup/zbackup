@@ -335,11 +335,6 @@ void ZRestore::gc()
         verbosePrintf( "Chunks: %d used / %d total, bundles: %d kept / %d modified / %d removed\n",
           indexUsedChunks, indexTotalChunks, indexKeptBundles, indexModifiedBundles, indexRemovedBundles);
         filesToUnlink.push_back( indexFn );
-        commit();
-      }
-      else
-      {
-        chunkStorageWriter->reset();
       }
     }
 
