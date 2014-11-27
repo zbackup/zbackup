@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/zbackup/zbackup.svg)](https://travis-ci.org/zbackup/zbackup)
+
 # Introduction
 
 **zbackup** is a globally-deduplicating backup tool, based on the ideas found in [rsync](http://rsync.samba.org/).  Feed a large `.tar` into it, and it will store duplicate regions of it only once, then compress and optionally encrypt the result. Feed another `.tar` file, and it will also re-use any data found in any previous backups. This way only new changes are stored, and as long as the files are not very different, the amount of storage required is very low. Any of the backup files stored previously can be read back in full at any time. The program is format-agnostic, so you can feed virtually any files to it (any types of archives, proprietary formats, even raw disk images -- but see [Caveats](#caveats)).
