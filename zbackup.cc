@@ -139,12 +139,11 @@ void ZBackup::backupFromStdin( string const & outputFileName )
 }
 
 ZRestore::ZRestore( string const & storageDir, string const & password,
-                    size_t threads, size_t cacheSize ):
+                    size_t cacheSize ):
   ZBackupBase( storageDir, password ),
   chunkStorageReader( storageInfo, encryptionkey, chunkIndex, getBundlesPath(),
                       cacheSize )
 {
-  this->threads = threads;
 }
 
 void ZRestore::restoreToStdin( string const & inputFileName )
@@ -520,7 +519,7 @@ int main( int argc, char *argv[] )
         return EXIT_FAILURE;
       }
       ZRestore zr( ZRestore::deriveStorageDirFromBackupsFile( args[ 1 ] ),
-                   passwords[ 0 ], threads, cacheSizeMb * 1048576 );
+                   passwords[ 0 ], cacheSizeMb * 1048576 );
       zr.restoreToStdin( args[ 1 ] );
     }
     else
