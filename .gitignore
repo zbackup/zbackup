@@ -1,0 +1,8 @@
+*.o
+CMakeFiles/
+CMakeCache.txt
+Makefile
+cmake_install.cmake
+/zbackup.pb.cc
+/zbackup.pb.h
+/zbackup
