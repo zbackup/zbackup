@@ -735,8 +735,8 @@ int main( int argc, char *argv[] )
 "    export <source storage path> <destination storage path> -\n"
 "            performs export from source to destination storage;\n"
 "    import <source storage path> <destination storage path> -\n"
-"            performs import from source to destination storage.\n"
-"    gc <storage path> - performs chunk garbage collection;\n"
+"            performs import from source to destination storage;\n"
+"    gc <storage path> - performs chunk garbage collection.\n"
 "  For export/import storage path must be valid (initialized) storage.\n"
 "", *argv,
                defaultThreads, defaultCacheSizeMb );
