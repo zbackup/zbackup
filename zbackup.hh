@@ -17,62 +17,12 @@
 #include "ex.hh"
 #include "tmp_mgr.hh"
 #include "zbackup.pb.h"
+#include "zbackup_base.hh"
 #include "backup_exchanger.hh"
 
 using std::string;
 using std::vector;
 using std::bitset;
-
-struct Paths
-{
-  string storageDir;
-
-  Paths( string const & storageDir );
-
-  string getTmpPath();
-  string getRestorePath();
-  string getCreatePath();
-  string getBundlesPath();
-  string getStorageInfoPath();
-  string getIndexPath();
-  string getBackupsPath();
-};
-
-class ZBackupBase: public Paths
-{
-public:
-  DEF_EX( Ex, "ZBackup exception", std::exception )
-  DEF_EX_STR( exWontOverwrite, "Won't overwrite existing file", Ex )
-  DEF_EX( exStdinError, "Error reading from standard input", Ex )
-  DEF_EX( exWontReadFromTerminal, "Won't read data from a terminal", exStdinError )
-  DEF_EX( exStdoutError, "Error writing to standard output", Ex )
-  DEF_EX( exWontWriteToTerminal, "Won't write data to a terminal", exStdoutError )
-  DEF_EX( exSerializeError, "Failed to serialize data", Ex )
-  DEF_EX( exParseError, "Failed to parse data", Ex )
-  DEF_EX( exChecksumError, "Checksum error", Ex )
-  DEF_EX_STR( exCantDeriveStorageDir, "The path must be within the backups/ dir:", Ex )
-
-  /// Opens the storage
-  ZBackupBase( string const & storageDir, string const & password );
-  ZBackupBase( string const & storageDir, string const & password, bool prohibitChunkIndexLoading );
-
-  /// Creates new storage
-  static void initStorage( string const & storageDir, string const & password,
-                           bool isEncrypted );
-
-  /// For a given file within the backups/ dir in the storage, returns its
-  /// storage dir or throws an exception
-  static string deriveStorageDirFromBackupsFile( string const & backupsFile, bool allowOutside = false );
-
-  StorageInfo storageInfo;
-  EncryptionKey encryptionkey;
-  TmpMgr tmpMgr;
-  ChunkIndex chunkIndex;
-protected:
-
-private:
-  StorageInfo loadStorageInfo();
-};
 
 class ZBackup: public ZBackupBase
 {
@@ -97,6 +47,16 @@ public:
 
   /// Restores the data to stdin
   void restoreToStdin( string const & inputFileName );
+};
+
+class ZCollect: public ZBackupBase
+{
+  ChunkStorage::Reader chunkStorageReader;
+  size_t threads;
+
+public:
+  ZCollect( string const & storageDir, string const & password,
+            size_t threads, size_t cacheSize );
 
   void gc();
 };
