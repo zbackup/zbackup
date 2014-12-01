@@ -42,6 +42,9 @@ string getRealPath( string const & );
 /// Returns the directory part of the given path
 string getDirName( string const & );
 
+/// Checkes whether directory is empty
+bool isDirEmpty( string const & );
+
 /// A separator used to separate names in the path.
 inline char separator()
 { return '/'; }

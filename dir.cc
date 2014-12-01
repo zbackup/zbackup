@@ -66,6 +66,13 @@ string getDirName( string const & path )
   return dirname( copy.data() );
 }
 
+bool isDirEmpty( string const & path )
+{
+  Listing lst(path);
+  Entry tmp;
+  return !lst.getNext(tmp);
+}
+
 Listing::Listing( string const & dirName ): dirName( dirName )
 {
   dir = opendir( dirName.c_str() );

@@ -45,6 +45,19 @@ bool Writer::add( ChunkId const & id, void const * data, size_t size )
     return false;
 }
 
+void Writer::addBundle( BundleInfo const & bundleInfo, Bundle::Id const & bundleId )
+{
+  if ( !indexFile.get() )
+  {
+    // Create a new index file
+    indexTempFile = tmpMgr.makeTemporaryFile();
+    indexFile = new IndexFile::Writer( encryptionKey,
+                                       indexTempFile->getFileName() );
+  }
+
+  indexFile->add( bundleInfo, bundleId );
+}
+
 void Writer::commit()
 {
   finishCurrentBundle();
@@ -76,6 +89,20 @@ void Writer::commit()
   }
 }
 
+void Writer::reset()
+{
+  finishCurrentBundle();
+
+  waitForAllCompressorsToFinish();
+
+  pendingBundleRenames.clear();
+
+  if ( indexFile.get() )
+  {
+    indexFile.reset();
+  }
+}
+
 Bundle::Creator & Writer::getCurrentBundle()
 {
   if ( !currentBundle.get() )
@@ -90,15 +117,7 @@ void Writer::finishCurrentBundle()
 
   Bundle::Id const & bundleId = getCurrentBundleId();
 
-  if ( !indexFile.get() )
-  {
-    // Create a new index file
-    indexTempFile = tmpMgr.makeTemporaryFile();
-    indexFile = new IndexFile::Writer( encryptionKey,
-                                       indexTempFile->getFileName() );
-  }
-
-  indexFile->add( currentBundle->getCurrentBundleInfo(), bundleId );
+  addBundle( currentBundle->getCurrentBundleInfo(), bundleId );
 
   sptr< TemporaryFile > file = tmpMgr.makeTemporaryFile();
 
