@@ -12,7 +12,7 @@ The program has the following features:
 
  * Parallel LZMA compression of the stored data
  * Built-in AES encryption of the stored data
- * Possibility to delete old backup data in the future
+ * Possibility to delete old backup data
  * Use of a 64-bit rolling hash, keeping the amount of soft collisions to zero
  * Repository consists of immutable files. No existing files are ever modified
  * Written in C++ only with only modest library dependencies
@@ -145,7 +145,7 @@ There's a lot to be improved in the program. It was released with the minimum am
 
  * Additional options, such as configurable chunk and bundle sizes etc.
  * A command to change password.
- * A command to perform garbage collection. The program should skim through all backups and note which chunks are used by all of them. Then it should skim through all bundles and see which chunks among the ones stored were never used by the backups. If a bundle has more than *X%* of unused chunks, the remaining chunks should be transferred into brand new bundles. The old bundles should be deleted then. Once the process finishes, a new single index file with all existing chunk ids should be written, replacing all previous index files. With this command, it would become possible to remove old backups.
+ * Improved garbage collection. The program should support ability to specify maximum index file size / maximum index file count (for better compatibility with cloud storages as well) or something like retention policy.
  * A command to fsck the repo by doing something close to what garbage collection does, but also checking all hashes and so on.
  * Parallel decompression. Right now decompression is single-threaded, but it is possible to look ahead in the stream and perform prefetching.
  * Support for mounting the repo over FUSE. Random access to data would then be possible.
