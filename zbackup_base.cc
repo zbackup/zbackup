@@ -4,6 +4,7 @@
 #include "zbackup_base.hh"
 
 #include "storage_info_file.hh"
+#include "compression.hh"
 
 using std::string;
 
@@ -77,6 +78,8 @@ void ZBackupBase::initStorage( string const & storageDir,
     EncryptionKey::generate( password,
                              *storageInfo.mutable_encryption_key() );
 
+  storageInfo.set_default_compression_method( Compression::CompressionMethod::defaultCompression->getName() );
+
   Paths paths( storageDir );
 
   if ( !Dir::exists( storageDir ) )
@@ -119,3 +122,12 @@ string ZBackupBase::deriveStorageDirFromBackupsFile( string const &
   else
     return realPath.substr( 0, pos );
 }
+
+void ZBackupBase::useDefaultCompressionMethod()
+{
+  std::string compression_method_name = storageInfo.default_compression_method();
+  const_sptr<Compression::CompressionMethod> compression
+      = Compression::CompressionMethod::findCompression( compression_method_name );
+  Compression::CompressionMethod::defaultCompression = compression;
+}
+

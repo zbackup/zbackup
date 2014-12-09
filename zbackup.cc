@@ -1,5 +1,6 @@
 // Copyright (c) 2012-2014 Konstantin Isakov <ikm@zbackup.org>
 // Part of ZBackup. Licensed under GNU GPLv2 or later + OpenSSL, see LICENSE
+// modified by Benjamin Koch <bbbsnowball@gmail.com>
 
 #include <ctype.h>
 #include <stdint.h>
@@ -14,6 +15,7 @@
 #include "backup_creator.hh"
 #include "backup_file.hh"
 #include "backup_restorer.hh"
+#include "compression.hh"
 #include "debug.hh"
 #include "dir.hh"
 #include "encryption_key.hh"
@@ -334,6 +336,8 @@ int main( int argc, char *argv[] )
     size_t threads = defaultThreads;
     size_t const defaultCacheSizeMb = 40;
     size_t cacheSizeMb = defaultCacheSizeMb;
+    bool printHelp = false;
+    bool forcedCompressionMethod = false;
     vector< char const * > args;
     vector< string > passwords;
     bitset< BackupExchanger::Flags > exchange;
@@ -430,14 +434,54 @@ int main( int argc, char *argv[] )
         }
       }
       else
+      if ( strcmp( argv[ x ], "--compression" ) == 0 && x + 1 < argc )
+      {
+        forcedCompressionMethod = true;
+
+        // next argument names the compression method
+        ++x;
+        if ( strcmp( argv[ x ], "lzma" ) == 0 )
+        {
+          const_sptr<Compression::CompressionMethod> lzma = Compression::CompressionMethod::findCompression( "lzma" );
+          if ( !lzma )
+          {
+            fprintf( stderr, "zbackup is compiled without LZMA support, but the code "
+              "would support it. If you install liblzma (including development files) "
+              "and recompile zbackup, you can use LZMA.\n" );
+            return EXIT_FAILURE;
+          }
+          Compression::CompressionMethod::defaultCompression = lzma;
+        }
+        else
+        if ( strcmp( argv[ x ], "lzo" ) == 0 )
+        {
+          const_sptr<Compression::CompressionMethod> lzo = Compression::CompressionMethod::findCompression( "lzo1x_1" );
+          if ( !lzo )
+          {
+            fprintf( stderr, "zbackup is compiled without LZO support, but the code "
+              "would support it. If you install liblzo2 (including development files) "
+              "and recompile zbackup, you can use LZO.\n" );
+            return EXIT_FAILURE;
+          }
+          Compression::CompressionMethod::defaultCompression = lzo;
+        }
+        else
+        {
+          fprintf( stderr, "zbackup doesn't support compression method '%s'. You may need a newer version.\n",
+            argv[ x ] );
+          return EXIT_FAILURE;
+        }
+      }
+      else
+      if ( strcmp( argv[ x ], "--help" ) == 0 || strcmp( argv[ x ], "-h" ) == 0 )
+      {
+        printHelp = true;
+      }
+      else
         args.push_back( argv[ x ] );
     }
 
-    if ( args.size() < 1 ||
-        ( args.size() == 1 &&
-          ( strcmp( args[ 0 ], "-h" ) == 0 || strcmp( args[ 0 ], "--help" ) == 0 )
-        )
-       )
+    if ( args.size() < 1 || printHelp )
     {
       fprintf( stderr,
 "ZBackup, a versatile deduplicating backup tool, version 1.3\n"
@@ -454,6 +498,7 @@ int main( int argc, char *argv[] )
 "         --cache-size <number> MB (default is %zu)\n"
 "         --exchange [backups|bundles|index] (can be\n"
 "          specified multiple times)\n"
+"         --compression <compression> <lzma|lzo> (default is lzma)\n"
 "         --help|-h show this message\n"
 "  Commands:\n"
 "    init <storage path> - initializes new storage;\n"
@@ -506,6 +551,8 @@ int main( int argc, char *argv[] )
       }
       ZBackup zb( ZBackup::deriveStorageDirFromBackupsFile( args[ 1 ] ),
                   passwords[ 0 ], threads );
+      if ( !forcedCompressionMethod )
+        zb.useDefaultCompressionMethod();
       zb.backupFromStdin( args[ 1 ] );
     }
     else
@@ -520,6 +567,8 @@ int main( int argc, char *argv[] )
       }
       ZRestore zr( ZRestore::deriveStorageDirFromBackupsFile( args[ 1 ] ),
                    passwords[ 0 ], cacheSizeMb * 1048576 );
+      if ( !forcedCompressionMethod )
+        zr.useDefaultCompressionMethod();
       zr.restoreToStdin( args[ 1 ] );
     }
     else
