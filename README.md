@@ -88,7 +88,6 @@ If you have a 32-bit system and a lot of cores, consider lowering the number of 
  * The only encryption mode currently implemented is `AES-128` in `CBC` mode with `PKCS#7` padding. If you believe that this is not secure enough, patches are welcome. Before you jump to conclusions however, read [this article](http://www.schneier.com/blog/archives/2009/07/another_new_aes.html).
  * The only compression mode supported is LZMA, which suits backups very nicely.
  * It's only possible to fully restore the backup in order to get to a required file, without any option to quickly pick it out. `tar` would not allow to do it anyway, but e.g. for `zip` files it could have been possible. This is possible to implement though, e.g. by exposing the data over a FUSE filesystem.
- * There's no option to delete old backup data yet. The possibility is all there, though. Someone needs to implement it (see [below](#improvements)).
  * There's no option to specify block and bundle sizes other than the default ones (currently `64k` and `2MB` respectively), though it's trivial to add command-line switches for those.
 
 Most of those limitations can be lifted by implementing the respective features.
