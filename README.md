@@ -29,7 +29,7 @@ The program has the following features:
 
 # Quickstart
 
-To build:
+To build and install:
 
 ```bash
 cd zbackup
@@ -38,6 +38,8 @@ make
 sudo make install
 # or just run as ./zbackup
 ```
+
+Zbackup is also part of the [Debian](https://packages.debian.org/search?keywords=zbackup), [Ubuntu](http://packages.ubuntu.com/search?keywords=zbackup) and [Arch Linux](https://aur.archlinux.org/packages/zbackup/) distributions of GNU/Linux.
 
 To use:
 
