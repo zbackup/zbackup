@@ -20,7 +20,7 @@ ChunkIndex::Chain::Chain( ChunkId const & id, Bundle::Id const * bundleId ):
 
 bool ChunkIndex::Chain::equalsTo( ChunkId const & id )
 {
-  return memcmp( cryptoHash, id.cryptoHash, sizeof ( cryptoHash ) ) == 0;
+  return memcmp( cryptoHash, id.cryptoHash, sizeof( cryptoHash ) ) == 0;
 }
 
 void ChunkIndex::loadIndex( IndexProcessor & ip )
@@ -33,39 +33,47 @@ void ChunkIndex::loadIndex( IndexProcessor & ip )
 
   while( lst.getNext( entry ) )
   {
-    verbosePrintf( "Loading index file %s...\n", entry.getFileName().c_str() );
-
-    string indexFn = Dir::addPath( indexPath, entry.getFileName() );
-    IndexFile::Reader reader( key, indexFn );
-
-    ip.startIndex( indexFn );
-
-    BundleInfo info;
-    Bundle::Id bundleId;
-    while( reader.readNextRecord( info, bundleId ) )
+    verbosePrintf( "Loading index file %s... ", entry.getFileName().c_str() );
+    try
     {
-      Bundle::Id * savedId = storage.allocateObjects< Bundle::Id >( 1 );
-      memcpy( savedId, &bundleId, sizeof( bundleId ) );
+      string indexFn = Dir::addPath( indexPath, entry.getFileName() );
+      IndexFile::Reader reader( key, indexFn );
 
-      ChunkId id;
+      ip.startIndex( indexFn );
 
-      ip.startBundle( *savedId );
-
-      for ( int x = info.chunk_record_size(); x--; )
+      BundleInfo info;
+      Bundle::Id bundleId;
+      while( reader.readNextRecord( info, bundleId ) )
       {
-        BundleInfo_ChunkRecord const & record = info.chunk_record( x );
+        Bundle::Id * savedId = storage.allocateObjects< Bundle::Id >( 1 );
+        memcpy( savedId, &bundleId, sizeof( bundleId ) );
 
-        if ( record.id().size() != ChunkId::BlobSize )
-          throw exIncorrectChunkIdSize();
+        ChunkId id;
 
-        id.setFromBlob( record.id().data() );
-        ip.processChunk( id );
+        ip.startBundle( *savedId );
+
+        for ( int x = info.chunk_record_size(); x--; )
+        {
+          BundleInfo_ChunkRecord const & record = info.chunk_record( x );
+
+          if ( record.id().size() != ChunkId::BlobSize )
+            throw exIncorrectChunkIdSize();
+
+          id.setFromBlob( record.id().data() );
+          ip.processChunk( id );
+        }
+
+        ip.finishBundle( *savedId, info );
       }
 
-      ip.finishBundle( *savedId, info );
+      ip.finishIndex( indexFn );
     }
-
-    ip.finishIndex( indexFn );
+    catch( std::exception & e )
+    {
+      fprintf( stderr, "error: %s\n", e.what() );
+      continue;
+    }
+    verbosePrintf( "\n" );
   }
 
   verbosePrintf( "Index loaded.\n" );
