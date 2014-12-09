@@ -49,6 +49,7 @@ STATIC_ASSERT( sizeof( Id ) == IdSize );
 class Reader: NoCopy
 {
   BundleInfo info;
+  BundleFileHeader header;
   /// Unpacked payload
   string payload;
   /// Maps chunk id blob to its contents and size
@@ -71,6 +72,8 @@ public:
   bool get( string const & chunkId, string & chunkData, size_t & chunkDataSize );
   BundleInfo getBundleInfo()
   { return info; }
+  BundleFileHeader getBundleHeader()
+  { return header; }
   string getPayload()
   { return payload; }
 

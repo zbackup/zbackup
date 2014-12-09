@@ -266,7 +266,7 @@ private:
     }
 
     // we use our own buffer
-    size_t bufferSize, outputSize = suggestOutputSize( dataIn, availIn );
+    size_t bufferSize = suggestOutputSize( dataIn, availIn );
     do {
       accDataOut.resize(bufferSize);
 

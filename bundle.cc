@@ -43,9 +43,7 @@ void Creator::write( std::string const & fileName, EncryptionKey const & key,
 
   os.writeRandomIv();
 
-  FileHeader header;
-  header.set_version( FileFormatVersion );
-  Message::serialize( header, os );
+  Message::serialize( reader.getBundleHeader(), os );
 
   Message::serialize( reader.getBundleInfo(), os );
   os.writeAdler32();
@@ -153,7 +151,6 @@ Reader::Reader( string const & fileName, EncryptionKey const & key, bool prohibi
 {
   is.consumeRandomIv();
 
-  BundleFileHeader header;
   Message::parse( header, is );
 
   if ( header.version() >= FileFormatVersionFirstUnsupported )
