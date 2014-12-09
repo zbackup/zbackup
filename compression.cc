@@ -266,7 +266,7 @@ private:
     }
 
     // we use our own buffer
-    size_t bufferSize = suggestOutputSize( dataIn, availIn );
+    size_t bufferSize, outputSize = suggestOutputSize( dataIn, availIn );
     do {
       accDataOut.resize(bufferSize);
 
@@ -349,8 +349,10 @@ protected:
     dataIn += sizeof(uint64_t);
     size_t inputSize = le32toh( *(uint32_t*) dataIn );
     dataIn += sizeof(uint64_t);
-    if ( outputSize < neededOutputSize )
-      return false;
+    /*if ( outputSize < neededOutputSize )
+      return false;*/
+
+    outputSize = neededOutputSize;
 
     availIn -= 2*sizeof( uint64_t );
 
@@ -364,8 +366,6 @@ protected:
 
     CHECK( reportedOutputSize == neededOutputSize,
       "Size of decoded data is different than expected" );
-
-    outputSize = neededOutputSize;
 
     return true;
   }
