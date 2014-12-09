@@ -48,7 +48,7 @@ bool operator <( const ChunkId &lhs, const ChunkId &rhs )
 
 ChunkId::ChunkId( string const & blob )
 {
-  CHECK( blob.size() == BlobSize, "incorrect blob sise: %zu", blob.size() );
+  CHECK( blob.size() == BlobSize, "incorrect blob size: %zu", blob.size() );
 
   setFromBlob( blob.data() );
 }
