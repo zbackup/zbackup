@@ -1,13 +1,11 @@
 # Copyright (c) 2012-2014 Konstantin Isakov <ikm@zbackup.org>
 # Part of ZBackup. Licensed under GNU GPLv2 or later + OpenSSL, see LICENSE
+# modified by Benjamin Koch <bbbsnowball@gmail.com>
 
 cmake_minimum_required( VERSION 2.8.2 )
 project( zbackup )
 
-if( ${CMAKE_VERSION} VERSION_LESS "2.8.9" )
-  # Use the included FindLibLZMA then
-  set( CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" )
-endif()
+set( CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" )
 
 set( CMAKE_BUILD_TYPE Release )
 
@@ -34,6 +32,14 @@ find_package( Threads REQUIRED )
 find_package( LibLZMA REQUIRED )
 include_directories( ${LIBLZMA_INCLUDE_DIRS} )
 
+find_package( LibLZO COMPONENTS LIBLZO_HAS_LZO1X_DECOMPRESS_SAFE LIBLZO_HAS_LZO1X_1_COMPRESS )
+if (LIBLZO_FOUND)
+  ADD_DEFINITIONS(-DHAVE_LIBLZO)
+  include_directories( ${LIBLZO_INCLUDE_DIRS} )
+else (LIBLZO_FOUND)
+  set(LIBLZO_LIBRARIES)
+endif (LIBLZO_FOUND)
+
 file( GLOB sourceFiles "*.cc" )
 add_executable( zbackup ${sourceFiles} ${protoSrcs} ${protoHdrs} )
 
@@ -43,6 +49,7 @@ target_link_libraries( zbackup
   ${CMAKE_THREAD_LIBS_INIT}
   ${ZLIB_LIBRARIES}
   ${LIBLZMA_LIBRARIES}
+  ${LIBLZO_LIBRARIES}
 )
 
 install( TARGETS zbackup DESTINATION bin )

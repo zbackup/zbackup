@@ -1,5 +1,6 @@
 // Copyright (c) 2012-2014 Konstantin Isakov <ikm@zbackup.org>
 // Part of ZBackup. Licensed under GNU GPLv2 or later + OpenSSL, see LICENSE
+// modified by Benjamin Koch <bbbsnowball@gmail.com>
 
 // Protobuffers used in zbackup
 
@@ -38,6 +39,8 @@ message StorageInfo
   required uint32 bundle_max_payload_size = 2;
   // If present, used for encryption/decryption of all data
   optional EncryptionKeyInfo encryption_key = 3;
+  // Default compression for new bundles
+  optional string default_compression_method = 4 [default = "lzma"];
 }
 
 message BundleInfo
@@ -59,6 +62,18 @@ message FileHeader
 {
   // File format version
   required uint32 version = 1;
+}
+
+message BundleFileHeader
+{
+  // File format version
+  required uint32 version = 1;
+
+  // Compression method that is used for this file
+  // If the program doesn't support that field, it will try LZMA. If it is
+  // LZMA, that will work. If it isn't, it will have aborted before because
+  // the version in FileHeader is higher than it can support.
+  optional string compression_method = 2 [default = "lzma"];
 }
 
 message IndexBundleHeader

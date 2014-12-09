@@ -51,6 +51,8 @@ public:
   /// storage dir or throws an exception
   static std::string deriveStorageDirFromBackupsFile( std::string const & backupsFile, bool allowOutside = false );
 
+  void useDefaultCompressionMethod();
+
   StorageInfo storageInfo;
   EncryptionKey encryptionkey;
   TmpMgr tmpMgr;
