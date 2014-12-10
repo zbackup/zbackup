@@ -1,6 +1,4 @@
-// Copyright (c) 2013 Benjamin Koch <bbbsnowball@gmail.com>
 // Part of ZBackup. Licensed under GNU GPLv2 or later + OpenSSL, see LICENSE
-// Based on other tests written by Konstantin Isakov <ikm@zbackup.org>
 
 #include <stdlib.h>
 #include <stdio.h>
