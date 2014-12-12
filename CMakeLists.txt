@@ -1,6 +1,5 @@
-# Copyright (c) 2012-2014 Konstantin Isakov <ikm@zbackup.org>
+# Copyright (c) 2012-2014 Konstantin Isakov <ikm@zbackup.org> and ZBackup contributors, see CONTRIBUTORS
 # Part of ZBackup. Licensed under GNU GPLv2 or later + OpenSSL, see LICENSE
-# modified by Benjamin Koch <bbbsnowball@gmail.com>
 
 cmake_minimum_required( VERSION 2.8.2 )
 project( zbackup )

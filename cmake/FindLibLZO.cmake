@@ -17,7 +17,8 @@
 # Copyright 2009 Alexander Neundorf <neundorf@kde.org>
 # Copyright 2009 Helio Chissini de Castro <helio@kde.org>
 # Copyright 2012 Mario Bensi <mbensi@ipsquad.net>
-# Adapted for liblzo (instead of liblzma) by Benjamin Koch <bbbsnowball@gmail.com>
+# Copyright 2012-2014 Konstantin Isakov <ikm@zbackup.org> and ZBackup
+# contributors, see CONTRIBUTORS
 #
 # Distributed under the OSI-approved BSD License (the "License"):
 #

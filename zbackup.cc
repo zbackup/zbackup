@@ -1,6 +1,5 @@
-// Copyright (c) 2012-2014 Konstantin Isakov <ikm@zbackup.org>
+// Copyright (c) 2012-2014 Konstantin Isakov <ikm@zbackup.org> and ZBackup contributors, see CONTRIBUTORS
 // Part of ZBackup. Licensed under GNU GPLv2 or later + OpenSSL, see LICENSE
-// modified by Benjamin Koch <bbbsnowball@gmail.com>
 
 #include <ctype.h>
 #include <stdint.h>
@@ -485,7 +484,8 @@ int main( int argc, char *argv[] )
     {
       fprintf( stderr,
 "ZBackup, a versatile deduplicating backup tool, version 1.3\n"
-"Copyright (c) 2012-2014 Konstantin Isakov <ikm@zbackup.org>\n"
+"Copyright (c) 2012-2014 Konstantin Isakov <ikm@zbackup.org> and\n"
+"ZBackup contributors\n"
 "Comes with no warranty. Licensed under GNU GPLv2 or later + OpenSSL.\n"
 "Visit the project's home page at http://zbackup.org/\n\n"
 

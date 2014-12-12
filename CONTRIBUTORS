@@ -1,0 +1,16 @@
+This file contains a list of people who have made contributions
+to the ZBackup.
+
+Original design and implementation:
+  Konstantin Isakov <ikm@zbackup.org>
+
+Code contributions:
+  Benjamin Koch <bbbsnowball@gmail.com>
+  Vladimir Stackov <amigo.elite@gmail.com>
+  Gleb Golubitsky <sectoid@gnolltech.org>
+  ikatson
+  Eugene Agafonov
+  Antonia Stevens <a@antevens.com>
+
+Feel free to add yourself to this list in your pull-request.
+Please modify this file instead of source headers.
