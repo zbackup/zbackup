@@ -1,0 +1,7 @@
+.release {
+	float: right;
+}
+
+.release .version {
+	font-weight: bold;
+}
