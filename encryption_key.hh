@@ -41,7 +41,8 @@ public:
   { return sizeof( key ); }
 
   /// Generates new key info using the given password
-  static void generate( string const & password, EncryptionKeyInfo & );
+  static void generate( string const & password, EncryptionKeyInfo &,
+                        EncryptionKey & encryptionkey );
 
   /// Returns a static instance without any key set
   static EncryptionKey const & noKey();

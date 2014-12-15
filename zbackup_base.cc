@@ -73,12 +73,15 @@ void ZBackupBase::initStorage( string const & storageDir,
   // TODO: make the following configurable
   storageInfo.set_chunk_max_size( 65536 );
   storageInfo.set_bundle_max_payload_size( 0x200000 );
+  EncryptionKey encryptionkey = EncryptionKey::noKey();
 
   if ( isEncrypted )
     EncryptionKey::generate( password,
-                             *storageInfo.mutable_encryption_key() );
+                             *storageInfo.mutable_encryption_key(),
+                             encryptionkey );
 
-  storageInfo.set_default_compression_method( Compression::CompressionMethod::defaultCompression->getName() );
+  storageInfo.set_default_compression_method(
+      Compression::CompressionMethod::defaultCompression->getName() );
 
   Paths paths( storageDir );
 
@@ -129,5 +132,16 @@ void ZBackupBase::useDefaultCompressionMethod()
   const_sptr<Compression::CompressionMethod> compression
       = Compression::CompressionMethod::findCompression( compression_method_name );
   Compression::CompressionMethod::defaultCompression = compression;
+}
+
+void ZBackupBase::setPassword( string const & password )
+{
+  EncryptionKey::generate( password,
+                         *storageInfo.mutable_encryption_key(), encryptionkey );
+
+  StorageInfoFile::save( getStorageInfoPath(), storageInfo );
+
+  EncryptionKey encryptionkey( password, storageInfo.has_encryption_key() ?
+                   &storageInfo.encryption_key() : 0 );
 }
 

@@ -5,13 +5,13 @@
 #include <openssl/rand.h>
 
 namespace Random {
-void genarateTrue( void * buf, unsigned size )
+void generateTrue( void * buf, unsigned size )
 {
   if ( RAND_bytes( (unsigned char *) buf, size ) != 1 )
     throw exCantGenerate();
 }
 
-void genaratePseudo( void * buf, unsigned size )
+void generatePseudo( void * buf, unsigned size )
 {
   if ( RAND_pseudo_bytes( (unsigned char *) buf, size ) < 0 )
     throw exCantGenerate();

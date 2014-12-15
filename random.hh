@@ -12,10 +12,10 @@ namespace Random {
 DEF_EX( exCantGenerate, "Error generating random sequence, try later", std::exception )
 
 /// This one fills the buffer with true randomness, suitable for a key
-void genarateTrue( void * buf, unsigned size );
+void generateTrue( void * buf, unsigned size );
 /// This one fills the buffer with pseudo randomness, suitable for salts but not
 /// keys
-void genaratePseudo( void * buf, unsigned size );
+void generatePseudo( void * buf, unsigned size );
 }
 
 #endif

@@ -27,7 +27,7 @@
 #include "zbackup.hh"
 #include "index_file.hh"
 #include "bundle.hh"
-#include "zcollector.hh"
+#include "backup_collector.hh"
 
 using std::vector;
 using std::bitset;
@@ -321,8 +321,8 @@ void ZExchange::exchange( string const & srcPath, string const & dstPath,
   }
 }
 
-DEF_EX( exExchangeWithLessThanTwoKeys, "Specify password flag (--non-encrypted or --password-file)"
-   " for import/export operation twice (first for source and second for destination)", std::exception )
+DEF_EX( exSpecifyTwoKeys, "Specify password flag (--non-encrypted or --password-file)"
+  " for import/export/passwd operation twice (first for source and second for destination)", std::exception )
 DEF_EX( exNonEncryptedWithKey, "--non-encrypted and --password-file are incompatible", std::exception )
 DEF_EX( exSpecifyEncryptionOptions, "Specify either --password-file or --non-encrypted", std::exception )
 DEF_EX_STR( exInvalidThreadsValue, "Invalid threads value specified:", std::exception )
@@ -491,7 +491,7 @@ int main( int argc, char *argv[] )
 
 "Usage: %s [flags] <command> [command args]\n"
 "  Flags: --non-encrypted|--password-file <file>\n"
-"          password flag should be specified twice if import/export\n"
+"          password flag should be specified twice if import/export/passwd\n"
 "          command specified\n"
 "         --silent (default is verbose)\n"
 "         --threads <number> (default is %zu on your system)\n"
@@ -508,7 +508,8 @@ int main( int argc, char *argv[] )
 "            performs export from source to destination storage;\n"
 "    import <source storage path> <destination storage path> -\n"
 "            performs import from source to destination storage;\n"
-"    gc <storage path> - performs chunk garbage collection.\n"
+"    gc <storage path> - performs chunk garbage collection;\n"
+"    passwd <storage path> - changes repository info file passphrase.\n"
 "  For export/import storage path must be valid (initialized) storage.\n"
 "", *argv,
                defaultThreads, defaultCacheSizeMb );
@@ -518,12 +519,16 @@ int main( int argc, char *argv[] )
     if ( passwords.size() > 1 &&
         ( ( passwords[ 0 ].empty() && !passwords[ 1 ].empty() ) ||
           ( !passwords[ 0 ].empty() && passwords[ 1 ].empty() ) ) &&
-        ( strcmp( args[ 0 ], "export" ) != 0 && strcmp( args[ 0 ], "import" ) != 0 ) )
+        ( strcmp( args[ 0 ], "export" ) != 0 &&
+	  strcmp( args[ 0 ], "import" ) != 0 &&
+	  strcmp( args[ 0 ], "passwd" )	) )
       throw exNonEncryptedWithKey();
     else
-      if ( passwords.size() < 2 &&
-          ( strcmp( args[ 0 ], "export" ) == 0 || strcmp( args[ 0 ], "import" ) == 0 ) )
-        throw exExchangeWithLessThanTwoKeys();
+      if ( passwords.size() != 2 &&
+          ( strcmp( args[ 0 ], "export" ) == 0 ||
+	    strcmp( args[ 0 ], "import" ) == 0 ||
+	    strcmp( args[ 0 ], "passwd" ) == 0 ) )
+        throw exSpecifyTwoKeys();
     else
       if ( passwords.size() < 1 )
         throw exSpecifyEncryptionOptions();
@@ -614,12 +619,34 @@ int main( int argc, char *argv[] )
       // Perform the restore
       if ( args.size() != 2 )
       {
-        fprintf( stderr, "Usage: %s gc <backup directory>\n",
+        fprintf( stderr, "Usage: %s gc <storage path>\n",
                  *argv );
         return EXIT_FAILURE;
       }
       ZCollector zr( args[ 1 ], passwords[ 0 ], threads, cacheSizeMb * 1048576 );
       zr.gc();
+    }
+    else
+    if ( strcmp( args[ 0 ], "passwd" ) == 0 )
+    {
+      // Perform the password change
+      if ( args.size() != 2 )
+      {
+        fprintf( stderr, "Usage: %s passwd <storage path>\n",
+                 *argv );
+        return EXIT_FAILURE;
+      }
+
+      ZBackupBase zbb( args[ 1 ], passwords[ 0 ], true );
+      if ( passwords[ 0 ].empty() != passwords[ 1 ].empty() )
+      {
+        fprintf( stderr,
+"Changing repo encryption type (non-encrypted to encrypted and vice versa) "
+"is not supported yet.\n"
+"Current repo type: %s\n", zbb.encryptionkey.hasKey() ? "encrypted" : "non-encrypted" );
+        return EXIT_FAILURE;
+      }
+      zbb.setPassword( passwords[ 1 ] );
     }
     else
     {

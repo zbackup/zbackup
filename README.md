@@ -79,7 +79,7 @@ If you have a 32-bit system and a lot of cores, consider lowering the number of 
  * While you can pipe any data into the program, the data should be uncompressed and unencrypted -- otherwise no deduplication could be performed on it. `zbackup` would compress and encrypt the data itself, so there's no need to do that yourself. So just run `tar c` and pipe it into `zbackup` directly. If backing up disk images employing encryption, pipe the unencrypted version (the one you normally mount). If you create `.zip` or `.rar` files, use no compression (`-0` or `-m0`) and no encryption.
  * Parallel LZMA compression uses a lot of RAM (several hundreds of megabytes, depending on the number of threads used), and ten times more virtual address space. The latter is only relevant on 32-bit architectures where it's limited to 2 or 3 GB. If you hit the ceiling, lower the number of threads with `--threads`.
  * Since the data is deduplicated, there's naturally no redundancy in it. A loss of a single file can lead to a loss of virtually all data. Make sure you store it on a redundant storage (RAID1, a cloud provider etc).
- * The encryption key, if used, is stored in the `info` file in the root of the repo. It is encrypted with your password. Technically thus you can change your password without re-encrypting any data, and as long as no one possesses the old `info` file and knows your old password, you would be safe (even though the actual option to change password is not implemented yet -- someone who needs this is welcome to create a pull request -- the possibility is all there).  Also note that it is crucial you don't lose your `info` file, as otherwise the whole backup would be lost. 
+ * The encryption key, if used, is stored in the `info` file in the root of the repo. It is encrypted with your password. Technically thus you can change your password without re-encrypting any data, and as long as no one possesses the old `info` file and knows your old password, you would be safe (note that ability to change repo type between encrypted and non-encrypted is not implemented yet -- someone who needs this is welcome to create a pull request -- the possibility is all there). Also note that it is crucial you don't lose your `info` file, as otherwise the whole backup would be lost. 
 
 # Limitations
 
@@ -166,7 +166,7 @@ won't be able to read those bundles.
 There's a lot to be improved in the program. It was released with the minimum amount of functionality to be useful. It is also stable. This should hopefully stimulate people to join the development and add all those other fancy features. Here's a list of ideas:
 
  * Additional options, such as configurable chunk and bundle sizes etc.
- * A command to change password.
+ * Ability to change bundle type (between encrypted and non-encrypted).
  * Improved garbage collection. The program should support ability to specify maximum index file size / maximum index file count (for better compatibility with cloud storages as well) or something like retention policy.
  * A command to fsck the repo by doing something close to what garbage collection does, but also checking all hashes and so on.
  * Parallel decompression. Right now decompression is single-threaded, but it is possible to look ahead in the stream and perform prefetching.

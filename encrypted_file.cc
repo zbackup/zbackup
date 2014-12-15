@@ -341,7 +341,7 @@ void OutputStream::writeRandomIv()
   if ( key.hasKey() )
   {
     char iv[ Encryption::IvSize ];
-    Random::genaratePseudo( iv, sizeof( iv ) );
+    Random::generatePseudo( iv, sizeof( iv ) );
     write( iv, sizeof( iv ) );
   }
 }
