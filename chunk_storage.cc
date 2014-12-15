@@ -81,7 +81,7 @@ void Writer::commit()
     // Generate a random filename
     unsigned char buf[ 24 ]; // Same comments as for Bundle::IdSize
 
-    Random::genaratePseudo( buf, sizeof( buf ) );
+    Random::generatePseudo( buf, sizeof( buf ) );
 
     indexTempFile->moveOverTo( Dir::addPath( indexDir,
                                              toHex( buf, sizeof( buf ) ) ) );
@@ -152,7 +152,7 @@ Bundle::Id const & Writer::getCurrentBundleId()
   if ( !hasCurrentBundleId )
   {
     // Generate a new one
-    Random::genaratePseudo( &currentBundleId, sizeof( currentBundleId ) );
+    Random::generatePseudo( &currentBundleId, sizeof( currentBundleId ) );
     hasCurrentBundleId = true;
   }
 

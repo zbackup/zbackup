@@ -66,12 +66,13 @@ EncryptionKey::~EncryptionKey()
 }
 
 void EncryptionKey::generate( string const & password,
-                              EncryptionKeyInfo & info )
+                              EncryptionKeyInfo & info,
+                              EncryptionKey & encryptionkey )
 {
   // Use this buf for salts
-  char buf[ 16 ];
+  char buf[ KeySize ];
 
-  Random::genaratePseudo( buf, sizeof( buf ) );
+  Random::generatePseudo( buf, sizeof( buf ) );
   info.set_salt( buf, sizeof( buf ) );
   info.set_rounds( 10000 ); // TODO: make this configurable
 
@@ -79,11 +80,13 @@ void EncryptionKey::generate( string const & password,
   deriveKey( password, info, derivedKey, sizeof( derivedKey ) );
 
   char key[ KeySize ];
-
-  Random::genarateTrue( key, sizeof( key ) );
+  if ( encryptionkey.hasKey() )
+    memcpy( key, encryptionkey.getKey(), KeySize );
+  else
+    Random::generateTrue( key, sizeof( key ) );
 
   // Fill in the HMAC verification part
-  Random::genaratePseudo( buf, sizeof( buf ) );
+  Random::generatePseudo( buf, sizeof( buf ) );
   info.set_key_check_input( buf, sizeof( buf ) );
   info.set_key_check_hmac( calculateKeyHmac( key, sizeof( key ),
                                              info.key_check_input() ) );

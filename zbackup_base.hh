@@ -53,6 +53,8 @@ public:
 
   void useDefaultCompressionMethod();
 
+  void setPassword( std::string const & password );
+
   StorageInfo storageInfo;
   EncryptionKey encryptionkey;
   TmpMgr tmpMgr;

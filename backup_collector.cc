@@ -1,7 +1,7 @@
 // Copyright (c) 2012-2014 Konstantin Isakov <ikm@zbackup.org> and ZBackup contributors, see CONTRIBUTORS
 // Part of ZBackup. Licensed under GNU GPLv2 or later + OpenSSL, see LICENSE
 
-#include "zcollector.hh"
+#include "backup_collector.hh"
 
 #include <string>
 #include <vector>
