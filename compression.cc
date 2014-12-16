@@ -59,6 +59,11 @@ public:
 
     return ( ret == LZMA_STREAM_END );
   }
+
+  ~LZMAEnDecoder()
+  {
+    lzma_end( &strm );
+  }
 };
 lzma_stream LZMAEnDecoder::initValue = LZMA_STREAM_INIT;
 

@@ -126,6 +126,7 @@ void Creator::write( std::string const & fileName, EncryptionKey const & key )
       int size;
       if ( !os.Next( &data, &size ) )
       {
+        encoder.reset();
         throw exBundleWriteFailed();
       }
       if ( !size )
@@ -141,6 +142,8 @@ void Creator::write( std::string const & fileName, EncryptionKey const & key )
       break;
     }
   }
+
+  encoder.reset();
 
   os.writeAdler32();
 }
@@ -179,6 +182,7 @@ Reader::Reader( string const & fileName, EncryptionKey const & key, bool prohibi
       int size;
       if ( !is.Next( &data, &size ) )
       {
+        decoder.reset();
         throw exBundleReadFailed();
       }
       if ( !size )
@@ -195,9 +199,12 @@ Reader::Reader( string const & fileName, EncryptionKey const & key, bool prohibi
     if ( !decoder->getAvailableOutput() && decoder->getAvailableInput() )
     {
       // Apparently we have more data than we were expecting
+      decoder.reset();
       throw exTooMuchData();
     }
   }
+
+  decoder.reset();
 
   is.checkAdler32();
 
