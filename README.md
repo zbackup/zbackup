@@ -189,7 +189,7 @@ The author is reachable over email at <ikm@zbackup.org>. Please be constructive 
 `zbackup` is certainly not the first project to embrace the idea of using a rolling hash for deduplication. Here's a list of other projects the author found on the web:
 
  * [bup](https://github.com/bup/bup), based on storing data in `git` packs. No possibility of removing old data. This program was the initial inspiration for `zbackup`.
- * [ddar](http://www.synctus.com/ddar/), seems to be a little bit outdated. Contains a nice list of alternatives with comparisons.
+ * [ddar](https://github.com/basak/ddar), seems to be a little bit outdated. Contains a nice list of alternatives with comparisons.
  * [rdiff-backup](http://www.nongnu.org/rdiff-backup/), based on the original `rsync` algorithm. Does not do global deduplication, only working over the files with the same file name.
  * [duplicity](http://duplicity.nongnu.org/), which looks similar to `rdiff-backup` with regards to mode of operation.
  * Some filesystems (most notably [ZFS](http://en.wikipedia.org/wiki/ZFS) and [Btrfs](http://en.wikipedia.org/wiki/Btrfs)) provide deduplication features. They do so only at block level though, without a sliding window, so they can not accomodate to arbitrary byte insertion/deletion in the middle of data.
