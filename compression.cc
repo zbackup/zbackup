@@ -292,7 +292,11 @@ private:
   }
 };
 
+#ifdef __APPLE__
+#include <machine/endian.h>
+#else
 #include <endian.h>
+#endif
 
 // like NoStreamEnDecoder, but also adds the uncompressed size before the stream
 //NOTE You should make sure that the compression function doesn't overwrite any
