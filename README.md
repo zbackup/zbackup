@@ -40,7 +40,7 @@ sudo make install
 # or just run as ./zbackup
 ```
 
-ZBackup is also part of the [Debian](https://packages.debian.org/search?keywords=zbackup), [Ubuntu](http://packages.ubuntu.com/search?keywords=zbackup), [Arch Linux](https://aur.archlinux.org/packages/zbackup/) and [FreeBSD](http://www.freshports.org/sysutils/zbackup/).
+ZBackup is also part of the [Fedora](http://pkgs.fedoraproject.org/cgit/zbackup.git/), [Debian](https://packages.debian.org/search?keywords=zbackup), [Ubuntu](http://packages.ubuntu.com/search?keywords=zbackup), [Arch Linux](https://aur.archlinux.org/packages/zbackup/) and [FreeBSD](http://www.freshports.org/sysutils/zbackup/).
 
 To use:
 
