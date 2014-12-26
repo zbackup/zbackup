@@ -5,6 +5,7 @@
 
 #include "storage_info_file.hh"
 #include "compression.hh"
+#include "debug.hh"
 
 using std::string;
 
@@ -27,6 +28,11 @@ string Paths::getStorageInfoPath()
   return string( Dir::addPath( storageDir, "info" ) );
 }
 
+string Paths::getExtendedStorageInfoPath()
+{
+  return string( Dir::addPath( storageDir, "info_extended" ) );
+}
+
 string Paths::getIndexPath()
 {
   return string( Dir::addPath( storageDir, "index" ) );
@@ -41,9 +47,11 @@ ZBackupBase::ZBackupBase( string const & storageDir, string const & password ):
   Paths( storageDir ), storageInfo( loadStorageInfo() ),
   encryptionkey( password, storageInfo.has_encryption_key() ?
                    &storageInfo.encryption_key() : 0 ),
+  extendedStorageInfo( loadExtendedStorageInfo( encryptionkey ) ),
   tmpMgr( getTmpPath() ),
   chunkIndex( encryptionkey, tmpMgr, getIndexPath(), false )
 {
+  dPrintf("%s repo instantiated and initialized\n", storageDir.c_str() );
 }
 
 ZBackupBase::ZBackupBase( string const & storageDir, string const & password,
@@ -51,9 +59,11 @@ ZBackupBase::ZBackupBase( string const & storageDir, string const & password,
   Paths( storageDir ), storageInfo( loadStorageInfo() ),
   encryptionkey( password, storageInfo.has_encryption_key() ?
                    &storageInfo.encryption_key() : 0 ),
+  extendedStorageInfo( loadExtendedStorageInfo( encryptionkey ) ),
   tmpMgr( getTmpPath() ),
   chunkIndex( encryptionkey, tmpMgr, getIndexPath(), prohibitChunkIndexLoading )
 {
+  dPrintf("%s repo instantiated and initialized\n", storageDir.c_str() );
 }
 
 StorageInfo ZBackupBase::loadStorageInfo()
@@ -65,14 +75,30 @@ StorageInfo ZBackupBase::loadStorageInfo()
   return storageInfo;
 }
 
+ExtendedStorageInfo ZBackupBase::loadExtendedStorageInfo( EncryptionKey const & encryptionkey )
+{
+  ExtendedStorageInfo extendedStorageInfo;
+
+  ExtendedStorageInfoFile::load( getExtendedStorageInfoPath(), encryptionkey, extendedStorageInfo );
+
+  return extendedStorageInfo;
+}
+
 void ZBackupBase::initStorage( string const & storageDir,
                                string const & password,
                                bool isEncrypted )
 {
   StorageInfo storageInfo;
+  ExtendedStorageInfo extendedStorageInfo;
+
   // TODO: make the following configurable
   storageInfo.set_chunk_max_size( 65536 );
   storageInfo.set_bundle_max_payload_size( 0x200000 );
+  extendedStorageInfo.mutable_config()->set_chunk_max_size(
+      extendedStorageInfo.config().chunk_max_size() );
+  extendedStorageInfo.mutable_config()->set_bundle_max_payload_size(
+      extendedStorageInfo.config().bundle_max_payload_size() );
+
   EncryptionKey encryptionkey = EncryptionKey::noKey();
 
   if ( isEncrypted )
@@ -98,11 +124,16 @@ void ZBackupBase::initStorage( string const & storageDir,
     Dir::create( paths.getIndexPath() );
 
   string storageInfoPath( paths.getStorageInfoPath() );
+  string extendedStorageInfoPath( paths.getExtendedStorageInfoPath() );
 
   if ( File::exists( storageInfoPath ) )
     throw exWontOverwrite( storageInfoPath );
 
+  encryptionkey = EncryptionKey( password, storageInfo.has_encryption_key() ?
+      &storageInfo.encryption_key() : 0 );
+
   StorageInfoFile::save( storageInfoPath, storageInfo );
+  ExtendedStorageInfoFile::save( extendedStorageInfoPath, encryptionkey, extendedStorageInfo );
 }
 
 string ZBackupBase::deriveStorageDirFromBackupsFile( string const &
@@ -145,3 +176,7 @@ void ZBackupBase::setPassword( string const & password )
                    &storageInfo.encryption_key() : 0 );
 }
 
+void ZBackupBase::saveExtendedStorageInfo()
+{
+  ExtendedStorageInfoFile::save( getExtendedStorageInfoPath(), encryptionkey, extendedStorageInfo );
+}

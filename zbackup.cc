@@ -441,7 +441,8 @@ int main( int argc, char *argv[] )
         ++x;
         if ( strcmp( argv[ x ], "lzma" ) == 0 )
         {
-          const_sptr<Compression::CompressionMethod> lzma = Compression::CompressionMethod::findCompression( "lzma" );
+          const_sptr<Compression::CompressionMethod> lzma =
+            Compression::CompressionMethod::findCompression( "lzma" );
           if ( !lzma )
           {
             fprintf( stderr, "zbackup is compiled without LZMA support, but the code "
@@ -454,7 +455,8 @@ int main( int argc, char *argv[] )
         else
         if ( strcmp( argv[ x ], "lzo" ) == 0 )
         {
-          const_sptr<Compression::CompressionMethod> lzo = Compression::CompressionMethod::findCompression( "lzo1x_1" );
+          const_sptr<Compression::CompressionMethod> lzo =
+            Compression::CompressionMethod::findCompression( "lzo1x_1" );
           if ( !lzo )
           {
             fprintf( stderr, "zbackup is compiled without LZO support, but the code "
@@ -509,7 +511,8 @@ int main( int argc, char *argv[] )
 "    import <source storage path> <destination storage path> -\n"
 "            performs import from source to destination storage;\n"
 "    gc <storage path> - performs chunk garbage collection;\n"
-"    passwd <storage path> - changes repository info file passphrase.\n"
+"    passwd <storage path> - changes repository info file passphrase;\n"
+"    info <storage path> - shows information about storage.\n"
 "  For export/import storage path must be valid (initialized) storage.\n"
 "", *argv,
                defaultThreads, defaultCacheSizeMb );
@@ -637,16 +640,32 @@ int main( int argc, char *argv[] )
         return EXIT_FAILURE;
       }
 
-      ZBackupBase zbb( args[ 1 ], passwords[ 0 ], true );
+      ZBackupBase zbb( ZBackupBase::deriveStorageDirFromBackupsFile( args[ 1 ], true ),
+          passwords[ 0 ], true );
+
       if ( passwords[ 0 ].empty() != passwords[ 1 ].empty() )
       {
         fprintf( stderr,
-"Changing repo encryption type (non-encrypted to encrypted and vice versa) "
-"is not supported yet.\n"
-"Current repo type: %s\n", zbb.encryptionkey.hasKey() ? "encrypted" : "non-encrypted" );
+"Changing repo encryption type (non-encrypted to encrypted and vice versa) is possible "
+"only via import/export operations.\n"
+"Current repo type: %s.\n", zbb.encryptionkey.hasKey() ? "encrypted" : "non-encrypted" );
         return EXIT_FAILURE;
       }
       zbb.setPassword( passwords[ 1 ] );
+    }
+    else
+    if ( strcmp( args[ 0 ], "info" ) == 0 )
+    {
+      // Show repo info
+      if ( args.size() != 2 )
+      {
+        fprintf( stderr, "Usage: %s info <storage path>\n",
+                 *argv );
+        return EXIT_FAILURE;
+      }
+
+      ZBackupBase zbb( ZBackupBase::deriveStorageDirFromBackupsFile( args[ 1 ], true ),
+          passwords[ 0 ] );
     }
     else
     {

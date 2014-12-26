@@ -30,16 +30,34 @@ message EncryptionKeyInfo
 message StorageInfo
 {
   // Maximum chunk size used when storing chunks
-  required uint32 chunk_max_size = 1;
+  required uint32 chunk_max_size = 1 [deprecated = true];
   // Maximum number of bytes a bundle can hold. Only real chunk bytes are
   // counted, not metadata. Any bundle should be able to contain at least
   // one arbitrary single chunk, so this should not be smaller than
   // chunk_max_size
-  required uint32 bundle_max_payload_size = 2;
+  required uint32 bundle_max_payload_size = 2 [deprecated = true];
   // If present, used for encryption/decryption of all data
   optional EncryptionKeyInfo encryption_key = 3;
   // Default compression for new bundles
-  optional string default_compression_method = 4 [default = "lzma"];
+  optional string default_compression_method = 4 [default = "lzma", deprecated = true];
+}
+
+message ConfigInfo
+{
+  required uint32 chunk_max_size = 1 [default = 65536];
+  // Maximum number of bytes a bundle can hold. Only real chunk bytes are
+  // counted, not metadata. Any bundle should be able to contain at least
+  // one arbitrary single chunk, so this should not be smaller than
+  // chunk_max_size
+  required uint32 bundle_max_payload_size = 2 [default = 0x200000];
+  // Default compression for new bundles
+  optional string default_compression_method = 3 [default = "lzma"];
+}
+
+message ExtendedStorageInfo
+{
+  // Config data storage
+  optional ConfigInfo config = 1;
 }
 
 message BundleInfo

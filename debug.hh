@@ -10,7 +10,11 @@
 
 #ifndef NDEBUG
 
-#define dPrintf( ... ) (fprintf( stderr, __VA_ARGS__ ))
+#define __FILE_BASE (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
+
+#define dPrintf( ... ) ({ fprintf( stderr, "[DEBUG] at %s( %s:%d ): ", __func__,\
+      __FILE_BASE, __LINE__ );\
+    fprintf( stderr, __VA_ARGS__ ); })
 
 #else
 

@@ -33,7 +33,7 @@ void ChunkIndex::loadIndex( IndexProcessor & ip )
 
   while( lst.getNext( entry ) )
   {
-    verbosePrintf( "Loading index file %s... ", entry.getFileName().c_str() );
+    verbosePrintf( "Loading index file %s...\n", entry.getFileName().c_str() );
     try
     {
       string indexFn = Dir::addPath( indexPath, entry.getFileName() );
@@ -73,7 +73,6 @@ void ChunkIndex::loadIndex( IndexProcessor & ip )
       fprintf( stderr, "error: %s\n", e.what() );
       continue;
     }
-    verbosePrintf( "\n" );
   }
 
   verbosePrintf( "Index loaded.\n" );
@@ -106,6 +105,8 @@ ChunkIndex::ChunkIndex( EncryptionKey const & key, TmpMgr & tmpMgr,
   key( key ), tmpMgr( tmpMgr ), indexPath( indexPath ), storage( 65536, 1 ),
   lastBundleId( NULL )
 {
+  dPrintf( "Chunk index (%s) instantiated and initialized, hasKey: %s\n", indexPath.c_str(),
+      key.hasKey() ? "true" : "false" );
   if ( !prohibitChunkIndexLoading )
     loadIndex( *this );
 }

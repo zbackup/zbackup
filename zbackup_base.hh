@@ -21,6 +21,7 @@ struct Paths
   std::string getCreatePath();
   std::string getBundlesPath();
   std::string getStorageInfoPath();
+  std::string getExtendedStorageInfoPath();
   std::string getIndexPath();
   std::string getBackupsPath();
 };
@@ -53,15 +54,19 @@ public:
 
   void useDefaultCompressionMethod();
 
+  void saveExtendedStorageInfo();
+
   void setPassword( std::string const & password );
 
   StorageInfo storageInfo;
   EncryptionKey encryptionkey;
+  ExtendedStorageInfo extendedStorageInfo;
   TmpMgr tmpMgr;
   ChunkIndex chunkIndex;
 
 private:
   StorageInfo loadStorageInfo();
+  ExtendedStorageInfo loadExtendedStorageInfo( EncryptionKey const & );
 };
 
 

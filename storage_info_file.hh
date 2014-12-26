@@ -25,4 +25,18 @@ void save( string const & fileName, StorageInfo const & );
 void load( string const & fileName, StorageInfo & );
 }
 
+namespace ExtendedStorageInfoFile {
+
+using std::string;
+
+DEF_EX( Ex, "Extended storage info file exception", std::exception )
+DEF_EX( exUnsupportedVersion, "Unsupported version of the extended storage info file format", Ex )
+
+/// Saves the given ExtendedStorageInfo data into the given file
+void save( string const & fileName, EncryptionKey const &, ExtendedStorageInfo const & );
+
+/// Loads the given ExtendedStorageInfo data from the given file
+void load( string const & fileName, EncryptionKey const &, ExtendedStorageInfo & );
+}
+
 #endif
