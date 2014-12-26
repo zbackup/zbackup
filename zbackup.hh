@@ -67,8 +67,7 @@ class ZExchange
 
 public:
   ZExchange( string const & srcStorageDir, string const & srcPassword,
-            string const & dstStorageDir, string const & dstPassword,
-            bool prohibitChunkIndexLoading );
+             string const & dstStorageDir, string const & dstPassword );
 
   /// Exchanges the data between storages
   void exchange( string const & srcFileName, string const & dstFileName,

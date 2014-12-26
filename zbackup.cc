@@ -28,6 +28,7 @@
 #include "index_file.hh"
 #include "bundle.hh"
 #include "backup_collector.hh"
+#include "config.hh"
 
 using std::vector;
 using std::bitset;
@@ -180,10 +181,9 @@ void ZRestore::restoreToStdin( string const & inputFileName )
 }
 
 ZExchange::ZExchange( string const & srcStorageDir, string const & srcPassword,
-                    string const & dstStorageDir, string const & dstPassword,
-                    bool prohibitChunkIndexLoading ):
-  srcZBackupBase( srcStorageDir, srcPassword, prohibitChunkIndexLoading ),
-  dstZBackupBase( dstStorageDir, dstPassword, prohibitChunkIndexLoading )
+                      string const & dstStorageDir, string const & dstPassword ):
+  srcZBackupBase( srcStorageDir, srcPassword, true ),
+  dstZBackupBase( dstStorageDir, dstPassword, true )
 {
 }
 
@@ -512,7 +512,8 @@ int main( int argc, char *argv[] )
 "            performs import from source to destination storage;\n"
 "    gc <storage path> - performs chunk garbage collection;\n"
 "    passwd <storage path> - changes repository info file passphrase;\n"
-"    info <storage path> - shows information about storage.\n"
+"    info <storage path> - shows information about storage;\n"
+"    config <storage path> - performs configuration manipulations.\n"
 "  For export/import storage path must be valid (initialized) storage.\n"
 "", *argv,
                defaultThreads, defaultCacheSizeMb );
@@ -541,7 +542,7 @@ int main( int argc, char *argv[] )
       // Perform the init
       if ( args.size() != 2 )
       {
-        fprintf( stderr, "Usage: %s init <storage path>\n", *argv );
+        fprintf( stderr, "Usage: %s %s <storage path>\n", *argv, args[ 0 ] );
         return EXIT_FAILURE;
       }
 
@@ -553,8 +554,8 @@ int main( int argc, char *argv[] )
       // Perform the backup
       if ( args.size() != 2 )
       {
-        fprintf( stderr, "Usage: %s backup <backup file name>\n",
-                 *argv );
+        fprintf( stderr, "Usage: %s %s <backup file name>\n",
+                 *argv, args[ 0 ] );
         return EXIT_FAILURE;
       }
       ZBackup zb( ZBackup::deriveStorageDirFromBackupsFile( args[ 1 ] ),
@@ -569,8 +570,8 @@ int main( int argc, char *argv[] )
       // Perform the restore
       if ( args.size() != 2 )
       {
-        fprintf( stderr, "Usage: %s restore <backup file name>\n",
-                 *argv );
+        fprintf( stderr, "Usage: %s %s <backup file name>\n",
+                 *argv , args[ 0 ] );
         return EXIT_FAILURE;
       }
       ZRestore zr( ZRestore::deriveStorageDirFromBackupsFile( args[ 1 ] ),
@@ -612,8 +613,7 @@ int main( int argc, char *argv[] )
       ZExchange ze( ZBackupBase::deriveStorageDirFromBackupsFile( args[ src ], true ),
                     passwords[ src - 1 ],
                     ZBackupBase::deriveStorageDirFromBackupsFile( args[ dst ], true ),
-                    passwords[ dst - 1 ],
-                    true );
+                    passwords[ dst - 1 ] );
       ze.exchange( args[ src ], args[ dst ], exchange );
     }
     else
@@ -622,8 +622,8 @@ int main( int argc, char *argv[] )
       // Perform the restore
       if ( args.size() != 2 )
       {
-        fprintf( stderr, "Usage: %s gc <storage path>\n",
-                 *argv );
+        fprintf( stderr, "Usage: %s %s <storage path>\n",
+                 *argv, args[ 0 ] );
         return EXIT_FAILURE;
       }
       ZCollector zr( args[ 1 ], passwords[ 0 ], threads, cacheSizeMb * 1048576 );
@@ -635,8 +635,8 @@ int main( int argc, char *argv[] )
       // Perform the password change
       if ( args.size() != 2 )
       {
-        fprintf( stderr, "Usage: %s passwd <storage path>\n",
-                 *argv );
+        fprintf( stderr, "Usage: %s %s <storage path>\n",
+                 *argv, args[ 0 ] );
         return EXIT_FAILURE;
       }
 
@@ -659,13 +659,28 @@ int main( int argc, char *argv[] )
       // Show repo info
       if ( args.size() != 2 )
       {
-        fprintf( stderr, "Usage: %s info <storage path>\n",
-                 *argv );
+        fprintf( stderr, "Usage: %s %s <storage path>\n",
+                 *argv, args[ 0 ] );
         return EXIT_FAILURE;
       }
 
       ZBackupBase zbb( ZBackupBase::deriveStorageDirFromBackupsFile( args[ 1 ], true ),
           passwords[ 0 ] );
+    }
+    else
+    if ( strcmp( args[ 0 ], "config" ) == 0 )
+    {
+      // Show repo info
+      if ( args.size() != 2 )
+      {
+        fprintf( stderr, "Usage: %s %s <storage path>\n",
+                 *argv, args[ 0 ] );
+        return EXIT_FAILURE;
+      }
+
+      ZConfig zc( ZBackupBase::deriveStorageDirFromBackupsFile( args[ 1 ], true ),
+          passwords[ 0 ] );
+      zc.print();
     }
     else
     {

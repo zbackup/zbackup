@@ -91,13 +91,18 @@ void ZBackupBase::initStorage( string const & storageDir,
   StorageInfo storageInfo;
   ExtendedStorageInfo extendedStorageInfo;
 
-  // TODO: make the following configurable
+  // TODO: Make a proper setup of initial values
   storageInfo.set_chunk_max_size( 65536 );
   storageInfo.set_bundle_max_payload_size( 0x200000 );
-  extendedStorageInfo.mutable_config()->set_chunk_max_size(
-      extendedStorageInfo.config().chunk_max_size() );
-  extendedStorageInfo.mutable_config()->set_bundle_max_payload_size(
-      extendedStorageInfo.config().bundle_max_payload_size() );
+  storageInfo.set_default_compression_method(
+      Compression::CompressionMethod::defaultCompression->getName() );
+
+  extendedStorageInfo.mutable_config()->mutable_chunk()->set_max_size(
+      extendedStorageInfo.config().chunk().max_size() );
+  extendedStorageInfo.mutable_config()->mutable_bundle()->set_max_payload_size(
+      extendedStorageInfo.config().bundle().max_payload_size() );
+  extendedStorageInfo.mutable_config()->mutable_bundle()->set_default_compression_method(
+      extendedStorageInfo.config().bundle().default_compression_method() );
 
   EncryptionKey encryptionkey = EncryptionKey::noKey();
 
@@ -105,9 +110,6 @@ void ZBackupBase::initStorage( string const & storageDir,
     EncryptionKey::generate( password,
                              *storageInfo.mutable_encryption_key(),
                              encryptionkey );
-
-  storageInfo.set_default_compression_method(
-      Compression::CompressionMethod::defaultCompression->getName() );
 
   Paths paths( storageDir );
 
