@@ -326,6 +326,8 @@ DEF_EX( exSpecifyTwoKeys, "Specify password flag (--non-encrypted or --password-
 DEF_EX( exNonEncryptedWithKey, "--non-encrypted and --password-file are incompatible", std::exception )
 DEF_EX( exSpecifyEncryptionOptions, "Specify either --password-file or --non-encrypted", std::exception )
 DEF_EX_STR( exInvalidThreadsValue, "Invalid threads value specified:", std::exception )
+DEF_EX_STR( exInvalidChunkValue, "Invalid max chunk size specified:", std::exception )
+DEF_EX_STR( exInvalidBundleValue, "Invalid max bundle size value specified:", std::exception )
 
 int main( int argc, char *argv[] )
 {
@@ -335,6 +337,12 @@ int main( int argc, char *argv[] )
     size_t threads = defaultThreads;
     size_t const defaultCacheSizeMb = 40;
     size_t cacheSizeMb = defaultCacheSizeMb;
+    size_t const minChunkSize = 4096;
+    size_t const defaultMaxChunkSize = 65536;
+    size_t maxChunkSize = defaultMaxChunkSize;
+    size_t const minBundlePayloadSize = 0x200000;
+    size_t const defaultMaxBundlePayloadSize = 0x200000;
+    size_t maxBundlePayloadSize = defaultMaxBundlePayloadSize;
     bool printHelp = false;
     bool forcedCompressionMethod = false;
     vector< char const * > args;
@@ -477,6 +485,24 @@ int main( int argc, char *argv[] )
         printHelp = true;
       }
       else
+      if ( strcmp( argv[ x ], "--max-chunk-size" ) == 0 && x + 1 < argc )
+      {
+        int n;
+        if ( sscanf( argv[ x + 1 ], "%zu %n", &maxChunkSize, &n ) != 1 ||
+            argv[ x + 1 ][ n ] || maxChunkSize < minChunkSize )
+          throw exInvalidChunkValue( argv[ x + 1 ] );
+        ++x;
+      }
+      else
+      if ( strcmp( argv[ x ], "--max-bundle-size" ) == 0 && x + 1 < argc )
+      {
+        int n;
+        if ( sscanf( argv[ x + 1 ], "%zu %n", &maxBundlePayloadSize, &n ) != 1 ||
+            argv[ x + 1 ][ n ] || maxBundlePayloadSize < minBundlePayloadSize )
+          throw exInvalidBundleValue( argv[ x + 1 ] );
+        ++x;
+      }
+      else
         args.push_back( argv[ x ] );
     }
 
@@ -496,6 +522,8 @@ int main( int argc, char *argv[] )
 "         --silent (default is verbose)\n"
 "         --threads <number> (default is %zu on your system)\n"
 "         --cache-size <number> MB (default is %zu)\n"
+"         --max-chunk-size <number> (minimum is %zu, default is %zu)\n"
+"         --max-bundle-size <number> (minimum is %zu, default is %zu)\n"
 "         --exchange [backups|bundles|index] (can be\n"
 "          specified multiple times)\n"
 "         --compression <compression> <lzma|lzo> (default is lzma)\n"
@@ -512,7 +540,9 @@ int main( int argc, char *argv[] )
 "    passwd <storage path> - changes repository info file passphrase.\n"
 "  For export/import storage path must be valid (initialized) storage.\n"
 "", *argv,
-               defaultThreads, defaultCacheSizeMb );
+               defaultThreads, defaultCacheSizeMb, minChunkSize,
+               defaultMaxChunkSize, minBundlePayloadSize,
+               defaultMaxBundlePayloadSize );
       return EXIT_FAILURE;
     }
 
