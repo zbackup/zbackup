@@ -67,12 +67,13 @@ StorageInfo ZBackupBase::loadStorageInfo()
 
 void ZBackupBase::initStorage( string const & storageDir,
                                string const & password,
-                               bool isEncrypted )
+                               bool isEncrypted,
+                               size_t maxChunkSize,
+                               size_t maxBundlePayloadSize )
 {
   StorageInfo storageInfo;
-  // TODO: make the following configurable
-  storageInfo.set_chunk_max_size( 65536 );
-  storageInfo.set_bundle_max_payload_size( 0x200000 );
+  storageInfo.set_chunk_max_size( maxChunkSize );
+  storageInfo.set_bundle_max_payload_size( maxBundlePayloadSize );
   EncryptionKey encryptionkey = EncryptionKey::noKey();
 
   if ( isEncrypted )

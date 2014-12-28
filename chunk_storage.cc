@@ -174,7 +174,7 @@ void * Writer::Compressor::Compressor::threadFunction() throw()
   }
   catch( std::exception & e )
   {
-    FAIL( "Bunding writing failed: %s", e.what() );
+    FAIL( "Bundle writing failed: %s", e.what() );
   }
 
   {

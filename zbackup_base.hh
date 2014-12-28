@@ -45,7 +45,7 @@ public:
 
   /// Creates new storage
   static void initStorage( std::string const & storageDir, std::string const & password,
-                           bool isEncrypted );
+                           bool isEncrypted, size_t maxChunkSize, size_t maxBundlePayloadSize );
 
   /// For a given file within the backups/ dir in the storage, returns its
   /// storage dir or throws an exception
