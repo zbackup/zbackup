@@ -572,7 +572,8 @@ int main( int argc, char *argv[] )
         return EXIT_FAILURE;
       }
 
-      ZBackup::initStorage( args[ 1 ], passwords[ 0 ], !passwords[ 0 ].empty() );
+      ZBackup::initStorage( args[ 1 ], passwords[ 0 ], !passwords[ 0 ].empty(),
+                            maxChunkSize, maxBundlePayloadSize );
     }
     else
     if ( strcmp( args[ 0 ], "backup" ) == 0 )
