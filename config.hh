@@ -23,6 +23,9 @@ public:
   // Print current configuration to screen
   void print();
 
+  // Edit current configuration in default editor
+  void edit();
+
 private:
   string toString( google::protobuf::Message const & message );
   bool parse( const string & str, google::protobuf::Message * mutable_message );

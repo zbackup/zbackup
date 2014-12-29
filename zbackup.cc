@@ -498,23 +498,26 @@ int main( int argc, char *argv[] )
 "         --silent (default is verbose)\n"
 "         --threads <number> (default is %zu on your system)\n"
 "         --cache-size <number> MB (default is %zu)\n"
-"         --exchange [backups|bundles|index] (can be\n"
+"         --exchange <backups|bundles|index> (can be\n"
 "          specified multiple times)\n"
 "         --compression <compression> <lzma|lzo> (default is lzma)\n"
 "         --help|-h show this message\n"
+"         -o <Option> (for detailed options overview\n"
+"                      try to run with -o help)\n"
 "  Commands:\n"
-"    init <storage path> - initializes new storage;\n"
-"    backup <backup file name> - performs a backup from stdin;\n"
-"    restore <backup file name> - restores a backup to stdout;\n"
+"    init <storage path> - initializes new storage\n"
+"    backup <backup file name> - performs a backup from stdin\n"
+"    restore <backup file name> - restores a backup to stdout\n"
 "    export <source storage path> <destination storage path> -\n"
-"            performs export from source to destination storage;\n"
+"            performs export from source to destination storage\n"
 "    import <source storage path> <destination storage path> -\n"
-"            performs import from source to destination storage;\n"
-"    gc <storage path> - performs chunk garbage collection;\n"
-"    passwd <storage path> - changes repository info file passphrase;\n"
-"    info <storage path> - shows information about storage;\n"
-"    config <storage path> - performs configuration manipulations.\n"
-"  For export/import storage path must be valid (initialized) storage.\n"
+"            performs import from source to destination storage\n"
+"    gc <storage path> - performs chunk garbage collection\n"
+"    passwd <storage path> - changes repository info file passphrase\n"
+"    info <storage path> - shows information about storage\n"
+"    config <storage path> [edit|print] - performs configuration"
+"                                            manipulations\n"
+"  For export/import storage path must be valid (initialized) storage\n"
 "", *argv,
                defaultThreads, defaultCacheSizeMb );
       return EXIT_FAILURE;
@@ -671,7 +674,7 @@ int main( int argc, char *argv[] )
     if ( strcmp( args[ 0 ], "config" ) == 0 )
     {
       // Show repo info
-      if ( args.size() != 2 )
+      if ( args.size() < 2 || args.size() > 3 )
       {
         fprintf( stderr, "Usage: %s %s <storage path>\n",
                  *argv, args[ 0 ] );
@@ -680,7 +683,11 @@ int main( int argc, char *argv[] )
 
       ZConfig zc( ZBackupBase::deriveStorageDirFromBackupsFile( args[ 1 ], true ),
           passwords[ 0 ] );
-      zc.print();
+
+      if ( args.size() > 2 && strcmp( args[ 2 ], "edit" ) == 0 )
+        zc.edit();
+      else
+        zc.print();
     }
     else
     {
