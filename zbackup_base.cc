@@ -341,27 +341,17 @@ fatal:
             goto again;
           case 'n':
           case 'N':
-            goto abandon;
+            verbosePrintf( "Data is kept intact\n" );
+            goto end;
           default:
             fprintf( stderr, "Enter Y or N\n" );
         }
       }
-    /*NOTREACHED*/
-    case -2:
-
-abandon:
-      verbosePrintf( "Data is kept intact\n" );
-      goto end;
+  }
 
 success:
-      isChanged = true;
-      data.assign( newData );
-      goto end;
-
-    default:
-      verbosePrintf( "panic: bad switch()\n" );
-      goto fatal;
-  }
+  isChanged = true;
+  data.assign( newData );
 
 end:
   tmpDataFile.reset();
@@ -369,4 +359,3 @@ end:
 
   return isChanged;
 }
-
