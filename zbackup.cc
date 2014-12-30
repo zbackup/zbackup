@@ -695,7 +695,7 @@ int main( int argc, char *argv[] )
 
       if ( args.size() > 2 && strcmp( args[ fieldAct ], "edit" ) == 0 )
       {
-        if ( zc.edit() )
+        if ( zc.editInteractively() )
           zc.saveExtendedStorageInfo();
       }
       else

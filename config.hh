@@ -17,13 +17,17 @@ public:
   // Print current configuration to screen
   void show();
 
-  // Edit current configuration in default editor
+  // Edit current configuration
   // returns true if configuration is changed
-  bool edit();
+  bool editInteractively();
+
+  // Validator for user-supplied configuration
+  static bool validate( const string &, const string & );
+
+  static bool parse( const string & str, google::protobuf::Message * mutable_message );
 
 private:
   string toString( google::protobuf::Message const & message );
-  bool parse( const string & str, google::protobuf::Message * mutable_message );
 };
 
 #endif

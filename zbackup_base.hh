@@ -58,6 +58,10 @@ public:
 
   void setPassword( std::string const & password );
 
+  // returns true if data is changed
+  bool spawnEditor( std::string & data, bool( * validator )
+      ( string const &, string const & ) );
+
   StorageInfo storageInfo;
   EncryptionKey encryptionkey;
   ExtendedStorageInfo extendedStorageInfo;
@@ -68,6 +72,5 @@ private:
   StorageInfo loadStorageInfo();
   ExtendedStorageInfo loadExtendedStorageInfo( EncryptionKey const & );
 };
-
 
 #endif
