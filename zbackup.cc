@@ -491,7 +491,7 @@ int main( int argc, char *argv[] )
 "Comes with no warranty. Licensed under GNU GPLv2 or later + OpenSSL.\n"
 "Visit the project's home page at http://zbackup.org/\n\n"
 
-"Usage: %s [flags] <command> [command args]\n"
+"Usage: %s [flags] <command [action]> [command args]\n"
 "  Flags: --non-encrypted|--password-file <file>\n"
 "          password flag should be specified twice if import/export/passwd\n"
 "          command specified\n"
@@ -515,8 +515,8 @@ int main( int argc, char *argv[] )
 "    gc <storage path> - performs chunk garbage collection\n"
 "    passwd <storage path> - changes repository info file passphrase\n"
 "    info <storage path> - shows information about storage\n"
-"    config <storage path> [edit|print] - performs configuration"
-"                                            manipulations\n"
+"    config [show|edit] <storage path> - performs configuration\n"
+"            manipulations (default is print)\n"
 "  For export/import storage path must be valid (initialized) storage\n"
 "", *argv,
                defaultThreads, defaultCacheSizeMb );
@@ -676,18 +676,30 @@ int main( int argc, char *argv[] )
       // Show repo info
       if ( args.size() < 2 || args.size() > 3 )
       {
-        fprintf( stderr, "Usage: %s %s <storage path>\n",
+        fprintf( stderr, "Usage: %s %s [show|edit] <storage path>\n",
                  *argv, args[ 0 ] );
         return EXIT_FAILURE;
       }
 
-      ZConfig zc( ZBackupBase::deriveStorageDirFromBackupsFile( args[ 1 ], true ),
+      int fieldStor = 1;
+      int fieldAct = 2;
+
+      if ( args.size() == 3 )
+      {
+        fieldStor = 2;
+        fieldAct = 1;
+      }
+
+      ZConfig zc( ZBackupBase::deriveStorageDirFromBackupsFile( args[ fieldStor ], true ),
           passwords[ 0 ] );
 
-      if ( args.size() > 2 && strcmp( args[ 2 ], "edit" ) == 0 )
-        zc.edit();
+      if ( args.size() > 2 && strcmp( args[ fieldAct ], "edit" ) == 0 )
+      {
+        if ( zc.edit() )
+          zc.saveExtendedStorageInfo();
+      }
       else
-        zc.print();
+        zc.show();
     }
     else
     {

@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <cerrno>
 #include <cstring>
+#include <sstream>
 #ifdef __APPLE__
   #include <sys/socket.h>
 #else
@@ -104,6 +105,32 @@ void File::open( char const * filename, OpenMode mode ) throw( exCantOpen )
     throw exCantOpen( std::string( filename ) + ": " + strerror( errno ) );
 }
 
+void File::open( int fd, OpenMode mode ) throw( exCantOpen )
+{
+  char const * m;
+
+  switch( mode )
+  {
+    case Update:
+      m = "r+b";
+      break;
+    case WriteOnly:
+      m = "wb";
+      break;
+    default:
+      m = "rb";
+  }
+
+  f = fdopen( fd, m );
+
+  if ( !f )
+  {
+    std::ostringstream strFd;
+    strFd << fd;
+    throw exCantOpen( "fd#" + strFd.str() + ": " + strerror( errno ) );
+  }
+}
+
 File::File( char const * filename, OpenMode mode ) throw( exCantOpen ):
   writeBuffer( 0 )
 {
@@ -114,6 +141,12 @@ File::File( std::string const & filename, OpenMode mode )
   throw( exCantOpen ): writeBuffer( 0 )
 {
   open( filename.c_str(), mode );
+}
+
+File::File( int fd, OpenMode mode )
+  throw( exCantOpen ): writeBuffer( 0 )
+{
+  open( fd, mode );
 }
 
 void File::read( void * buf, size_t size ) throw( exReadError, exWriteError )
@@ -300,6 +333,13 @@ bool File::eof() throw( exWriteError )
     flushWriteBuffer();
 
   return feof( f );
+}
+
+int File::error() throw( exReadError )
+{
+  int result = ferror( f );
+
+  return result;
 }
 
 FILE * File::file() throw( exWriteError )

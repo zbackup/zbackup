@@ -1,15 +1,12 @@
 // Copyright (c) 2012-2014 Konstantin Isakov <ikm@zbackup.org> and ZBackup contributors, see CONTRIBUTORS
 // Part of ZBackup. Licensed under GNU GPLv2 or later + OpenSSL, see LICENSE
 
-#include <signal.h>
-#include <stdarg.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/stat.h>
 #include <sys/wait.h>
-#include <errno.h>
-#include <utime.h>
+#include <cerrno>
+
+#include "zbackup_base.hh"
+#include "zbackup.pb.h"
+#include "sptr.hh"
 
 #include "config.hh"
 #include "file.hh"
@@ -40,62 +37,43 @@ string ZConfig::toString( google::protobuf::Message const & message )
   return str;
 }
 
-void ZConfig::print()
+void ZConfig::show()
 {
   printf( "%s", toString( extendedStorageInfo.config() ).c_str() );
 }
 
-void ZConfig::edit()
+bool ZConfig::edit()
 {
-  // TODO: Rewrite that copy-paste from cronie on C++
-  char q[MAX_TEMPSTR], *editor;
-  struct stat statbuf;
-  struct utimbuf utimebuf;
-  int waiter, ret;
-  pid_t pid, xpid;
-  FILE *legacyTmpNewConfig;
+  string configData( toString( extendedStorageInfo.config() ) );
+
+  /* Turn off signals. */
+  (void) signal( SIGHUP, SIG_IGN );
+  (void) signal( SIGINT, SIG_IGN );
+  (void) signal( SIGQUIT, SIG_IGN );
 
   sptr< TemporaryFile > tmpFile = tmpMgr.makeTemporaryFile();
   const char * tmpFileName = tmpFile->getFileName().c_str();
 
-  if ( !( legacyTmpNewConfig = fopen( tmpFileName, "w" ) ) )
-  {
-    if ( errno != ENOENT )
-    {
-      perror( tmpFileName );
-      exit( EXIT_FAILURE );
-    }
-  }
-
-  fputs( toString( extendedStorageInfo.config() ).c_str(), legacyTmpNewConfig );
-
-  if ( fflush( legacyTmpNewConfig ) < EXIT_SUCCESS )
-  {
-    perror( tmpFileName );
-    exit( EXIT_FAILURE );
-  }
-
-  /* Set it to 1970 */
-  utimebuf.actime = 0;
-  utimebuf.modtime = 0;
-  utime( tmpFileName, &utimebuf );
+  sptr< File> tmpConfig = new File( tmpFileName, File::WriteOnly );
+  tmpConfig->writeRecords( configData.c_str(), configData.size(), 1 );
 
 again:
-  rewind( legacyTmpNewConfig );
-  if ( ferror( legacyTmpNewConfig ) )
+  tmpConfig->rewind();
+  if ( tmpConfig->error() )
   {
-    fprintf( stderr, "Error while writing new config to %s\n", tmpFileName );
-
+    verbosePrintf( "Error while writing config to %s\n", tmpFileName );
 fatal:
-    unlink( tmpFileName );
+    tmpFile.reset();
     exit( EXIT_FAILURE );
   }
 
-  if ( ( ( editor = getenv( "VISUAL" )) == NULL || *editor == '\0' ) &&
-      ( ( editor = getenv("EDITOR")) == NULL || *editor == '\0') )
-  {
-    editor = EDITOR;
-  }
+  char * editorEnv;
+  string editor;
+  if ( ( ( editorEnv = getenv( "VISUAL" ) ) == NULL || *editorEnv == '\0' ) &&
+      ( ( editorEnv = getenv( "EDITOR" ) ) == NULL || *editorEnv == '\0' ) )
+    editor.assign( EDITOR );
+  else
+    editor.assign( editorEnv );
 
   /* we still have the file open.  editors will generally rewrite the
    * original file rather than renaming/unlinking it and starting a
@@ -110,6 +88,8 @@ fatal:
   shellArgs += " ";
   shellArgs += tmpFileName;
 
+  pid_t pid, xpid;
+
   switch ( pid = fork() )
   {
     case -1:
@@ -118,7 +98,7 @@ fatal:
     case 0:
       /* child */
       execlp( _PATH_BSHELL, _PATH_BSHELL, "-c", shellArgs.c_str(), (char *) 0 );
-      perror( editor );
+      perror( editor.c_str() );
       exit( EXIT_FAILURE );
     /*NOTREACHED*/
     default:
@@ -127,36 +107,35 @@ fatal:
   }
 
   /* parent */
+  int waiter;
   for ( ; ; )
   {
     xpid = waitpid( pid, &waiter, 0 );
     if ( xpid == -1 )
     {
       if ( errno != EINTR )
-        fprintf(stderr,
-            "waitpid() failed waiting for PID %ld from \"%s\": %s\n",
-            (long) pid, editor, strerror( errno ) );
+        verbosePrintf( "waitpid() failed waiting for PID %ld from \"%s\": %s\n",
+            (long) pid, editor.c_str(), strerror( errno ) );
     }
     else
     if (xpid != pid)
     {
-      fprintf( stderr, "wrong PID (%ld != %ld) from \"%s\"\n",
-          (long) xpid, (long) pid, editor);
+      verbosePrintf( "wrong PID (%ld != %ld) from \"%s\"\n",
+          (long) xpid, (long) pid, editor.c_str() );
       goto fatal;
     }
     else
     if ( WIFEXITED( waiter ) && WEXITSTATUS( waiter ) )
     {
-      fprintf(stderr, "\"%s\" exited with status %d\n",
-          editor, WEXITSTATUS( waiter ) );
+      verbosePrintf( "\"%s\" exited with status %d\n",
+          editor.c_str(), WEXITSTATUS( waiter ) );
       goto fatal;
     }
     else
     if ( WIFSIGNALED( waiter ) )
     {
-      fprintf(stderr,
-          "\"%s\" killed; signal %d (%score dumped)\n",
-          editor, WTERMSIG( waiter ),
+      verbosePrintf( "\"%s\" killed; signal %d (%score dumped)\n",
+          editor.c_str(), WTERMSIG( waiter ),
           WCOREDUMP( waiter ) ? "" : "no ");
       goto fatal;
     }
@@ -167,71 +146,45 @@ fatal:
   (void) signal( SIGINT, SIG_DFL );
   (void) signal( SIGQUIT, SIG_DFL );
 
-  /* lstat doesn't make any harm, because 
-   * the file is stat'ed only when config is touched
-   */
-  if ( lstat( tmpFileName, &statbuf ) < 0 )
-  {
-    perror( "lstat" );
-    goto fatal;
-  }
+  tmpConfig->close();
+  tmpConfig = new File( tmpFileName, File::ReadOnly );
 
-  if ( !S_ISREG( statbuf.st_mode ) )
-  {
-    fprintf( stderr, "Illegal config\n" );
-    goto remove;
-  }
+  string newConfigData;
+  newConfigData.resize( tmpConfig->size() );
+  tmpConfig->read( &newConfigData[ 0 ], newConfigData.size() );
+  ConfigInfo newConfig;
+  bool isChanged = false;
 
-  if ( statbuf.st_mtime == 0 )
-  {
-    fprintf( stderr, "No changes made to config\n" );
-    goto remove;
-  }
-
-  fprintf( stderr, "Installing new config\n" );
-  fclose( legacyTmpNewConfig );
-
-  if ( !( legacyTmpNewConfig = fopen( tmpFileName, "r+" ) ) )
-  {
-    perror("cannot read new config");
-    goto remove;
-  }
-  if ( legacyTmpNewConfig == 0L )
-  {
-    perror("fopen");
-    goto fatal;
-  }
-
-  try
-  {
-    File tmpNewConfig( tmpFileName, File::Update );
-    ConfigInfo newConfig;
-    string newConfigData;
-    newConfigData.resize( tmpNewConfig.size() );
-    tmpNewConfig.read( &newConfigData[ 0 ], newConfigData.size() );
-    parse( newConfigData, &newConfig );
-    tmpNewConfig.close();
-    ret = 0;
-  }
-  catch ( std::exception & e )
-  {
+  int ret = 0;
+  if ( !parse( newConfigData, &newConfig ) )
     ret = -1;
+  else
+  {
+    if ( toString( extendedStorageInfo.config() ) == toString( newConfig ) )
+    {
+      verbosePrintf( "No changes made to config\n" );
+      goto end;
+    }
+    else
+      verbosePrintf( "Updating configuration...\n" );
   }
 
   switch ( ret )
   {
     case 0:
-      break;
+      goto success;
     case -1:
       for ( ; ; )
       {
         printf( "Do you want to retry the same edit? " );
         fflush( stdout );
-        q[ 0 ] = '\0';
-        if ( fgets( q, sizeof q, stdin ) == 0L )
+
+        string input;
+        input.resize( MAX_TEMPSTR );
+        if ( fgets( &input[ 0 ], input.size(), stdin ) == 0L )
           continue;
 
-        switch ( q[ 0 ] )
+        switch ( input[ 0 ] )
         {
           case 'y':
           case 'Y':
@@ -240,27 +193,34 @@ fatal:
           case 'N':
             goto abandon;
           default:
-            fprintf(stderr, "Enter Y or N\n");
+            fprintf( stderr, "Enter Y or N\n" );
         }
       }
     /*NOTREACHED*/
     case -2:
+
 abandon:
-      fprintf( stderr, "edits left in %s\n", tmpFileName );
-      goto done;
+      verbosePrintf( "Configuration is kept intact\n" );
+      goto end;
+
+success:
+      extendedStorageInfo.mutable_config()->CopyFrom( newConfig );
+      verbosePrintf(
+"Configuration successfully updated!\n"
+"Updated configuration:\n\n%s", toString( extendedStorageInfo.config() ).c_str() );
+      isChanged = true;
+      goto end;
+
     default:
-      fprintf( stderr, "panic: bad switch() in replace_cmd()\n" );
+      verbosePrintf( "panic: bad switch()\n" );
       goto fatal;
   }
 
-  remove:
-    tmpFile.reset();
-  done:
-    verbosePrintf(
-"Configuration successfully updated!\n"
-"Current repo configuration:\n" );
+end:
+  tmpConfig.reset();
+  tmpFile.reset();
 
-//  printf( "%s", toString( extendedStorageInfo.config() ).c_str() );
+  return isChanged;
 }
 
 bool ZConfig::parse( const string & str, google::protobuf::Message * mutable_message )

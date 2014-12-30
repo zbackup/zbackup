@@ -70,7 +70,7 @@ void ChunkIndex::loadIndex( IndexProcessor & ip )
     }
     catch( std::exception & e )
     {
-      fprintf( stderr, "error: %s\n", e.what() );
+      verbosePrintf( "error: %s\n", e.what() );
       continue;
     }
   }

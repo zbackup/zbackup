@@ -45,6 +45,9 @@ public:
   File( std::string const & filename, OpenMode )
     throw( exCantOpen );
 
+  File( int fd, OpenMode )
+    throw( exCantOpen );
+
   /// Reads the number of bytes to the buffer, throws an error if it
   /// failed to fill the whole buffer (short read, i/o error etc)
   void read( void * buf, size_t size ) throw( exReadError, exWriteError );
@@ -108,6 +111,9 @@ public:
   /// Returns true if end-of-file condition is set
   bool eof() throw( exWriteError );
 
+  /// Returns ferror
+  int error() throw( exReadError );
+
   /// Returns the underlying FILE * record, so other operations can be
   /// performed on it
   FILE * file() throw( exWriteError );
@@ -153,6 +159,7 @@ public:
 private:
 
   void open( char const * filename, OpenMode ) throw( exCantOpen );
+  void open( int fd, OpenMode ) throw( exCantOpen );
   void flushWriteBuffer() throw( exWriteError );
   void releaseWriteBuffer() throw( exWriteError );
 };

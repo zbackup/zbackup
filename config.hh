@@ -5,13 +5,7 @@
 #define CONFIG_HH_INCLUDED__
 
 #include <string>
-#include <vector>
-
 #include <google/protobuf/text_format.h>
-
-#include "zbackup_base.hh"
-#include "zbackup.pb.h"
-#include "sptr.hh"
 
 using std::string;
 
@@ -21,10 +15,11 @@ public:
   ZConfig( string const & storageDir, string const & password );
 
   // Print current configuration to screen
-  void print();
+  void show();
 
   // Edit current configuration in default editor
-  void edit();
+  // returns true if configuration is changed
+  bool edit();
 
 private:
   string toString( google::protobuf::Message const & message );
