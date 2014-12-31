@@ -12,6 +12,10 @@ LICENSE-GPLV3.
 EXCEPTION: This distribution of ZBackup may be linked against OpenSSL
 according to the terms of the section below entitled "OpenSSL Exception."
 
+ADDITION: This distribution of ZBackup uses sources from CMake project
+which is distributed under the OSI-approved BSD 3-clause License.
+See LICENSE-CMAKE for details.
+
 This program is distributed in the hope that it will be useful, but
 WITHOUT ANY WARRANTY; without even the implied warranty of
 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General

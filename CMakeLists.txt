@@ -41,6 +41,14 @@ else ( LIBLZO_FOUND )
   set( LIBLZO_LIBRARIES )
 endif( LIBLZO_FOUND )
 
+find_package( LibUnwind COMPONENTS LIBUNWIND_HAS_UNW_GETCONTEXT LIBUNWIND_HAS_INIT_LOCAL )
+if ( LIBUNWIND_FOUND )
+  ADD_DEFINITIONS( -DHAVE_LIBUNWIND )
+  include_directories( ${LIBUNWIND_INCLUDE_DIRS} )
+else ( LIBUNWIND_FOUND )
+  set( LIBUNWIND_LIBRARIES )
+endif( LIBUNWIND_FOUND )
+
 file( GLOB sourceFiles "*.cc" )
 add_executable( zbackup ${sourceFiles} ${protoSrcs} ${protoHdrs} )
 
@@ -51,6 +59,7 @@ target_link_libraries( zbackup
   ${ZLIB_LIBRARIES}
   ${LIBLZMA_LIBRARIES}
   ${LIBLZO_LIBRARIES}
+  ${LIBUNWIND_LIBRARIES}
 )
 
 install( TARGETS zbackup DESTINATION bin )
