@@ -16,9 +16,19 @@
       __FILE_BASE, __LINE__ );\
     fprintf( stderr, __VA_ARGS__ ); })
 
+#ifdef HAVE_LIBUNWIND
+#define UNW_LOCAL_ONLY
+#include <libunwind.h>
+
+#define dPrintBacktrace( ... ) ()
+#else
+#define dPrintBacktrace( ... ) ()
+#endif
+
 #else
 
 #define dPrintf( ... )
+#define dPrintBacktrace( ... ) ()
 
 #endif
 
