@@ -9,10 +9,24 @@
 
 using std::string;
 
+/* This class is intentended only for use with storable options */
 class ZConfig: public ZBackupBase
 {
 public:
-  ZConfig( string const & storageDir, string const & password );
+  typedef struct
+  {
+    uint32_t max_size;
+  } ChunkConfig;
+
+  typedef struct {
+    uint32_t max_payload_size;
+    string default_compression_method;
+  } BundleConfig;
+
+  typedef struct {
+    ChunkConfig chunkConfig;
+    BundleConfig bundleConfig;
+  } Config;
 
   // Print current configuration to screen
   void show();
@@ -26,8 +40,16 @@ public:
 
   static bool parse( const string & str, google::protobuf::Message * mutable_message );
 
+  static bool parseOption( Config & config, const char * option );
+
+  static void showHelp();
+
+  ZConfig( string const & storageDir, string const & password );
+  ZConfig( string const & storageDir, string const & password, Config & );
 private:
   string toString( google::protobuf::Message const & message );
+
+  Config config;
 };
 
 #endif

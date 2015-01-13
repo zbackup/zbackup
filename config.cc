@@ -7,7 +7,26 @@
 
 #include "config.hh"
 
+bool ZConfig::parseOption( Config & config, const char * option )
+{
+  dPrintf( "Parsing option \"%s\"...\n", option );
+  return false;
+}
+
+void ZConfig::showHelp()
+{
+  fprintf( stderr,
+"Available options overview:\n"
+" help - show this message\n"
+"");
+}
+
 ZConfig::ZConfig( string const & storageDir, string const & password ):
+  ZBackupBase( storageDir, password, true )
+{
+}
+
+ZConfig::ZConfig( string const & storageDir, string const & password, Config & configIn ):
   ZBackupBase( storageDir, password, true )
 {
 }

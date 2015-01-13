@@ -340,6 +340,7 @@ int main( int argc, char *argv[] )
     vector< char const * > args;
     vector< string > passwords;
     bitset< BackupExchanger::Flags > exchange;
+    ZConfig::Config config;
 
     for( int x = 1; x < argc; ++x )
     {
@@ -479,6 +480,32 @@ int main( int argc, char *argv[] )
         printHelp = true;
       }
       else
+      if ( strcmp( argv[ x ], "-o" ) == 0 && x + 1 < argc )
+      {
+        char const * option = argv[ x + 1 ];
+        if ( option )
+        {
+          if ( strcmp( option, "help" ) == 0 )
+          {
+            ZConfig::showHelp();
+            return EXIT_SUCCESS;
+          }
+          else
+          {
+            if ( !ZConfig::parseOption( config, option ) )
+              goto invalid_option;
+          }
+        }
+        else
+        {
+invalid_option:
+          fprintf( stderr, "Invalid option specified: %s\n",
+                   option );
+          return EXIT_FAILURE;
+        }
+        ++x;
+      }
+      else
         args.push_back( argv[ x ] );
     }
 
@@ -502,7 +529,8 @@ int main( int argc, char *argv[] )
 "          specified multiple times)\n"
 "         --compression <compression> <lzma|lzo> (default is lzma)\n"
 "         --help|-h show this message\n"
-"         -o <Option> (for detailed options overview\n"
+"         -o <Option[=Value]> (overrides repository configuration,\n"
+"                      for detailed options overview\n"
 "                      try to run with -o help)\n"
 "  Commands:\n"
 "    init <storage path> - initializes new storage\n"
@@ -513,10 +541,10 @@ int main( int argc, char *argv[] )
 "    import <source storage path> <destination storage path> -\n"
 "            performs import from source to destination storage\n"
 "    gc <storage path> - performs chunk garbage collection\n"
-"    passwd <storage path> - changes repository info file passphrase\n"
+"    passwd <storage path> - changes repo info file passphrase\n"
 "    info <storage path> - shows information about storage\n"
-"    config [show|edit] <storage path> - performs configuration\n"
-"            manipulations (default is print)\n"
+"    config [show|edit|set] <storage path> - performs configuration\n"
+"            manipulations (default is show)\n"
 "  For export/import storage path must be valid (initialized) storage\n"
 "", *argv,
                defaultThreads, defaultCacheSizeMb );
@@ -667,8 +695,9 @@ int main( int argc, char *argv[] )
         return EXIT_FAILURE;
       }
 
-      ZBackupBase zbb( ZBackupBase::deriveStorageDirFromBackupsFile( args[ 1 ], true ),
-          passwords[ 0 ] );
+      // TODO: implementation in ZBackupBase
+      fprintf( stderr, "NOT IMPLEMENTED YET!\n" );
+      return EXIT_FAILURE;
     }
     else
     if ( strcmp( args[ 0 ], "config" ) == 0 )
@@ -690,16 +719,26 @@ int main( int argc, char *argv[] )
         fieldAct = 1;
       }
 
-      ZConfig zc( ZBackupBase::deriveStorageDirFromBackupsFile( args[ fieldStor ], true ),
-          passwords[ 0 ] );
-
       if ( args.size() > 2 && strcmp( args[ fieldAct ], "edit" ) == 0 )
       {
+        ZConfig zc( ZBackupBase::deriveStorageDirFromBackupsFile( args[ fieldStor ], true ),
+            passwords[ 0 ] );
         if ( zc.editInteractively() )
           zc.saveExtendedStorageInfo();
       }
       else
+      if ( args.size() > 2 && strcmp( args[ fieldAct ], "set" ) == 0 )
+      {
+        ZConfig zc( ZBackupBase::deriveStorageDirFromBackupsFile( args[ fieldStor ], true ),
+            passwords[ 0 ], config );
+        // -o ... like sysctl -w
+      }
+      else
+      {
+        ZConfig zc( ZBackupBase::deriveStorageDirFromBackupsFile( args[ fieldStor ], true ),
+            passwords[ 0 ] );
         zc.show();
+      }
     }
     else
     {
