@@ -10,6 +10,7 @@
 #include "compression.hh"
 #include "debug.hh"
 
+// TODO: make configurable by cmake
 #if defined(_PATH_VI)
 # define EDITOR _PATH_VI
 #else
@@ -202,7 +203,7 @@ void ZBackupBase::saveExtendedStorageInfo()
 bool ZBackupBase::spawnEditor( string & data, bool( * validator )
     ( string const &, string const & ) )
 {
-  // Based on ideas found in cronie-1.4.4-12.el6.i686
+  // Based on ideas found in cronie-1.4.4-12.el6
   // Initially it was just a copy-paste from edit_cmd (crontab.c)
 
   /* Turn off signals. */
