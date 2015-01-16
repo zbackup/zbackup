@@ -55,8 +55,8 @@ message BundleConfigInfo
   // one arbitrary single chunk, so this should not be smaller than
   // chunk_max_size
   required uint32 max_payload_size = 2 [default = 0x200000];
-  // Default compression for new bundles
-  optional string default_compression_method = 3 [default = "lzma"];
+  // Compression method for new bundles
+  optional string compression_method = 3 [default = "lzma"];
 }
 
 message ConfigInfo

@@ -1,42 +1,84 @@
 // Copyright (c) 2012-2014 Konstantin Isakov <ikm@zbackup.org> and ZBackup contributors, see CONTRIBUTORS
 // Part of ZBackup. Licensed under GNU GPLv2 or later + OpenSSL, see LICENSE
 
-#include "zbackup_base.hh"
-#include "zbackup.pb.h"
+#include "config.hh"
 #include "debug.hh"
 
-#include "config.hh"
+/* Keyword tokens. */
 
-bool ZConfig::parseOption( Config & config, const char * option )
+typedef enum
+{
+  oBadOption,
+
+  oChunk_max_size,
+  oBundle_max_payload_size,
+  oBundle_compression_method,
+
+  oDeprecated, oUnsupported
+} OpCodes;
+
+/* Textual representations of the tokens. */
+
+static struct
+{
+  const char * name;
+  OpCodes opcode;
+  const char * description;
+} keywords[] = {
+  {
+    "chunk.max_size",
+    oChunk_max_size,
+    "Maximum chunk size used when storing chunks\n"
+    "Directly affects deduplication ratio"
+  },
+  {
+    "bundle.max_payload_size",
+    oBundle_max_payload_size,
+    "Maximum number of bytes a bundle can hold. Only real chunk bytes are\n"
+    "counted, not metadata. Any bundle should be able to contain at least\n"
+    "one arbitrary single chunk, so this should not be smaller than\n"
+    "chunk.max_size" },
+  {
+    "bundle.compression_method",
+    oBundle_compression_method,
+    "Compression method for new bundles"
+  },
+  {
+    "compression",
+    oBundle_compression_method,
+    "Shortcut for bundle.compression_method"
+  },
+
+  { NULL, oBadOption }
+};
+
+bool Config::parseOption( const char * option )
 {
   dPrintf( "Parsing option \"%s\"...\n", option );
-  return false;
+  return true;
 }
 
-void ZConfig::showHelp()
+void Config::showHelp()
 {
   fprintf( stderr,
-"Available options overview:\n"
-" help - show this message\n"
+"Available options overview:\n\n"
+"== help ==\n"
+"shows this message\n"
 "");
+
+  u_int i;
+  for ( i = 0; keywords[ i ].name; i++ )
+  {
+    fprintf( stderr, "\n== %s ==\n%s\n", keywords[ i ].name, keywords[ i ].description );
+  }
 }
 
-ZConfig::ZConfig( string const & storageDir, string const & password ):
-  ZBackupBase( storageDir, password, true )
-{
-}
-
-ZConfig::ZConfig( string const & storageDir, string const & password, Config & configIn ):
-  ZBackupBase( storageDir, password, true )
-{
-}
-
-bool ZConfig::parse( const string & str, google::protobuf::Message * mutable_message )
+bool Config::parse( const string & str, google::protobuf::Message * mutable_message )
 {
   return google::protobuf::TextFormat::ParseFromString( str, mutable_message );
 }
 
-string ZConfig::toString( google::protobuf::Message const & message )
+string Config::toString( google::protobuf::Message const & message )
 {
   std::string str;
   google::protobuf::TextFormat::PrintToString( message, &str );
@@ -44,39 +86,8 @@ string ZConfig::toString( google::protobuf::Message const & message )
   return str;
 }
 
-void ZConfig::show()
-{
-  printf( "%s", toString( extendedStorageInfo.config() ).c_str() );
-}
-
-bool ZConfig::validate( const string & configData, const string & newConfigData )
+bool Config::validate( const string & configData, const string & newConfigData )
 {
   ConfigInfo newConfig;
   return parse( newConfigData, &newConfig );
-}
-
-bool ZConfig::editInteractively()
-{
-  string configData( toString( extendedStorageInfo.config() ) );
-  string newConfigData( configData );
-
-  if ( !spawnEditor( newConfigData, &validate ) )
-    return false;
-  ConfigInfo newConfig;
-  if ( !parse( newConfigData, &newConfig ) )
-    return false;
-  if ( toString( extendedStorageInfo.config() ) == toString( newConfig ) )
-  {
-    verbosePrintf( "No changes made to config\n" );
-    return false;
-  }
-
-  verbosePrintf( "Updating configuration...\n" );
-
-  extendedStorageInfo.mutable_config()->CopyFrom( newConfig );
-  verbosePrintf(
-"Configuration successfully updated!\n"
-"Updated configuration:\n\n%s", toString( extendedStorageInfo.config() ).c_str() );
-
-  return true;
 }

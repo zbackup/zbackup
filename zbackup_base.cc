@@ -117,8 +117,8 @@ void ZBackupBase::initStorage( string const & storageDir,
       extendedStorageInfo.config().chunk().max_size() );
   extendedStorageInfo.mutable_config()->mutable_bundle()->set_max_payload_size(
       extendedStorageInfo.config().bundle().max_payload_size() );
-  extendedStorageInfo.mutable_config()->mutable_bundle()->set_default_compression_method(
-      extendedStorageInfo.config().bundle().default_compression_method() );
+  extendedStorageInfo.mutable_config()->mutable_bundle()->set_compression_method(
+      extendedStorageInfo.config().bundle().compression_method() );
 
   EncryptionKey encryptionkey = EncryptionKey::noKey();
 
@@ -359,4 +359,35 @@ end:
   tmpFile.reset();
 
   return isChanged;
+}
+
+void ZBackupBase::showConfig()
+{
+  printf( "%s", config.toString( extendedStorageInfo.config() ).c_str() );
+}
+
+bool ZBackupBase::editConfigInteractively()
+{
+  string configData( config.toString( extendedStorageInfo.config() ) );
+  string newConfigData( configData );
+
+  if ( !spawnEditor( newConfigData, &config.validate ) )
+    return false;
+  ConfigInfo newConfig;
+  if ( !config.parse( newConfigData, &newConfig ) )
+    return false;
+  if ( config.toString( extendedStorageInfo.config() ) == config.toString( newConfig ) )
+  {
+    verbosePrintf( "No changes made to config\n" );
+    return false;
+  }
+
+  verbosePrintf( "Updating configuration...\n" );
+
+  extendedStorageInfo.mutable_config()->CopyFrom( newConfig );
+  verbosePrintf(
+"Configuration successfully updated!\n"
+"Updated configuration:\n%s", config.toString( extendedStorageInfo.config() ).c_str() );
+
+  return true;
 }

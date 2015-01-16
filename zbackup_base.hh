@@ -9,6 +9,7 @@
 
 #include "ex.hh"
 #include "chunk_index.hh"
+#include "config.hh"
 
 struct Paths
 {
@@ -62,11 +63,19 @@ public:
   bool spawnEditor( std::string & data, bool( * validator )
       ( string const &, string const & ) );
 
+  // Print current configuration to screen
+  void showConfig();
+
+  // Edit current configuration
+  // returns true if configuration is changed
+  bool editConfigInteractively();
+
   StorageInfo storageInfo;
   EncryptionKey encryptionkey;
   ExtendedStorageInfo extendedStorageInfo;
   TmpMgr tmpMgr;
   ChunkIndex chunkIndex;
+  Config config;
 
 private:
   StorageInfo loadStorageInfo();

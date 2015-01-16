@@ -340,7 +340,7 @@ int main( int argc, char *argv[] )
     vector< char const * > args;
     vector< string > passwords;
     bitset< BackupExchanger::Flags > exchange;
-    ZConfig::Config config;
+    Config config;
 
     for( int x = 1; x < argc; ++x )
     {
@@ -487,12 +487,12 @@ int main( int argc, char *argv[] )
         {
           if ( strcmp( option, "help" ) == 0 )
           {
-            ZConfig::showHelp();
+            Config::showHelp();
             return EXIT_SUCCESS;
           }
           else
           {
-            if ( !ZConfig::parseOption( config, option ) )
+            if ( !config.parseOption( option ) )
               goto invalid_option;
           }
         }
@@ -527,11 +527,10 @@ invalid_option:
 "         --cache-size <number> MB (default is %zu)\n"
 "         --exchange <backups|bundles|index> (can be\n"
 "          specified multiple times)\n"
-"         --compression <compression> <lzma|lzo> (default is lzma)\n"
 "         --help|-h show this message\n"
 "         -o <Option[=Value]> (overrides repository configuration,\n"
-"                      for detailed options overview\n"
-"                      try to run with -o help)\n"
+"          can be specified multiple times,\n"
+"          for detailed options overview run with -o help)\n"
 "  Commands:\n"
 "    init <storage path> - initializes new storage\n"
 "    backup <backup file name> - performs a backup from stdin\n"
@@ -542,7 +541,7 @@ invalid_option:
 "            performs import from source to destination storage\n"
 "    gc <storage path> - performs chunk garbage collection\n"
 "    passwd <storage path> - changes repo info file passphrase\n"
-"    info <storage path> - shows information about storage\n"
+"    info <storage path> - shows repo information\n"
 "    config [show|edit|set] <storage path> - performs configuration\n"
 "            manipulations (default is show)\n"
 "  For export/import storage path must be valid (initialized) storage\n"
@@ -696,6 +695,8 @@ invalid_option:
       }
 
       // TODO: implementation in ZBackupBase
+      ZBackupBase zbb( ZBackupBase::deriveStorageDirFromBackupsFile( args[ 1 ], true ),
+          passwords[ 0 ], true );
       fprintf( stderr, "NOT IMPLEMENTED YET!\n" );
       return EXIT_FAILURE;
     }
@@ -721,23 +722,23 @@ invalid_option:
 
       if ( args.size() > 2 && strcmp( args[ fieldAct ], "edit" ) == 0 )
       {
-        ZConfig zc( ZBackupBase::deriveStorageDirFromBackupsFile( args[ fieldStor ], true ),
+        ZBackupBase zbb( ZBackupBase::deriveStorageDirFromBackupsFile( args[ fieldStor ], true ),
             passwords[ 0 ] );
-        if ( zc.editInteractively() )
-          zc.saveExtendedStorageInfo();
+        if ( zbb.editConfigInteractively() )
+          zbb.saveExtendedStorageInfo();
       }
       else
       if ( args.size() > 2 && strcmp( args[ fieldAct ], "set" ) == 0 )
       {
-        ZConfig zc( ZBackupBase::deriveStorageDirFromBackupsFile( args[ fieldStor ], true ),
-            passwords[ 0 ], config );
+        ZBackupBase zbb( ZBackupBase::deriveStorageDirFromBackupsFile( args[ fieldStor ], true ),
+            passwords[ 0 ] );
         // -o ... like sysctl -w
       }
       else
       {
-        ZConfig zc( ZBackupBase::deriveStorageDirFromBackupsFile( args[ fieldStor ], true ),
+        ZBackupBase zbb( ZBackupBase::deriveStorageDirFromBackupsFile( args[ fieldStor ], true ),
             passwords[ 0 ] );
-        zc.show();
+        zbb.showConfig();
       }
     }
     else

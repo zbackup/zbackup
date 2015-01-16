@@ -5,51 +5,30 @@
 #define CONFIG_HH_INCLUDED__
 
 #include <string>
+#include <vector>
 #include <google/protobuf/text_format.h>
+#include "zbackup.pb.h"
 
 using std::string;
+using std::vector;
 
-/* This class is intentended only for use with storable options */
-class ZConfig: public ZBackupBase
+class Config
 {
 public:
-  typedef struct
-  {
-    uint32_t max_size;
-  } ChunkConfig;
-
-  typedef struct {
-    uint32_t max_payload_size;
-    string default_compression_method;
-  } BundleConfig;
-
-  typedef struct {
-    ChunkConfig chunkConfig;
-    BundleConfig bundleConfig;
-  } Config;
-
-  // Print current configuration to screen
-  void show();
-
-  // Edit current configuration
-  // returns true if configuration is changed
-  bool editInteractively();
+  typedef vector< string > Options;
 
   // Validator for user-supplied configuration
   static bool validate( const string &, const string & );
 
   static bool parse( const string & str, google::protobuf::Message * mutable_message );
 
-  static bool parseOption( Config & config, const char * option );
-
   static void showHelp();
 
-  ZConfig( string const & storageDir, string const & password );
-  ZConfig( string const & storageDir, string const & password, Config & );
-private:
-  string toString( google::protobuf::Message const & message );
+  bool parseOption( const char * option );
 
-  Config config;
+  string toString( google::protobuf::Message const & message );
+private:
+  Options options;
 };
 
 #endif
