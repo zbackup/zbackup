@@ -20,7 +20,6 @@
 #include "encryption_key.hh"
 #include "ex.hh"
 #include "file.hh"
-#include "mt.hh"
 #include "sha256.hh"
 #include "sptr.hh"
 #include "storage_info_file.hh"
@@ -29,16 +28,17 @@
 #include "bundle.hh"
 #include "backup_collector.hh"
 #include "config.hh"
+#include "utils.hh"
 
 using std::vector;
 using std::bitset;
 using std::iterator;
 
 ZBackup::ZBackup( string const & storageDir, string const & password,
-                  size_t threads ):
-  ZBackupBase( storageDir, password ),
+                  Config & inConfig ):
+  ZBackupBase( storageDir, password, inConfig ),
   chunkStorageWriter( storageInfo, encryptionkey, tmpMgr, chunkIndex,
-                      getBundlesPath(), getIndexPath(), threads )
+                      getBundlesPath(), getIndexPath(), config.runtime.threads )
 {
 }
 
@@ -141,10 +141,10 @@ void ZBackup::backupFromStdin( string const & outputFileName )
 }
 
 ZRestore::ZRestore( string const & storageDir, string const & password,
-                    size_t cacheSize ):
-  ZBackupBase( storageDir, password ),
+                    Config & inConfig ):
+  ZBackupBase( storageDir, password, inConfig ),
   chunkStorageReader( storageInfo, encryptionkey, chunkIndex, getBundlesPath(),
-                      cacheSize )
+                      config.runtime.cacheSize )
 {
 }
 
@@ -325,18 +325,12 @@ DEF_EX( exSpecifyTwoKeys, "Specify password flag (--non-encrypted or --password-
   " for import/export/passwd operation twice (first for source and second for destination)", std::exception )
 DEF_EX( exNonEncryptedWithKey, "--non-encrypted and --password-file are incompatible", std::exception )
 DEF_EX( exSpecifyEncryptionOptions, "Specify either --password-file or --non-encrypted", std::exception )
-DEF_EX_STR( exInvalidThreadsValue, "Invalid threads value specified:", std::exception )
 
 int main( int argc, char *argv[] )
 {
   try
   {
-    size_t const defaultThreads = getNumberOfCpus();
-    size_t threads = defaultThreads;
-    size_t const defaultCacheSizeMb = 40;
-    size_t cacheSizeMb = defaultCacheSizeMb;
     bool printHelp = false;
-    bool forcedCompressionMethod = false;
     vector< char const * > args;
     vector< string > passwords;
     bitset< BackupExchanger::Flags > exchange;
@@ -344,6 +338,10 @@ int main( int argc, char *argv[] )
 
     for( int x = 1; x < argc; ++x )
     {
+      char const * option;
+      string deprecated;
+      Config::OptionType optionType = Config::Runtime;
+
       if ( strcmp( argv[ x ], "--password-file" ) == 0 && x + 1 < argc )
       {
         // Read the password
@@ -397,43 +395,33 @@ int main( int argc, char *argv[] )
       else
       if ( strcmp( argv[ x ], "--threads" ) == 0 && x + 1 < argc )
       {
-        int n;
-        if ( sscanf( argv[ x + 1 ], "%zu %n", &threads, &n ) != 1 ||
-             argv[ x + 1 ][ n ] || threads < 1 )
-          throw exInvalidThreadsValue( argv[ x + 1 ] );
-        ++x;
+        fprintf( stderr, "--threads is deprecated, use -O threads instead\n" );
+        deprecated.assign( argv[ x ] + 2 );
+        deprecated.append( "=" );
+        deprecated.append( argv[ x + 1 ] );
+        option = deprecated.c_str();
+        if ( option )
+          goto parse_option;
       }
       else
       if ( strcmp( argv[ x ], "--cache-size" ) == 0 && x + 1 < argc )
       {
+        fprintf( stderr, "--cache-size is deprecated, use -O cache-size instead\n" );
+        size_t cacheSizeMb;
         char suffix[ 16 ];
         int n;
         if ( sscanf( argv[ x + 1 ], "%zu %15s %n",
-                     &cacheSizeMb, suffix, &n ) == 2 && !argv[ x + 1 ][ n ] )
-        {
-          // Check the suffix
-          for ( char * c = suffix; *c; ++c )
-            *c = tolower( *c );
+              &cacheSizeMb, suffix, &n ) == 2 && !argv[ x + 1][ n ] )
 
-          if ( strcmp( suffix, "mb" ) != 0 )
-          {
-            fprintf( stderr, "Invalid suffix specified in cache size: %s. "
-                     "The only supported suffix is 'mb' for megabytes\n",
-                     argv[ x + 1 ] );
-            return EXIT_FAILURE;
-          }
-
-          ++x;
-        }
-        else
-        {
-          fprintf( stderr, "Invalid cache size value specified: %s. "
-                   "Must be a number with the 'mb' suffix, e.g. '100mb'\n",
-                   argv[ x + 1 ] );
-          return EXIT_FAILURE;
-        }
+        deprecated.assign( argv[ x ] + 2 );
+        deprecated.append( "=" );
+        deprecated.append( Utils::numberToString( cacheSizeMb ) );
+        deprecated.append( "MiB" );
+        option = deprecated.c_str();
+        if ( option )
+          goto parse_option;
       }
-      else
+/*      else
       if ( strcmp( argv[ x ], "--compression" ) == 0 && x + 1 < argc )
       {
         forcedCompressionMethod = true;
@@ -473,26 +461,34 @@ int main( int argc, char *argv[] )
             argv[ x ] );
           return EXIT_FAILURE;
         }
-      }
+      }*/
       else
       if ( strcmp( argv[ x ], "--help" ) == 0 || strcmp( argv[ x ], "-h" ) == 0 )
       {
         printHelp = true;
       }
       else
-      if ( strcmp( argv[ x ], "-o" ) == 0 && x + 1 < argc )
+      if ( ( strcmp( argv[ x ], "-o" ) == 0 || strcmp( argv[ x ], "-O" ) == 0 )
+          && x + 1 < argc )
       {
-        char const * option = argv[ x + 1 ];
+        option = argv[ x + 1 ];
         if ( option )
         {
+          if ( strcmp( argv[ x ], "-O" ) == 0 )
+            optionType = Config::Runtime;
+          else
+          if ( strcmp( argv[ x ], "-o" ) == 0 )
+            optionType = Config::Storable;
+
           if ( strcmp( option, "help" ) == 0 )
           {
-            Config::showHelp();
+            Config::showHelp( optionType );
             return EXIT_SUCCESS;
           }
           else
           {
-            if ( !config.parseOption( option ) )
+parse_option:
+            if ( !config.parseOption( option, optionType ) )
               goto invalid_option;
           }
         }
@@ -523,14 +519,15 @@ invalid_option:
 "          password flag should be specified twice if import/export/passwd\n"
 "          command specified\n"
 "         --silent (default is verbose)\n"
-"         --threads <number> (default is %zu on your system)\n"
-"         --cache-size <number> MB (default is %zu)\n"
-"         --exchange <backups|bundles|index> (can be\n"
-"          specified multiple times)\n"
+"         --exchange <backups|bundles|index> (can be specified\n"
+"          multiple times, valid only for import/export commands)\n"
 "         --help|-h show this message\n"
-"         -o <Option[=Value]> (overrides repository configuration,\n"
+"         -O <Option[=Value]> (overrides runtime configuration,\n"
 "          can be specified multiple times,\n"
-"          for detailed options overview run with -o help)\n"
+"          for detailed runtime options overview run with -O help)\n"
+"         -o <Option[=Value]> (overrides storable repository\n"
+"          configuration, can be specified multiple times,\n"
+"          for detailed storable options overview run with -o help)\n"
 "  Commands:\n"
 "    init <storage path> - initializes new storage\n"
 "    backup <backup file name> - performs a backup from stdin\n"
@@ -541,12 +538,11 @@ invalid_option:
 "            performs import from source to destination storage\n"
 "    gc <storage path> - performs chunk garbage collection\n"
 "    passwd <storage path> - changes repo info file passphrase\n"
-"    info <storage path> - shows repo information\n"
+//"    info <storage path> - shows repo information\n"
 "    config [show|edit|set] <storage path> - performs configuration\n"
 "            manipulations (default is show)\n"
-"  For export/import storage path must be valid (initialized) storage\n"
-"", *argv,
-               defaultThreads, defaultCacheSizeMb );
+"  For export/import storage path must be a valid (initialized) storage\n"
+"", *argv );
       return EXIT_FAILURE;
     }
 
@@ -589,8 +585,8 @@ invalid_option:
         return EXIT_FAILURE;
       }
       ZBackup zb( ZBackup::deriveStorageDirFromBackupsFile( args[ 1 ] ),
-                  passwords[ 0 ], threads );
-      if ( !forcedCompressionMethod )
+                  passwords[ 0 ], config );
+      //if ( !forcedCompressionMethod )
         zb.useDefaultCompressionMethod();
       zb.backupFromStdin( args[ 1 ] );
     }
@@ -605,8 +601,8 @@ invalid_option:
         return EXIT_FAILURE;
       }
       ZRestore zr( ZRestore::deriveStorageDirFromBackupsFile( args[ 1 ] ),
-                   passwords[ 0 ], cacheSizeMb * 1048576 );
-      if ( !forcedCompressionMethod )
+                   passwords[ 0 ], config );
+      //if ( !forcedCompressionMethod )
         zr.useDefaultCompressionMethod();
       zr.restoreToStdin( args[ 1 ] );
     }
@@ -656,8 +652,8 @@ invalid_option:
                  *argv, args[ 0 ] );
         return EXIT_FAILURE;
       }
-      ZCollector zr( args[ 1 ], passwords[ 0 ], threads, cacheSizeMb * 1048576 );
-      zr.gc();
+      ZCollector zc( args[ 1 ], passwords[ 0 ], config );
+      zc.gc();
     }
     else
     if ( strcmp( args[ 0 ], "passwd" ) == 0 )
@@ -703,10 +699,9 @@ invalid_option:
     else
     if ( strcmp( args[ 0 ], "config" ) == 0 )
     {
-      // Show repo info
       if ( args.size() < 2 || args.size() > 3 )
       {
-        fprintf( stderr, "Usage: %s %s [show|edit] <storage path>\n",
+        fprintf( stderr, "Usage: %s %s [show|edit|set] <storage path>\n",
                  *argv, args[ 0 ] );
         return EXIT_FAILURE;
       }

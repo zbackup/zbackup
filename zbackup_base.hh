@@ -43,7 +43,11 @@ public:
 
   /// Opens the storage
   ZBackupBase( std::string const & storageDir, std::string const & password );
-  ZBackupBase( std::string const & storageDir, std::string const & password, bool prohibitChunkIndexLoading );
+  ZBackupBase( std::string const & storageDir, std::string const & password, Config & inConfig );
+  ZBackupBase( std::string const & storageDir, std::string const & password,
+      bool prohibitChunkIndexLoading );
+  ZBackupBase( std::string const & storageDir, std::string const & password, Config & inConfig,
+      bool prohibitChunkIndexLoading );
 
   /// Creates new storage
   static void initStorage( std::string const & storageDir, std::string const & password,

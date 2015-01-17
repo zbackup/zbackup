@@ -69,6 +69,19 @@ ZBackupBase::ZBackupBase( string const & storageDir, string const & password ):
 }
 
 ZBackupBase::ZBackupBase( string const & storageDir, string const & password,
+                          Config & inConfig ):
+  Paths( storageDir ), storageInfo( loadStorageInfo() ),
+  encryptionkey( password, storageInfo.has_encryption_key() ?
+                   &storageInfo.encryption_key() : 0 ),
+  extendedStorageInfo( loadExtendedStorageInfo( encryptionkey ) ),
+  tmpMgr( getTmpPath() ),
+  chunkIndex( encryptionkey, tmpMgr, getIndexPath(), false ),
+  config( inConfig )
+{
+  dPrintf("%s repo instantiated and initialized\n", storageDir.c_str() );
+}
+
+ZBackupBase::ZBackupBase( string const & storageDir, string const & password,
                           bool prohibitChunkIndexLoading ):
   Paths( storageDir ), storageInfo( loadStorageInfo() ),
   encryptionkey( password, storageInfo.has_encryption_key() ?
@@ -76,6 +89,19 @@ ZBackupBase::ZBackupBase( string const & storageDir, string const & password,
   extendedStorageInfo( loadExtendedStorageInfo( encryptionkey ) ),
   tmpMgr( getTmpPath() ),
   chunkIndex( encryptionkey, tmpMgr, getIndexPath(), prohibitChunkIndexLoading )
+{
+  dPrintf("%s repo instantiated and initialized\n", storageDir.c_str() );
+}
+
+ZBackupBase::ZBackupBase( string const & storageDir, string const & password,
+                          Config & inConfig, bool prohibitChunkIndexLoading ):
+  Paths( storageDir ), storageInfo( loadStorageInfo() ),
+  encryptionkey( password, storageInfo.has_encryption_key() ?
+                   &storageInfo.encryption_key() : 0 ),
+  extendedStorageInfo( loadExtendedStorageInfo( encryptionkey ) ),
+  tmpMgr( getTmpPath() ),
+  chunkIndex( encryptionkey, tmpMgr, getIndexPath(), prohibitChunkIndexLoading ),
+  config( inConfig )
 {
   dPrintf("%s repo instantiated and initialized\n", storageDir.c_str() );
 }

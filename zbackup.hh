@@ -30,7 +30,7 @@ class ZBackup: public ZBackupBase
 
 public:
   ZBackup( string const & storageDir, string const & password,
-           size_t threads );
+           Config & inConfig );
 
   /// Backs up the data from stdin
   void backupFromStdin( string const & outputFileName );
@@ -42,7 +42,7 @@ class ZRestore: public ZBackupBase
 
 public:
   ZRestore( string const & storageDir, string const & password,
-            size_t cacheSize );
+            Config & inConfig );
 
   /// Restores the data to stdin
   void restoreToStdin( string const & inputFileName );
@@ -51,11 +51,10 @@ public:
 class ZCollect: public ZBackupBase
 {
   ChunkStorage::Reader chunkStorageReader;
-  size_t threads;
 
 public:
   ZCollect( string const & storageDir, string const & password,
-            size_t threads, size_t cacheSize );
+            Config & inConfig );
 
   void gc();
 };

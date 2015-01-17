@@ -10,11 +10,10 @@
 class ZCollector : public ZBackupBase
 {
   ChunkStorage::Reader chunkStorageReader;
-  size_t threads;
 
 public:
   ZCollector( std::string const & storageDir, std::string const & password,
-              size_t threads, size_t cacheSize );
+              Config & inConfig );
 
   void gc();
 };

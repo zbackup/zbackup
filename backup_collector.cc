@@ -25,7 +25,7 @@ private:
   int indexModifiedBundles, indexKeptBundles, indexRemovedBundles;
   bool indexModified;
   vector< string > filesToUnlink;
-  
+
 public:
   string bundlesPath;
   bool verbose;
@@ -123,12 +123,11 @@ public:
 }
 
 ZCollector::ZCollector( string const & storageDir, string const & password,
-                    size_t threads, size_t cacheSize ):
-  ZBackupBase( storageDir, password ),
+                    Config & inConfig ):
+  ZBackupBase( storageDir, password, inConfig ),
   chunkStorageReader( storageInfo, encryptionkey, chunkIndex, getBundlesPath(),
-                      cacheSize )
+                      config.runtime.cacheSize )
 {
-  this->threads = threads;
 }
 
 void ZCollector::gc()
@@ -136,7 +135,7 @@ void ZCollector::gc()
   ChunkIndex chunkReindex( encryptionkey, tmpMgr, getIndexPath(), true );
 
   ChunkStorage::Writer chunkStorageWriter( storageInfo, encryptionkey, tmpMgr, chunkReindex,
-                      getBundlesPath(), getIndexPath(), threads );
+                      getBundlesPath(), getIndexPath(), config.runtime.threads );
 
   string fileName;
   string backupsPath = getBackupsPath();

@@ -6,7 +6,6 @@
 #include <unistd.h>
 #include <cerrno>
 #include <cstring>
-#include <sstream>
 #ifdef __APPLE__
   #include <sys/socket.h>
 #else
@@ -16,6 +15,7 @@
 #include <fcntl.h>
 
 #include "file.hh"
+#include "utils.hh"
 
 enum
 {
@@ -124,11 +124,7 @@ void File::open( int fd, OpenMode mode ) throw( exCantOpen )
   f = fdopen( fd, m );
 
   if ( !f )
-  {
-    std::ostringstream strFd;
-    strFd << fd;
-    throw exCantOpen( "fd#" + strFd.str() + ": " + strerror( errno ) );
-  }
+    throw exCantOpen( "fd#" + Utils::numberToString( fd ) + ": " + strerror( errno ) );
 }
 
 File::File( char const * filename, OpenMode mode ) throw( exCantOpen ):
