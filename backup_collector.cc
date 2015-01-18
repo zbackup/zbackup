@@ -123,8 +123,8 @@ public:
 }
 
 ZCollector::ZCollector( string const & storageDir, string const & password,
-                    Config & inConfig ):
-  ZBackupBase( storageDir, password, inConfig ),
+                    Config & configIn ):
+  ZBackupBase( storageDir, password, configIn ),
   chunkStorageReader( storageInfo, encryptionkey, chunkIndex, getBundlesPath(),
                       config.runtime.cacheSize )
 {

@@ -6,6 +6,7 @@
 #include "ex.hh"
 #include "debug.hh"
 #include "utils.hh"
+#include "compression.hh"
 
 #define VALID_SUFFIXES "Valid suffixes:\n" \
                        "B - multiply by 1 (bytes)\n" \
@@ -46,7 +47,8 @@ static struct
     "Maximum number of bytes a bundle can hold. Only real chunk bytes are\n"
     "counted, not metadata. Any bundle should be able to contain at least\n"
     "one arbitrary single chunk, so this should not be smaller than\n"
-    "chunk.max_size" },
+    "chunk.max_size"
+  },
   {
     "bundle.compression_method",
     Config::oBundle_compression_method,
@@ -80,6 +82,18 @@ static struct
     VALID_SUFFIXES
     "Default is %sMiB",
     Utils::numberToString( defaultConfig.runtime.cacheSize / 1024 / 1024 )
+  },
+  {
+    "exchange",
+    Config::oRuntime_exchange,
+    Config::Runtime,
+    "Data to exchange between repositories in import/export process\n"
+    "Can be specified multiple times\n"
+    "Valid values:\n"
+    "backups - exchange backup instructions (files in backups/ directory)\n"
+    "bundles - exchange bundles with data (files in bunles/ directory)\n"
+    "index - exchange indicies of chunks (files in index/ directory)\n"
+    "No default value, you should specify it explicitly"
   },
 
   { NULL, Config::oBadOption, Config::None }
@@ -138,6 +152,48 @@ bool Config::parseOption( const char * option, const OptionType type )
 
   switch ( opcode )
   {
+    case oBundle_compression_method:
+      if ( !hasValue )
+        return false;
+
+      if ( strcmp( optionValue, "lzma" ) == 0 )
+      {
+        const_sptr< Compression::CompressionMethod > lzma =
+          Compression::CompressionMethod::findCompression( "lzma" );
+        if ( !lzma )
+        {
+          fprintf( stderr, "zbackup is compiled without LZMA support, but the code "
+            "would support it. If you install liblzma (including development files) "
+            "and recompile zbackup, you can use LZMA.\n" );
+          return false;
+        }
+        Compression::CompressionMethod::selectedCompression = lzma;
+      }
+      else
+      if ( strcmp( optionValue, "lzo" ) == 0 )
+      {
+        const_sptr< Compression::CompressionMethod > lzo =
+          Compression::CompressionMethod::findCompression( "lzo1x_1" );
+        if ( !lzo )
+        {
+          fprintf( stderr, "zbackup is compiled without LZO support, but the code "
+            "would support it. If you install liblzo2 (including development files) "
+            "and recompile zbackup, you can use LZO.\n" );
+          return false;
+        }
+        Compression::CompressionMethod::selectedCompression = lzo;
+      }
+      else
+      {
+        fprintf( stderr, "zbackup doesn't support compression method '%s'. You may need a newer version.\n",
+          optionValue );
+        return false;
+      }
+
+      return true;
+      /* NOTREACHED */
+      break;
+
     case oRuntime_threads:
       if ( !hasValue )
         return false;
@@ -148,7 +204,7 @@ bool Config::parseOption( const char * option, const OptionType type )
         throw exInvalidThreadsValue( optionValue );
       runtime.threads = sizeValue;
 
-      dPrintf( "runtime[threads]: %zu\n", runtime.threads );
+      dPrintf( "runtime[threads] = %zu\n", runtime.threads );
 
       return true;
       /* NOTREACHED */
@@ -216,11 +272,37 @@ bool Config::parseOption( const char * option, const OptionType type )
         }
         runtime.cacheSize = sizeValue * scale;
 
-        dPrintf( "runtime[cacheSize]: %zu\n", runtime.cacheSize );
+        dPrintf( "runtime[cacheSize] = %zu\n", runtime.cacheSize );
 
         return true;
       }
       return false;
+      /* NOTREACHED */
+      break;
+
+    case oRuntime_exchange:
+      if ( !hasValue )
+        return false;
+
+      if ( strcmp( optionValue, "backups" ) == 0 )
+        runtime.exchange.set( BackupExchanger::backups );
+      else
+      if ( strcmp( optionValue, "bundles" ) == 0 )
+        runtime.exchange.set( BackupExchanger::bundles );
+      else
+      if ( strcmp( optionValue, "index" ) == 0 )
+        runtime.exchange.set( BackupExchanger::index );
+      else
+      {
+        fprintf( stderr, "Invalid exchange value specified: %s\n"
+                 "Must be one of the following: backups, bundles, index\n",
+                 optionValue );
+        return false;
+      }
+
+      dPrintf( "runtime[exchange] = %s\n", runtime.exchange.to_string().c_str() );
+
+      return true;
       /* NOTREACHED */
       break;
 

@@ -4,21 +4,8 @@
 #ifndef ZBACKUP_HH_INCLUDED__
 #define ZBACKUP_HH_INCLUDED__
 
-#include <stddef.h>
-#include <exception>
-#include <string>
-#include <vector>
-#include <bitset>
-
-#include "chunk_id.hh"
-#include "chunk_index.hh"
 #include "chunk_storage.hh"
-#include "encryption_key.hh"
-#include "ex.hh"
-#include "tmp_mgr.hh"
-#include "zbackup.pb.h"
 #include "zbackup_base.hh"
-#include "backup_exchanger.hh"
 
 using std::string;
 using std::vector;
@@ -30,7 +17,7 @@ class ZBackup: public ZBackupBase
 
 public:
   ZBackup( string const & storageDir, string const & password,
-           Config & inConfig );
+           Config & configIn );
 
   /// Backs up the data from stdin
   void backupFromStdin( string const & outputFileName );
@@ -42,7 +29,7 @@ class ZRestore: public ZBackupBase
 
 public:
   ZRestore( string const & storageDir, string const & password,
-            Config & inConfig );
+            Config & configIn );
 
   /// Restores the data to stdin
   void restoreToStdin( string const & inputFileName );
@@ -54,7 +41,7 @@ class ZCollect: public ZBackupBase
 
 public:
   ZCollect( string const & storageDir, string const & password,
-            Config & inConfig );
+            Config & configIn );
 
   void gc();
 };
@@ -66,11 +53,13 @@ class ZExchange
 
 public:
   ZExchange( string const & srcStorageDir, string const & srcPassword,
-             string const & dstStorageDir, string const & dstPassword );
+             string const & dstStorageDir, string const & dstPassword,
+             Config & configIn );
+
+  Config config;
 
   /// Exchanges the data between storages
-  void exchange( string const & srcFileName, string const & dstFileName,
-      bitset< BackupExchanger::Flags > const & exchange );
+  void exchange();
 };
 
 #endif

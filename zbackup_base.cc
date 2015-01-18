@@ -65,19 +65,21 @@ ZBackupBase::ZBackupBase( string const & storageDir, string const & password ):
   tmpMgr( getTmpPath() ),
   chunkIndex( encryptionkey, tmpMgr, getIndexPath(), false )
 {
+  propagateUpdate();
   dPrintf("%s repo instantiated and initialized\n", storageDir.c_str() );
 }
 
 ZBackupBase::ZBackupBase( string const & storageDir, string const & password,
-                          Config & inConfig ):
+                          Config & configIn ):
   Paths( storageDir ), storageInfo( loadStorageInfo() ),
   encryptionkey( password, storageInfo.has_encryption_key() ?
                    &storageInfo.encryption_key() : 0 ),
   extendedStorageInfo( loadExtendedStorageInfo( encryptionkey ) ),
   tmpMgr( getTmpPath() ),
   chunkIndex( encryptionkey, tmpMgr, getIndexPath(), false ),
-  config( inConfig )
+  config( configIn )
 {
+  propagateUpdate();
   dPrintf("%s repo instantiated and initialized\n", storageDir.c_str() );
 }
 
@@ -90,20 +92,30 @@ ZBackupBase::ZBackupBase( string const & storageDir, string const & password,
   tmpMgr( getTmpPath() ),
   chunkIndex( encryptionkey, tmpMgr, getIndexPath(), prohibitChunkIndexLoading )
 {
+  propagateUpdate();
   dPrintf("%s repo instantiated and initialized\n", storageDir.c_str() );
 }
 
 ZBackupBase::ZBackupBase( string const & storageDir, string const & password,
-                          Config & inConfig, bool prohibitChunkIndexLoading ):
+                          Config & configIn, bool prohibitChunkIndexLoading ):
   Paths( storageDir ), storageInfo( loadStorageInfo() ),
   encryptionkey( password, storageInfo.has_encryption_key() ?
                    &storageInfo.encryption_key() : 0 ),
   extendedStorageInfo( loadExtendedStorageInfo( encryptionkey ) ),
   tmpMgr( getTmpPath() ),
   chunkIndex( encryptionkey, tmpMgr, getIndexPath(), prohibitChunkIndexLoading ),
-  config( inConfig )
+  config( configIn )
 {
+  propagateUpdate();
   dPrintf("%s repo instantiated and initialized\n", storageDir.c_str() );
+}
+
+void ZBackupBase::propagateUpdate()
+{
+  const_sptr<Compression::CompressionMethod> compression =
+    Compression::CompressionMethod::findCompression(
+       extendedStorageInfo.config().bundle().compression_method() );
+  Compression::CompressionMethod::selectedCompression = compression;
 }
 
 StorageInfo ZBackupBase::loadStorageInfo()
@@ -134,10 +146,10 @@ void ZBackupBase::initStorage( string const & storageDir,
   ExtendedStorageInfo extendedStorageInfo;
 
   // TODO: Make a proper setup of initial values
-  storageInfo.set_chunk_max_size( 65536 );
+  /*storageInfo.set_chunk_max_size( 65536 );
   storageInfo.set_bundle_max_payload_size( 0x200000 );
   storageInfo.set_default_compression_method(
-      Compression::CompressionMethod::defaultCompression->getName() );
+      Compression::CompressionMethod::selectedCompression->getName() );*/
 
   extendedStorageInfo.mutable_config()->mutable_chunk()->set_max_size(
       extendedStorageInfo.config().chunk().max_size() );
@@ -199,14 +211,6 @@ string ZBackupBase::deriveStorageDirFromBackupsFile( string const &
     throw exCantDeriveStorageDir( backupsFile );
   else
     return realPath.substr( 0, pos );
-}
-
-void ZBackupBase::useDefaultCompressionMethod()
-{
-  std::string compression_method_name = storageInfo.default_compression_method();
-  const_sptr<Compression::CompressionMethod> compression
-      = Compression::CompressionMethod::findCompression( compression_method_name );
-  Compression::CompressionMethod::defaultCompression = compression;
 }
 
 void ZBackupBase::setPassword( string const & password )

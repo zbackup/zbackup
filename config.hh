@@ -5,11 +5,14 @@
 #define CONFIG_HH_INCLUDED__
 
 #include <string>
+#include <bitset>
 #include <google/protobuf/text_format.h>
 #include "zbackup.pb.h"
 #include "mt.hh"
+#include "backup_exchanger.hh"
 
 using std::string;
+using std::bitset;
 
 class Config
 {
@@ -18,6 +21,7 @@ public:
   {
     size_t threads;
     size_t cacheSize;
+    bitset< BackupExchanger::Flags > exchange;
 
     // Default runtime config
     RuntimeConfig():
@@ -47,6 +51,7 @@ public:
 
     oRuntime_threads,
     oRuntime_cacheSize,
+    oRuntime_exchange,
 
     oDeprecated, oUnsupported
   } OpCodes;

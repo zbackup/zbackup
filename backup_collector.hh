@@ -13,7 +13,7 @@ class ZCollector : public ZBackupBase
 
 public:
   ZCollector( std::string const & storageDir, std::string const & password,
-              Config & inConfig );
+              Config & configIn );
 
   void gc();
 };

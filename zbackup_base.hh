@@ -43,10 +43,10 @@ public:
 
   /// Opens the storage
   ZBackupBase( std::string const & storageDir, std::string const & password );
-  ZBackupBase( std::string const & storageDir, std::string const & password, Config & inConfig );
+  ZBackupBase( std::string const & storageDir, std::string const & password, Config & configIn );
   ZBackupBase( std::string const & storageDir, std::string const & password,
       bool prohibitChunkIndexLoading );
-  ZBackupBase( std::string const & storageDir, std::string const & password, Config & inConfig,
+  ZBackupBase( std::string const & storageDir, std::string const & password, Config & configIn,
       bool prohibitChunkIndexLoading );
 
   /// Creates new storage
@@ -57,7 +57,7 @@ public:
   /// storage dir or throws an exception
   static std::string deriveStorageDirFromBackupsFile( std::string const & backupsFile, bool allowOutside = false );
 
-  void useDefaultCompressionMethod();
+  void propagateUpdate();
 
   void saveExtendedStorageInfo();
 

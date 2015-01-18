@@ -6,7 +6,6 @@
 
 #include <string>
 #include <vector>
-#include "sptr.hh"
 #include "tmp_mgr.hh"
 
 namespace BackupExchanger {

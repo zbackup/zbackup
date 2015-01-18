@@ -60,7 +60,7 @@ public:
   static const_sptr<CompressionMethod> findCompression(
     const std::string& name, bool optional = false );
 
-  static const_sptr<CompressionMethod> defaultCompression;
+  static const_sptr<CompressionMethod> selectedCompression;
 
   class iterator
   {

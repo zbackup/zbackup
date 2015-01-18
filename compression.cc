@@ -596,7 +596,7 @@ static const_sptr<CompressionMethod> const compressions[] = {
   NULL
 };
 
-const_sptr<CompressionMethod> CompressionMethod::defaultCompression = compressions[0];
+const_sptr<CompressionMethod> CompressionMethod::selectedCompression = compressions[0];
 
 const_sptr<CompressionMethod> CompressionMethod::findCompression( const std::string& name, bool optional )
 {
