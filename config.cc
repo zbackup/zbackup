@@ -100,9 +100,17 @@ static struct
 
 }
 
+Config::~Config()
+{
+  // prevent memleak
+  if ( default_instance )
+    delete storable;
+}
+
 Config::Config()
 {
   ConfigInfo * configInfo = new ConfigInfo;
+  default_instance = true;
   storable = configInfo;
   dPrintf( "Config is instantiated and initialized with default values\n" );
 }
@@ -110,6 +118,7 @@ Config::Config()
 Config::Config( ConfigInfo * configInfo )
 {
   storable = configInfo;
+  default_instance = false;
   dPrintf( "Config is instantiated and initialized with supplied ConfigInfo\n" );
 }
 
@@ -118,6 +127,7 @@ Config::Config( const Config & configIn, ConfigInfo * configInfo )
   configInfo->MergeFrom( *configIn.storable );
   *this = configIn;
   storable = configInfo;
+  default_instance = false;
   dPrintf( "Config is instantiated and initialized with supplied values\n" );
 }
 

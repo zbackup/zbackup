@@ -17,6 +17,7 @@
 #include "rolling_hash.hh"
 #include "sptr.hh"
 #include "zbackup.pb.h"
+#include "config.hh"
 
 using std::vector;
 using std::string;
@@ -69,7 +70,7 @@ class BackupCreator: ChunkIndex::ChunkInfoInterface, NoCopy
   virtual ChunkId const & getChunkId();
 
 public:
-  BackupCreator( StorageInfo const &, ChunkIndex &, ChunkStorage::Writer & );
+  BackupCreator( Config const &, ChunkIndex &, ChunkStorage::Writer & );
 
   /// The data is fed the following way: the user fills getInputBuffer() with
   /// up to getInputBufferSize() bytes, then calls handleMoreData() with the

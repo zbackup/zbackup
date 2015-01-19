@@ -10,11 +10,11 @@
 
 namespace ChunkStorage {
 
-Writer::Writer( StorageInfo const & storageInfo,
+Writer::Writer( Config const & configIn,
                 EncryptionKey const & encryptionKey,
                 TmpMgr & tmpMgr, ChunkIndex & index, string const & bundlesDir,
                 string const & indexDir, size_t maxCompressorsToRun ):
-  storageInfo( storageInfo ), encryptionKey( encryptionKey ),
+  config( configIn ), encryptionKey( encryptionKey ),
   tmpMgr( tmpMgr ), index( index ), bundlesDir( bundlesDir ),
   indexDir( indexDir ), hasCurrentBundleId( false ),
   maxCompressorsToRun( maxCompressorsToRun ), runningCompressors( 0 )
@@ -34,7 +34,7 @@ bool Writer::add( ChunkId const & id, void const * data, size_t size )
   {
     // Added to the index? Emit to the bundle then
     if ( getCurrentBundle().getPayloadSize() + size >
-         storageInfo.bundle_max_payload_size() )
+         config.GET_STORABLE( bundle, max_payload_size ) )
       finishCurrentBundle();
 
     getCurrentBundle().addChunk( id.toBlob(), data, size );
@@ -192,17 +192,18 @@ void * Writer::Compressor::Compressor::threadFunction() throw()
   return NULL;
 }
 
-Reader::Reader( StorageInfo const & storageInfo,
+Reader::Reader( Config const & configIn,
                 EncryptionKey const & encryptionKey,
                 ChunkIndex & index, string const & bundlesDir,
                 size_t maxCacheSizeBytes ):
-  storageInfo( storageInfo ), encryptionKey( encryptionKey ),
+  config( configIn ), encryptionKey( encryptionKey ),
   index( index ), bundlesDir( bundlesDir ),
   // We need to have at least one cached reader, otherwise we would have to
   // unpack a bundle each time a chunk is read, even for consecutive chunks
   // in the same bundle
-  cachedReaders( maxCacheSizeBytes < storageInfo.bundle_max_payload_size() ?
-    1 : maxCacheSizeBytes / storageInfo.bundle_max_payload_size() )
+  cachedReaders(
+      maxCacheSizeBytes < config.GET_STORABLE( bundle, max_payload_size ) ?
+      1 : maxCacheSizeBytes / config.GET_STORABLE( bundle, max_payload_size ) )
 {
   verbosePrintf( "Using up to %zu MB of RAM as cache\n",
                  maxCacheSizeBytes / 1048576 );

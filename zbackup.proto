@@ -30,12 +30,12 @@ message EncryptionKeyInfo
 message StorageInfo
 {
   // Maximum chunk size used when storing chunks
-  required uint32 chunk_max_size = 1 [deprecated = true];
+  optional uint32 chunk_max_size = 1 [deprecated = true];
   // Maximum number of bytes a bundle can hold. Only real chunk bytes are
   // counted, not metadata. Any bundle should be able to contain at least
   // one arbitrary single chunk, so this should not be smaller than
   // chunk_max_size
-  required uint32 bundle_max_payload_size = 2 [deprecated = true];
+  optional uint32 bundle_max_payload_size = 2 [deprecated = true];
   // If present, used for encryption/decryption of all data
   optional EncryptionKeyInfo encryption_key = 3;
   // Default compression for new bundles

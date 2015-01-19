@@ -87,9 +87,12 @@ public:
   Config( const Config &, ConfigInfo * );
   Config( ConfigInfo * );
   Config();
+  ~Config();
 
   RuntimeConfig runtime;
   ConfigInfo * storable;
+private:
+  bool default_instance;
 };
 
 #include "zbackup_base.hh"

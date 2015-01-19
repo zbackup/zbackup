@@ -18,7 +18,7 @@ using std::iterator;
 ZBackup::ZBackup( string const & storageDir, string const & password,
                   Config & configIn ):
   ZBackupBase( storageDir, password, configIn ),
-  chunkStorageWriter( storageInfo, encryptionkey, tmpMgr, chunkIndex,
+  chunkStorageWriter( config, encryptionkey, tmpMgr, chunkIndex,
                       getBundlesPath(), getIndexPath(), config.runtime.threads )
 {
 }
@@ -32,7 +32,7 @@ void ZBackup::backupFromStdin( string const & outputFileName )
     throw exWontOverwrite( outputFileName );
 
   Sha256 sha256;
-  BackupCreator backupCreator( storageInfo, chunkIndex, chunkStorageWriter );
+  BackupCreator backupCreator( config, chunkIndex, chunkStorageWriter );
 
   time_t startTime = time( 0 );
   uint64_t totalDataSize = 0;
@@ -77,7 +77,7 @@ void ZBackup::backupFromStdin( string const & outputFileName )
   // Shrink the serialized data iteratively until it wouldn't shrink anymore
   for ( ; ; )
   {
-    BackupCreator backupCreator( storageInfo, chunkIndex, chunkStorageWriter );
+    BackupCreator backupCreator( config, chunkIndex, chunkStorageWriter );
     char const * ptr = serialized.data();
     size_t left = serialized.size();
     while( left )
@@ -124,7 +124,7 @@ void ZBackup::backupFromStdin( string const & outputFileName )
 ZRestore::ZRestore( string const & storageDir, string const & password,
                     Config & configIn ):
   ZBackupBase( storageDir, password, configIn ),
-  chunkStorageReader( storageInfo, encryptionkey, chunkIndex, getBundlesPath(),
+  chunkStorageReader( config, encryptionkey, chunkIndex, getBundlesPath(),
                       config.runtime.cacheSize )
 {
 }

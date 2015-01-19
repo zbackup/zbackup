@@ -23,6 +23,7 @@
 #include "sptr.hh"
 #include "tmp_mgr.hh"
 #include "zbackup.pb.h"
+#include "config.hh"
 
 namespace ChunkStorage {
 
@@ -40,7 +41,7 @@ public:
   /// All new bundles and index files are created as temp files. Call commit()
   /// to move them to their permanent locations. commit() is never called
   /// automatically!
-  Writer( StorageInfo const &, EncryptionKey const &,
+  Writer( Config const &, EncryptionKey const &,
           TmpMgr &, ChunkIndex & index, string const & bundlesDir,
           string const & indexDir, size_t maxCompressorsToRun );
 
@@ -90,7 +91,7 @@ private:
   /// Wait for all compressors to finish
   void waitForAllCompressorsToFinish();
 
-  StorageInfo const & storageInfo;
+  Config const & config;
   EncryptionKey const & encryptionKey;
   TmpMgr & tmpMgr;
   ChunkIndex & index;
@@ -119,7 +120,7 @@ class Reader: NoCopy
 public:
   DEF_EX_STR( exNoSuchChunk, "no such chunk found:", Ex )
 
-  Reader( StorageInfo const &, EncryptionKey const &, ChunkIndex & index,
+  Reader( Config const &, EncryptionKey const &, ChunkIndex & index,
           string const & bundlesDir, size_t maxCacheSizeBytes );
 
   /// Loads the given chunk from the store into the given buffer. May throw file
@@ -131,7 +132,7 @@ public:
   Bundle::Reader & getReaderFor( Bundle::Id const & );
 
 private:
-  StorageInfo const & storageInfo;
+  Config const & config;
   EncryptionKey const & encryptionKey;
   ChunkIndex & index;
   string bundlesDir;

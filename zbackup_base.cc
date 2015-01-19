@@ -154,18 +154,13 @@ void ZBackupBase::initStorage( string const & storageDir,
   StorageInfo storageInfo;
   ExtendedStorageInfo extendedStorageInfo;
 
-  // TODO: Make a proper setup of initial values
-  /*storageInfo.set_chunk_max_size( 65536 );
-  storageInfo.set_bundle_max_payload_size( 0x200000 );
-  storageInfo.set_default_compression_method(
-      Compression::CompressionMethod::selectedCompression->getName() );*/
-
-  extendedStorageInfo.mutable_config()->mutable_chunk()->set_max_size(
-      extendedStorageInfo.config().chunk().max_size() );
-  extendedStorageInfo.mutable_config()->mutable_bundle()->set_max_payload_size(
-      extendedStorageInfo.config().bundle().max_payload_size() );
-  extendedStorageInfo.mutable_config()->mutable_bundle()->set_compression_method(
-      extendedStorageInfo.config().bundle().compression_method() );
+  ConfigInfo * storable = extendedStorageInfo.mutable_config();
+  // TODO: Use protobuf reflection in loop
+  // to fill messages with default values
+  // without explicitly defining them
+  SET_STORABLE( chunk, max_size, GET_STORABLE( chunk, max_size ) );
+  SET_STORABLE( bundle, max_payload_size, GET_STORABLE( bundle, max_payload_size ) );
+  SET_STORABLE( bundle, compression_method, GET_STORABLE( bundle, compression_method ) );
 
   EncryptionKey encryptionkey = EncryptionKey::noKey();
 

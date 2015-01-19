@@ -125,7 +125,7 @@ public:
 ZCollector::ZCollector( string const & storageDir, string const & password,
                     Config & configIn ):
   ZBackupBase( storageDir, password, configIn ),
-  chunkStorageReader( storageInfo, encryptionkey, chunkIndex, getBundlesPath(),
+  chunkStorageReader( config, encryptionkey, chunkIndex, getBundlesPath(),
                       config.runtime.cacheSize )
 {
 }
@@ -134,8 +134,8 @@ void ZCollector::gc()
 {
   ChunkIndex chunkReindex( encryptionkey, tmpMgr, getIndexPath(), true );
 
-  ChunkStorage::Writer chunkStorageWriter( storageInfo, encryptionkey, tmpMgr, chunkReindex,
-                      getBundlesPath(), getIndexPath(), config.runtime.threads );
+  ChunkStorage::Writer chunkStorageWriter( config, encryptionkey, tmpMgr,
+      chunkReindex, getBundlesPath(), getIndexPath(), config.runtime.threads );
 
   string fileName;
   string backupsPath = getBackupsPath();
