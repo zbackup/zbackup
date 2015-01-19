@@ -179,9 +179,46 @@ bool Config::parseOption( const char * option, const OptionType type )
   char suffix[ 16 ];
   int n;
   unsigned int scale, scaleBase = 1;
+  uint32_t uint32Value;
 
   switch ( opcode )
   {
+    case oChunk_max_size:
+      if ( !hasValue )
+        return false;
+
+      if ( sscanf( optionValue, "%zu %n", &uint32Value, &n ) == 1
+          && !optionValue[ n ] )
+      {
+        SET_STORABLE( chunk, max_size, uint32Value );
+        dPrintf( "storable[chunk][max_size] = %zu\n",
+            GET_STORABLE( chunk, max_size ) );
+
+        return true;
+      }
+
+      return false;
+      /* NOTREACHED */
+      break;
+
+    case oBundle_max_payload_size:
+      if ( !hasValue )
+        return false;
+
+      if ( sscanf( optionValue, "%zu %n", &uint32Value, &n ) == 1
+          && !optionValue[ n ] )
+      {
+        SET_STORABLE( bundle, max_payload_size, uint32Value );
+        dPrintf( "storable[bundle][max_payload_size] = %zu\n",
+            GET_STORABLE( bundle, max_payload_size ) );
+
+        return true;
+      }
+
+      return false;
+      /* NOTREACHED */
+      break;
+
     case oBundle_compression_method:
       if ( !hasValue )
         return false;
@@ -215,14 +252,16 @@ bool Config::parseOption( const char * option, const OptionType type )
       }
       else
       {
-        fprintf( stderr, "zbackup doesn't support compression method '%s'. You may need a newer version.\n",
-          optionValue );
+        fprintf( stderr,
+            "ZBackup doesn't support %s compression.\n"
+            "You probably need a newer version.\n", optionValue );
         return false;
       }
 
       SET_STORABLE( bundle, compression_method,
           Compression::CompressionMethod::selectedCompression->getName() );
-      dPrintf( "storable[bundle][compression_method] = %s\n", GET_STORABLE( bundle, compression_method ).c_str() );
+      dPrintf( "storable[bundle][compression_method] = %s\n",
+          GET_STORABLE( bundle, compression_method ).c_str() );
 
       return true;
       /* NOTREACHED */
@@ -299,9 +338,8 @@ bool Config::parseOption( const char * option, const OptionType type )
         else
         {
           // SI or IEC
-          fprintf( stderr, "Invalid suffix specified in cache size (%s): %s. "
-                   VALID_SUFFIXES,
-                   optionValue, suffix );
+          fprintf( stderr, "Invalid suffix specified in cache size (%s): %s.\n"
+                   VALID_SUFFIXES, optionValue, suffix );
           return false;
         }
         runtime.cacheSize = sizeValue * scale;
@@ -329,7 +367,7 @@ bool Config::parseOption( const char * option, const OptionType type )
       else
       {
         fprintf( stderr, "Invalid exchange value specified: %s\n"
-                 "Must be one of the following: backups, bundles, index\n",
+                 "Must be one of the following: backups, bundles, index.\n",
                  optionValue );
         return false;
       }
