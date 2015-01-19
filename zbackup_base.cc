@@ -116,11 +116,14 @@ ZBackupBase::ZBackupBase( string const & storageDir, string const & password,
       storageDir.c_str() );
 }
 
+// Update all internal variables after configuration change
+// Dunno why someone need to store duplicate information
+// in deduplication utility
 void ZBackupBase::propagateUpdate()
 {
-  const_sptr<Compression::CompressionMethod> compression =
+  const_sptr< Compression::CompressionMethod > compression =
     Compression::CompressionMethod::findCompression(
-       extendedStorageInfo.config().bundle().compression_method() );
+      config.GET_STORABLE( bundle, compression_method ) );
   Compression::CompressionMethod::selectedCompression = compression;
 }
 
@@ -395,35 +398,4 @@ end:
   tmpFile.reset();
 
   return isChanged;
-}
-
-void ZBackupBase::showConfig()
-{
-  printf( "%s", config.toString( *config.storable ).c_str() );
-}
-
-bool ZBackupBase::editConfigInteractively()
-{
-  string configData( config.toString( extendedStorageInfo.config() ) );
-  string newConfigData( configData );
-
-  if ( !spawnEditor( newConfigData, &config.validate ) )
-    return false;
-  ConfigInfo newConfig;
-  if ( !config.parse( newConfigData, &newConfig ) )
-    return false;
-  if ( config.toString( extendedStorageInfo.config() ) == config.toString( newConfig ) )
-  {
-    verbosePrintf( "No changes made to config\n" );
-    return false;
-  }
-
-  verbosePrintf( "Updating configuration...\n" );
-
-  extendedStorageInfo.mutable_config()->CopyFrom( newConfig );
-  verbosePrintf(
-"Configuration successfully updated!\n"
-"Updated configuration:\n%s", config.toString( extendedStorageInfo.config() ).c_str() );
-
-  return true;
 }

@@ -1,7 +1,6 @@
 // Copyright (c) 2012-2014 Konstantin Isakov <ikm@zbackup.org> and ZBackup contributors, see CONTRIBUTORS
 // Part of ZBackup. Licensed under GNU GPLv2 or later + OpenSSL, see LICENSE
 
-#include <sstream>
 #include "config.hh"
 #include "ex.hh"
 #include "debug.hh"
@@ -107,13 +106,16 @@ Config::Config()
   storable = configInfo;
   dPrintf( "Config is instantiated and initialized with default values\n" );
 }
+
 Config::Config( ConfigInfo * configInfo )
 {
   storable = configInfo;
   dPrintf( "Config is instantiated and initialized with supplied ConfigInfo\n" );
 }
+
 Config::Config( const Config & configIn, ConfigInfo * configInfo )
 {
+  configInfo->MergeFrom( *configIn.storable );
   *this = configIn;
   storable = configInfo;
   dPrintf( "Config is instantiated and initialized with supplied values\n" );
@@ -188,7 +190,7 @@ bool Config::parseOption( const char * option, const OptionType type )
         Compression::CompressionMethod::selectedCompression = lzma;
       }
       else
-      if ( strcmp( optionValue, "lzo" ) == 0 )
+      if ( strcmp( optionValue, "lzo1x_1" ) == 0 || strcmp( optionValue, "lzo" ) == 0 )
       {
         const_sptr< Compression::CompressionMethod > lzo =
           Compression::CompressionMethod::findCompression( "lzo1x_1" );
@@ -208,7 +210,8 @@ bool Config::parseOption( const char * option, const OptionType type )
         return false;
       }
 
-      SET_STORABLE( bundle, compression_method, optionValue );
+      SET_STORABLE( bundle, compression_method,
+          Compression::CompressionMethod::selectedCompression->getName() );
       dPrintf( "storable[bundle][compression_method] = %s\n", GET_STORABLE( bundle, compression_method ).c_str() );
 
       return true;
@@ -381,4 +384,40 @@ bool Config::validate( const string & configData, const string & newConfigData )
 {
   ConfigInfo newConfig;
   return parse( newConfigData, &newConfig );
+}
+
+void Config::show()
+{
+  printf( "%s", toString( *storable ).c_str() );
+}
+
+void Config::show( const ConfigInfo & config )
+{
+  printf( "%s", toString( config ).c_str() );
+}
+
+bool Config::editInteractively( ZBackupBase * zbb )
+{
+  string configData( toString( *zbb->config.storable ) );
+  string newConfigData( configData );
+
+  if ( !zbb->spawnEditor( newConfigData, &validate ) )
+    return false;
+  ConfigInfo newConfig;
+  if ( !parse( newConfigData, &newConfig ) )
+    return false;
+  if ( toString( *zbb->config.storable ) == toString( newConfig ) )
+  {
+    verbosePrintf( "No changes made to config\n" );
+    return false;
+  }
+
+  verbosePrintf( "Updating configuration...\n" );
+
+  zbb->config.storable->CopyFrom( newConfig );
+  verbosePrintf(
+"Configuration successfully updated!\n"
+"Updated configuration:\n%s", toString( *zbb->config.storable ).c_str() );
+
+  return true;
 }

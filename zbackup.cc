@@ -655,21 +655,22 @@ invalid_option:
       {
         ZBackupBase zbb( ZBackupBase::deriveStorageDirFromBackupsFile( args[ fieldStorage ], true ),
             passwords[ 0 ], true );
-        if ( zbb.editConfigInteractively() )
+        if ( Config::editInteractively( &zbb ) )
           zbb.saveExtendedStorageInfo();
       }
       else
       if ( args.size() > 2 && strcmp( args[ fieldAction ], "set" ) == 0 )
       {
         ZBackupBase zbb( ZBackupBase::deriveStorageDirFromBackupsFile( args[ fieldStorage ], true ),
-            passwords[ 0 ], true );
-        // -o ... like sysctl -w
+            passwords[ 0 ], config, true );
+        zbb.config.show();
+        zbb.saveExtendedStorageInfo();
       }
       else
       {
         ZBackupBase zbb( ZBackupBase::deriveStorageDirFromBackupsFile( args[ fieldStorage ], true ),
             passwords[ 0 ], true );
-        zbb.showConfig();
+        zbb.config.show();
       }
     }
     else

@@ -22,6 +22,8 @@
 using std::string;
 using std::bitset;
 
+class ZBackupBase;
+
 class Config
 {
 public:
@@ -69,10 +71,18 @@ public:
 
   static void showHelp( const OptionType );
 
+  static string toString( google::protobuf::Message const & message );
+
+  // Edit current configuration
+  // returns true if configuration is changed
+  static bool editInteractively( ZBackupBase * );
+
+  // Print configuration to screen
+  static void show( const ConfigInfo & );
+  void show();
+
   OpCodes parseToken( const char * option, const OptionType );
   bool parseOption( const char * option, const OptionType );
-
-  string toString( google::protobuf::Message const & message );
 
   Config( const Config &, ConfigInfo * );
   Config( ConfigInfo * );
@@ -80,7 +90,8 @@ public:
 
   RuntimeConfig runtime;
   ConfigInfo * storable;
-private:
 };
+
+#include "zbackup_base.hh"
 
 #endif

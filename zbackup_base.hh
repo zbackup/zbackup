@@ -67,13 +67,6 @@ public:
   bool spawnEditor( std::string & data, bool( * validator )
       ( string const &, string const & ) );
 
-  // Print current configuration to screen
-  void showConfig();
-
-  // Edit current configuration
-  // returns true if configuration is changed
-  bool editConfigInteractively();
-
   StorageInfo storageInfo;
   EncryptionKey encryptionkey;
   ExtendedStorageInfo extendedStorageInfo;
