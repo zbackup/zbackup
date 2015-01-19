@@ -105,10 +105,10 @@ ChunkIndex::ChunkIndex( EncryptionKey const & key, TmpMgr & tmpMgr,
   key( key ), tmpMgr( tmpMgr ), indexPath( indexPath ), storage( 65536, 1 ),
   lastBundleId( NULL )
 {
-  dPrintf( "Chunk index (%s) instantiated and initialized, hasKey: %s\n", indexPath.c_str(),
-      key.hasKey() ? "true" : "false" );
   if ( !prohibitChunkIndexLoading )
     loadIndex( *this );
+  dPrintf( "Chunk index for %s is instantiated and initialized, hasKey: %s\n",
+      indexPath.c_str(), key.hasKey() ? "true" : "false" );
 }
 
 Bundle::Id const * ChunkIndex::findChunk( ChunkId::RollingHashPart rollingHash,

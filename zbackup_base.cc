@@ -63,10 +63,12 @@ ZBackupBase::ZBackupBase( string const & storageDir, string const & password ):
                    &storageInfo.encryption_key() : 0 ),
   extendedStorageInfo( loadExtendedStorageInfo( encryptionkey ) ),
   tmpMgr( getTmpPath() ),
-  chunkIndex( encryptionkey, tmpMgr, getIndexPath(), false )
+  chunkIndex( encryptionkey, tmpMgr, getIndexPath(), false ),
+  config( extendedStorageInfo.mutable_config() )
 {
   propagateUpdate();
-  dPrintf("%s repo instantiated and initialized\n", storageDir.c_str() );
+  dPrintf("ZBackupBase for %s is instantiated and initialized\n",
+      storageDir.c_str() );
 }
 
 ZBackupBase::ZBackupBase( string const & storageDir, string const & password,
@@ -77,10 +79,11 @@ ZBackupBase::ZBackupBase( string const & storageDir, string const & password,
   extendedStorageInfo( loadExtendedStorageInfo( encryptionkey ) ),
   tmpMgr( getTmpPath() ),
   chunkIndex( encryptionkey, tmpMgr, getIndexPath(), false ),
-  config( configIn )
+  config( configIn, extendedStorageInfo.mutable_config() )
 {
   propagateUpdate();
-  dPrintf("%s repo instantiated and initialized\n", storageDir.c_str() );
+  dPrintf("ZBackupBase for %s is instantiated and initialized\n",
+      storageDir.c_str() );
 }
 
 ZBackupBase::ZBackupBase( string const & storageDir, string const & password,
@@ -90,10 +93,12 @@ ZBackupBase::ZBackupBase( string const & storageDir, string const & password,
                    &storageInfo.encryption_key() : 0 ),
   extendedStorageInfo( loadExtendedStorageInfo( encryptionkey ) ),
   tmpMgr( getTmpPath() ),
-  chunkIndex( encryptionkey, tmpMgr, getIndexPath(), prohibitChunkIndexLoading )
+  chunkIndex( encryptionkey, tmpMgr, getIndexPath(), prohibitChunkIndexLoading ),
+  config( extendedStorageInfo.mutable_config() )
 {
   propagateUpdate();
-  dPrintf("%s repo instantiated and initialized\n", storageDir.c_str() );
+  dPrintf("ZBackupBase for %s is instantiated and initialized\n",
+      storageDir.c_str() );
 }
 
 ZBackupBase::ZBackupBase( string const & storageDir, string const & password,
@@ -104,10 +109,11 @@ ZBackupBase::ZBackupBase( string const & storageDir, string const & password,
   extendedStorageInfo( loadExtendedStorageInfo( encryptionkey ) ),
   tmpMgr( getTmpPath() ),
   chunkIndex( encryptionkey, tmpMgr, getIndexPath(), prohibitChunkIndexLoading ),
-  config( configIn )
+  config( configIn, extendedStorageInfo.mutable_config() )
 {
   propagateUpdate();
-  dPrintf("%s repo instantiated and initialized\n", storageDir.c_str() );
+  dPrintf("ZBackupBase for %s is instantiated and initialized\n",
+      storageDir.c_str() );
 }
 
 void ZBackupBase::propagateUpdate()
@@ -393,7 +399,7 @@ end:
 
 void ZBackupBase::showConfig()
 {
-  printf( "%s", config.toString( extendedStorageInfo.config() ).c_str() );
+  printf( "%s", config.toString( *config.storable ).c_str() );
 }
 
 bool ZBackupBase::editConfigInteractively()

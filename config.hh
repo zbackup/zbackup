@@ -11,6 +11,14 @@
 #include "mt.hh"
 #include "backup_exchanger.hh"
 
+#define SET_STORABLE( storage, property, value ) (\
+{\
+  dPrintf( "storable->mutable_"#storage"()->set_"#property"( "#value" )\n" ); \
+  storable->mutable_##storage()->set_##property( value ); \
+})
+
+#define GET_STORABLE( storage, property ) storable->storage().property()
+
 using std::string;
 using std::bitset;
 
@@ -30,8 +38,6 @@ public:
     {
     }
   };
-
-  RuntimeConfig runtime;
 
   enum OptionType
   {
@@ -67,8 +73,14 @@ public:
   bool parseOption( const char * option, const OptionType );
 
   string toString( google::protobuf::Message const & message );
+
+  Config( const Config &, ConfigInfo * );
+  Config( ConfigInfo * );
+  Config();
+
+  RuntimeConfig runtime;
+  ConfigInfo * storable;
 private:
-  ConfigInfo storableConfig;
 };
 
 #endif

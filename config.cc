@@ -101,6 +101,24 @@ static struct
 
 }
 
+Config::Config()
+{
+  ConfigInfo * configInfo = new ConfigInfo;
+  storable = configInfo;
+  dPrintf( "Config is instantiated and initialized with default values\n" );
+}
+Config::Config( ConfigInfo * configInfo )
+{
+  storable = configInfo;
+  dPrintf( "Config is instantiated and initialized with supplied ConfigInfo\n" );
+}
+Config::Config( const Config & configIn, ConfigInfo * configInfo )
+{
+  *this = configIn;
+  storable = configInfo;
+  dPrintf( "Config is instantiated and initialized with supplied values\n" );
+}
+
 Config::OpCodes Config::parseToken( const char * option, const OptionType type )
 {
   for ( u_int i = 0; ConfigHelper::keywords[ i ].name; i++ )
@@ -189,6 +207,9 @@ bool Config::parseOption( const char * option, const OptionType type )
           optionValue );
         return false;
       }
+
+      SET_STORABLE( bundle, compression_method, optionValue );
+      dPrintf( "storable[bundle][compression_method] = %s\n", GET_STORABLE( bundle, compression_method ).c_str() );
 
       return true;
       /* NOTREACHED */

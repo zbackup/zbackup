@@ -59,6 +59,7 @@ message BundleConfigInfo
   optional string compression_method = 3 [default = "lzma"];
 }
 
+// Storable config values should always have default values
 message ConfigInfo
 {
   required ChunkConfigInfo chunk = 1;

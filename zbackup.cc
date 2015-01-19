@@ -394,7 +394,7 @@ int main( int argc, char *argv[] )
       else
       if ( strcmp( argv[ x ], "--compression" ) == 0 && x + 1 < argc )
       {
-        fprintf( stderr, "%s is deprecated, use -O bundle.compression_method instead\n", argv[ x ] );
+        fprintf( stderr, "%s is deprecated, use -o bundle.compression_method instead\n", argv[ x ] );
         deprecated.assign( argv[ x ] + 2 );
         deprecated.append( "=" );
         deprecated.append( argv[ x + 1 ] );
@@ -654,7 +654,7 @@ invalid_option:
       if ( args.size() > 2 && strcmp( args[ fieldAction ], "edit" ) == 0 )
       {
         ZBackupBase zbb( ZBackupBase::deriveStorageDirFromBackupsFile( args[ fieldStorage ], true ),
-            passwords[ 0 ] );
+            passwords[ 0 ], true );
         if ( zbb.editConfigInteractively() )
           zbb.saveExtendedStorageInfo();
       }
@@ -662,13 +662,13 @@ invalid_option:
       if ( args.size() > 2 && strcmp( args[ fieldAction ], "set" ) == 0 )
       {
         ZBackupBase zbb( ZBackupBase::deriveStorageDirFromBackupsFile( args[ fieldStorage ], true ),
-            passwords[ 0 ] );
+            passwords[ 0 ], true );
         // -o ... like sysctl -w
       }
       else
       {
         ZBackupBase zbb( ZBackupBase::deriveStorageDirFromBackupsFile( args[ fieldStorage ], true ),
-            passwords[ 0 ] );
+            passwords[ 0 ], true );
         zbb.showConfig();
       }
     }
