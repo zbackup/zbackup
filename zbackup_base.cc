@@ -67,7 +67,7 @@ ZBackupBase::ZBackupBase( string const & storageDir, string const & password ):
   config( extendedStorageInfo.mutable_config() )
 {
   propagateUpdate();
-  dPrintf("ZBackupBase for %s is instantiated and initialized\n",
+  dPrintf("%s for %s is instantiated and initialized\n", __CLASS,
       storageDir.c_str() );
 }
 
@@ -82,7 +82,7 @@ ZBackupBase::ZBackupBase( string const & storageDir, string const & password,
   config( configIn, extendedStorageInfo.mutable_config() )
 {
   propagateUpdate();
-  dPrintf("ZBackupBase for %s is instantiated and initialized\n",
+  dPrintf("%s for %s is instantiated and initialized\n", __CLASS,
       storageDir.c_str() );
 }
 
@@ -97,7 +97,7 @@ ZBackupBase::ZBackupBase( string const & storageDir, string const & password,
   config( extendedStorageInfo.mutable_config() )
 {
   propagateUpdate();
-  dPrintf("ZBackupBase for %s is instantiated and initialized\n",
+  dPrintf("%s for %s is instantiated and initialized\n", __CLASS,
       storageDir.c_str() );
 }
 
@@ -112,7 +112,7 @@ ZBackupBase::ZBackupBase( string const & storageDir, string const & password,
   config( configIn, extendedStorageInfo.mutable_config() )
 {
   propagateUpdate();
-  dPrintf("ZBackupBase for %s is instantiated and initialized\n",
+  dPrintf("%s for %s is instantiated and initialized\n", __CLASS,
       storageDir.c_str() );
 }
 
@@ -153,14 +153,8 @@ void ZBackupBase::initStorage( string const & storageDir,
 {
   StorageInfo storageInfo;
   ExtendedStorageInfo extendedStorageInfo;
-
-  ConfigInfo * storable = extendedStorageInfo.mutable_config();
-  // TODO: Use protobuf reflection in loop
-  // to fill messages with default values
-  // without explicitly defining them
-  SET_STORABLE( chunk, max_size, GET_STORABLE( chunk, max_size ) );
-  SET_STORABLE( bundle, max_payload_size, GET_STORABLE( bundle, max_payload_size ) );
-  SET_STORABLE( bundle, compression_method, GET_STORABLE( bundle, compression_method ) );
+  Config config( extendedStorageInfo.mutable_config() );
+  config.reset_storable();
 
   EncryptionKey encryptionkey = EncryptionKey::noKey();
 

@@ -107,8 +107,8 @@ ChunkIndex::ChunkIndex( EncryptionKey const & key, TmpMgr & tmpMgr,
 {
   if ( !prohibitChunkIndexLoading )
     loadIndex( *this );
-  dPrintf( "Chunk index for %s is instantiated and initialized, hasKey: %s\n",
-      indexPath.c_str(), key.hasKey() ? "true" : "false" );
+  dPrintf( "%s for %s is instantiated and initialized, hasKey: %s\n",
+      __CLASS, indexPath.c_str(), key.hasKey() ? "true" : "false" );
 }
 
 Bundle::Id const * ChunkIndex::findChunk( ChunkId::RollingHashPart rollingHash,

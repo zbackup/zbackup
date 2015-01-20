@@ -103,32 +103,35 @@ static struct
 Config::~Config()
 {
   // prevent memleak
-  if ( default_instance )
+  if ( want_cleanup )
     delete storable;
 }
 
-Config::Config()
+Config::Config():
+  want_cleanup( true )
 {
   ConfigInfo * configInfo = new ConfigInfo;
-  default_instance = true;
   storable = configInfo;
-  dPrintf( "Config is instantiated and initialized with default values\n" );
+  dPrintf( "%s is instantiated and initialized with default values\n",
+      __CLASS );
 }
 
-Config::Config( ConfigInfo * configInfo )
+Config::Config( ConfigInfo * configInfo ):
+  want_cleanup( false )
 {
   storable = configInfo;
-  default_instance = false;
-  dPrintf( "Config is instantiated and initialized with supplied ConfigInfo\n" );
+  dPrintf( "%s is instantiated and initialized with supplied ConfigInfo\n",
+      __CLASS );
 }
 
-Config::Config( const Config & configIn, ConfigInfo * configInfo )
+Config::Config( const Config & configIn, ConfigInfo * configInfo ):
+  want_cleanup( false )
 {
   configInfo->MergeFrom( *configIn.storable );
   *this = configIn;
   storable = configInfo;
-  default_instance = false;
-  dPrintf( "Config is instantiated and initialized with supplied values\n" );
+  dPrintf( "%s is instantiated and initialized with supplied values\n",
+      __CLASS );
 }
 
 Config::OpCodes Config::parseToken( const char * option, const OptionType type )
@@ -150,7 +153,8 @@ Config::OpCodes Config::parseToken( const char * option, const OptionType type )
   return Config::oBadOption;
 }
 
-bool Config::parseOption( const char * option, const OptionType type )
+bool Config::parseOrValidate( const char * option, const OptionType type,
+   bool validate )
 {
   string prefix;
   if ( type == Runtime )
@@ -158,7 +162,9 @@ bool Config::parseOption( const char * option, const OptionType type )
   else
   if ( type == Storable )
     prefix.assign( "storable" );
-  dPrintf( "Parsing %s option \"%s\"...\n", prefix.c_str(), option );
+
+  dPrintf( "%s %s option \"%s\"...\n", ( validate ? "Validating" : "Parsing" ),
+      prefix.c_str(), option );
 
   bool hasValue = false;
   size_t optionLength = strlen( option );
@@ -166,12 +172,11 @@ bool Config::parseOption( const char * option, const OptionType type )
 
   if ( sscanf( option, "%[^=]=%s", optionName, optionValue ) == 2 )
   {
-    dPrintf( "%s option name: %s, value: %s\n", prefix.c_str(),
-        optionName, optionValue );
+    dPrintf( "%s option %s: %s\n", prefix.c_str(), optionName, optionValue );
     hasValue = true;
   }
   else
-    dPrintf( "%s option name: %s\n", prefix.c_str(), option );
+    dPrintf( "%s option %s\n", prefix.c_str(), option );
 
   int opcode = parseToken( hasValue ? optionName : option, type );
 
@@ -391,17 +396,11 @@ bool Config::parseOption( const char * option, const OptionType type )
 
 void Config::showHelp( const OptionType type )
 {
-  string prefix;
-  if ( type == Runtime )
-    prefix.assign( "runtime" );
-  else
-  if ( type == Storable )
-    prefix.assign( "storable" );
   fprintf( stderr,
 "Available %s options overview:\n\n"
 "== help ==\n"
-"shows this message\n"
-"", prefix.c_str() );
+"show this message\n"
+"", ( type == Runtime ? "runtime" : ( type == Storable ? "storable" : "" ) ) );
 
   for ( u_int i = 0; ConfigHelper::keywords[ i ].name; i++ )
   {
@@ -415,7 +414,7 @@ void Config::showHelp( const OptionType type )
   }
 }
 
-bool Config::parse( const string & str, google::protobuf::Message * mutable_message )
+bool Config::parseProto( const string & str, google::protobuf::Message * mutable_message )
 {
   return google::protobuf::TextFormat::ParseFromString( str, mutable_message );
 }
@@ -428,10 +427,59 @@ string Config::toString( google::protobuf::Message const & message )
   return str;
 }
 
-bool Config::validate( const string & configData, const string & newConfigData )
+bool Config::validateProto( const string & configData, const string & newConfigData )
 {
-  ConfigInfo newConfig;
-  return parse( newConfigData, &newConfig );
+  Config config;
+  dPrintf( "Validating proto...\n" );
+  if ( !parseProto( newConfigData, config.storable ) )
+    return false;
+
+  const ::google::protobuf::Descriptor * configDescriptor =
+    config.storable->descriptor();
+  for ( int i = 0; i < configDescriptor->field_count(); i++ )
+  {
+    const ::google::protobuf::FieldDescriptor * storage =
+      configDescriptor->field( i );
+    dPrintf( "Storage: %s - %d - %d\n", storage->name().c_str(),
+        storage->label(), storage->type());
+
+    // TODO: support for top-level fields
+    if ( storage->type() == ::google::protobuf::FieldDescriptor::TYPE_MESSAGE )
+    {
+      const ::google::protobuf::Descriptor * storageDescriptor =
+        storage->message_type();
+
+      for ( int j = 0; j < storageDescriptor->field_count(); j++ )
+      {
+        const ::google::protobuf::FieldDescriptor * field =
+          storageDescriptor->field( j );
+
+        dPrintf( "Field: %s - %d - %d\n", field->name().c_str(),
+            field->label(), field->type());
+
+        string option = storage->name() + "." + field->name();
+
+        if ( !config.parseOrValidate( option.c_str(), Storable, true ) )
+        {
+          fprintf( stderr, "Invalid option specified: %s\n",
+                   option.c_str() );
+          return false;
+        }
+      }
+    }
+  }
+
+  return true;
+}
+
+void Config::reset_storable()
+{
+  // TODO: Use protobuf introspection
+  // to fill messages in loop with default values
+  // without explicit declaration
+  SET_STORABLE( chunk, max_size, GET_STORABLE( chunk, max_size ) );
+  SET_STORABLE( bundle, max_payload_size, GET_STORABLE( bundle, max_payload_size ) );
+  SET_STORABLE( bundle, compression_method, GET_STORABLE( bundle, compression_method ) );
 }
 
 void Config::show()
@@ -449,11 +497,11 @@ bool Config::editInteractively( ZBackupBase * zbb )
   string configData( toString( *zbb->config.storable ) );
   string newConfigData( configData );
 
-  if ( !zbb->spawnEditor( newConfigData, &validate ) )
+  if ( !zbb->spawnEditor( newConfigData, &validateProto ) )
     return false;
+
   ConfigInfo newConfig;
-  if ( !parse( newConfigData, &newConfig ) )
-    return false;
+  parseProto( newConfigData, &newConfig );
   if ( toString( *zbb->config.storable ) == toString( newConfig ) )
   {
     verbosePrintf( "No changes made to config\n" );
@@ -461,8 +509,7 @@ bool Config::editInteractively( ZBackupBase * zbb )
   }
 
   verbosePrintf( "Updating configuration...\n" );
-
-  zbb->config.storable->CopyFrom( newConfig );
+  zbb->config.storable->MergeFrom( newConfig );
   verbosePrintf(
 "Configuration successfully updated!\n"
 "Updated configuration:\n%s", toString( *zbb->config.storable ).c_str() );

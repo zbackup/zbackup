@@ -11,6 +11,7 @@
 #include "mt.hh"
 #include "backup_exchanger.hh"
 
+// TODO: make *_storable to be variadic
 #define SET_STORABLE( storage, property, value ) (\
 {\
   dPrintf( "storable->mutable_"#storage"()->set_"#property"( "#value" )\n" ); \
@@ -64,14 +65,14 @@ public:
     oDeprecated, oUnsupported
   } OpCodes;
 
-  // Validator for user-supplied configuration
-  static bool validate( const string &, const string & );
+  // Validator for user-supplied storable configuration
+  static bool validateProto( const string &, const string & );
 
-  static bool parse( const string & str, google::protobuf::Message * mutable_message );
+  static bool parseProto( const string &, google::protobuf::Message * );
 
   static void showHelp( const OptionType );
 
-  static string toString( google::protobuf::Message const & message );
+  static string toString( google::protobuf::Message const & );
 
   // Edit current configuration
   // returns true if configuration is changed
@@ -81,18 +82,20 @@ public:
   static void show( const ConfigInfo & );
   void show();
 
-  OpCodes parseToken( const char * option, const OptionType );
-  bool parseOption( const char * option, const OptionType );
+  OpCodes parseToken( const char *, const OptionType );
+  bool parseOrValidate( const char *, const OptionType, bool validate = false );
 
   Config( const Config &, ConfigInfo * );
   Config( ConfigInfo * );
   Config();
   ~Config();
 
+  void reset_storable();
+
   RuntimeConfig runtime;
   ConfigInfo * storable;
 private:
-  bool default_instance;
+  bool want_cleanup;
 };
 
 #include "zbackup_base.hh"

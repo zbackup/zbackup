@@ -5,8 +5,11 @@
 #define DEBUG_HH_INCLUDED__
 
 #include <stdio.h>
+#include <typeinfo>
 
 // Macros we use to output debugging information
+
+#define __CLASS typeid( *this ).name()
 
 #ifndef NDEBUG
 
@@ -20,6 +23,7 @@
 #define UNW_LOCAL_ONLY
 #include <libunwind.h>
 
+// TODO: pretty backtraces
 #define dPrintBacktrace( ... ) ()
 #else
 #define dPrintBacktrace( ... ) ()

@@ -355,23 +355,21 @@ int main( int argc, char *argv[] )
       if ( strcmp( argv[ x ], "--exchange" ) == 0 && x + 1 < argc )
       {
         fprintf( stderr, "%s is deprecated, use -O exchange instead\n", argv[ x ] );
-        deprecated.assign( argv[ x ] + 2 );
-        deprecated.append( "=" );
-        deprecated.append( argv[ x + 1 ] );
+        deprecated = argv[ x ] + 2;//; + "=" + argv[ x + 1 ];
+        deprecated += "=";
+        deprecated += argv[ x + 1 ];
         option = deprecated.c_str();
-        if ( option )
-          goto parse_option;
+        goto parse_option;
       }
       else
       if ( strcmp( argv[ x ], "--threads" ) == 0 && x + 1 < argc )
       {
         fprintf( stderr, "%s is deprecated, use -O threads instead\n", argv[ x ] );
-        deprecated.assign( argv[ x ] + 2 );
-        deprecated.append( "=" );
-        deprecated.append( argv[ x + 1 ] );
+        deprecated = argv[ x ] + 2;
+        deprecated += "=";
+        deprecated += argv[ x + 1 ];
         option = deprecated.c_str();
-        if ( option )
-          goto parse_option;
+        goto parse_option;
       }
       else
       if ( strcmp( argv[ x ], "--cache-size" ) == 0 && x + 1 < argc )
@@ -383,25 +381,21 @@ int main( int argc, char *argv[] )
         if ( sscanf( argv[ x + 1 ], "%zu %15s %n",
               &cacheSizeMb, suffix, &n ) == 2 && !argv[ x + 1][ n ] )
 
-        deprecated.assign( argv[ x ] + 2 );
-        deprecated.append( "=" );
-        deprecated.append( Utils::numberToString( cacheSizeMb ) );
-        deprecated.append( "MiB" );
+        deprecated = argv[ x ] + 2;
+        deprecated += "=" + Utils::numberToString( cacheSizeMb ) + "MiB";
         option = deprecated.c_str();
-        if ( option )
-          goto parse_option;
+        goto parse_option;
       }
       else
       if ( strcmp( argv[ x ], "--compression" ) == 0 && x + 1 < argc )
       {
         fprintf( stderr, "%s is deprecated, use -o bundle.compression_method instead\n", argv[ x ] );
-        deprecated.assign( argv[ x ] + 2 );
-        deprecated.append( "=" );
-        deprecated.append( argv[ x + 1 ] );
+        deprecated = argv[ x ] + 2;
+        deprecated += "=";
+        deprecated += argv[ x + 1 ];
         option = deprecated.c_str();
         optionType = Config::Storable;
-        if ( option )
-          goto parse_option;
+        goto parse_option;
       }
       else
       if ( strcmp( argv[ x ], "--help" ) == 0 || strcmp( argv[ x ], "-h" ) == 0 )
@@ -429,7 +423,7 @@ int main( int argc, char *argv[] )
           else
           {
 parse_option:
-            if ( !config.parseOption( option, optionType ) )
+            if ( !config.parseOrValidate( option, optionType ) )
               goto invalid_option;
           }
         }
