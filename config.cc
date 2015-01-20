@@ -139,12 +139,12 @@ Config::Config( ConfigInfo * configInfo ):
       __CLASS );
 }
 
-Config::Config( const Config & configIn, ConfigInfo * configInfo ):
-  want_cleanup( false )
+Config::Config( const Config & configIn, ConfigInfo * configInfo )
 {
   configInfo->MergeFrom( *configIn.storable );
   *this = configIn;
   storable = configInfo;
+  want_cleanup = false;
   dPrintf( "%s is instantiated and initialized with supplied values\n",
       __CLASS );
 }
