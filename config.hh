@@ -12,8 +12,8 @@
 #include "backup_exchanger.hh"
 
 // TODO: make *_storable to be variadic
-#define SET_STORABLE( storage, property, value ) (\
-{\
+#define SET_STORABLE( storage, property, value ) \
+({ \
   dPrintf( "storable->mutable_"#storage"()->set_"#property"( "#value" )\n" ); \
   storable->mutable_##storage()->set_##property( value ); \
 })

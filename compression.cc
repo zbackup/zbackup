@@ -584,10 +584,9 @@ bool LZO1X_1_Encoder::doProcessNoSize( const char* dataIn, size_t availIn,
 
 #endif  // HAVE_LIBLZO
 
-
 // register them
 
-static const_sptr<CompressionMethod> const compressions[] = {
+const_sptr< CompressionMethod > const CompressionMethod::compressions[] = {
   new LZMACompression(),
 # ifdef HAVE_LIBLZO
   new LZO1X_1_Compression(),
@@ -596,9 +595,11 @@ static const_sptr<CompressionMethod> const compressions[] = {
   NULL
 };
 
-const_sptr<CompressionMethod> CompressionMethod::selectedCompression = compressions[0];
+const_sptr< CompressionMethod > CompressionMethod::selectedCompression =
+  compressions[0];
 
-const_sptr<CompressionMethod> CompressionMethod::findCompression( const std::string& name, bool optional )
+const_sptr< CompressionMethod > CompressionMethod::findCompression(
+    const std::string& name, bool optional )
 {
   for ( const const_sptr<CompressionMethod>* c = compressions+0; *c; ++c )
   {

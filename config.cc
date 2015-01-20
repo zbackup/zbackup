@@ -16,6 +16,21 @@
                        "MB - multiply by 1000*1000 (megabytes)\n" \
                        "GB - multiply by 1000*1000*1000 (gigabytes)\n" \
 
+#define SKIP_ON_VALIDATION \
+{ \
+  if ( validate ) \
+    return true; \
+}
+
+#define REQUIRE_VALUE \
+{ \
+  if ( !hasValue && !validate ) \
+    return false; \
+}
+
+#define PARSE_OR_VALIDATE( parse_src, validate_src ) \
+  ( !validate && ( parse_src ) ) || ( validate && ( validate_src ) )
+
 DEF_EX_STR( exInvalidThreadsValue, "Invalid threads value specified:", std::exception )
 
 namespace ConfigHelper {
@@ -189,8 +204,8 @@ bool Config::parseOrValidate( const char * option, const OptionType type,
   switch ( opcode )
   {
     case oChunk_max_size:
-      if ( !hasValue )
-        return false;
+      SKIP_ON_VALIDATION;
+      REQUIRE_VALUE;
 
       if ( sscanf( optionValue, "%zu %n", &uint32Value, &n ) == 1
           && !optionValue[ n ] )
@@ -207,8 +222,8 @@ bool Config::parseOrValidate( const char * option, const OptionType type,
       break;
 
     case oBundle_max_payload_size:
-      if ( !hasValue )
-        return false;
+      SKIP_ON_VALIDATION;
+      REQUIRE_VALUE;
 
       if ( sscanf( optionValue, "%zu %n", &uint32Value, &n ) == 1
           && !optionValue[ n ] )
@@ -225,10 +240,10 @@ bool Config::parseOrValidate( const char * option, const OptionType type,
       break;
 
     case oBundle_compression_method:
-      if ( !hasValue )
-        return false;
+      REQUIRE_VALUE;
 
-      if ( strcmp( optionValue, "lzma" ) == 0 )
+      if ( PARSE_OR_VALIDATE( strcmp( optionValue, "lzma" ) == 0,
+           GET_STORABLE( bundle, compression_method ) == "lzma" ) )
       {
         const_sptr< Compression::CompressionMethod > lzma =
           Compression::CompressionMethod::findCompression( "lzma" );
@@ -242,7 +257,9 @@ bool Config::parseOrValidate( const char * option, const OptionType type,
         Compression::CompressionMethod::selectedCompression = lzma;
       }
       else
-      if ( strcmp( optionValue, "lzo1x_1" ) == 0 || strcmp( optionValue, "lzo" ) == 0 )
+      if ( PARSE_OR_VALIDATE(
+            strcmp( optionValue, "lzo1x_1" ) == 0 || strcmp( optionValue, "lzo" ) == 0,
+            GET_STORABLE( bundle, compression_method ) == "lzo1x_1" ) )
       {
         const_sptr< Compression::CompressionMethod > lzo =
           Compression::CompressionMethod::findCompression( "lzo1x_1" );
@@ -259,10 +276,20 @@ bool Config::parseOrValidate( const char * option, const OptionType type,
       {
         fprintf( stderr,
             "ZBackup doesn't support %s compression.\n"
-            "You probably need a newer version.\n", optionValue );
+            "You probably need a newer version.\n", validate ?
+            GET_STORABLE( bundle, compression_method ).c_str() : optionValue );
+        fprintf( stderr, "Supported compression methods:\n" );
+        for ( const const_sptr< Compression::CompressionMethod > * c =
+            Compression::CompressionMethod::compressions; *c; ++c )
+        {
+          fprintf( stderr, "%s\n", (*c)->getName().c_str() );
+        }
+        fprintf( stderr, "\n" );
+
         return false;
       }
 
+      SKIP_ON_VALIDATION;
       SET_STORABLE( bundle, compression_method,
           Compression::CompressionMethod::selectedCompression->getName() );
       dPrintf( "storable[bundle][compression_method] = %s\n",
@@ -273,8 +300,7 @@ bool Config::parseOrValidate( const char * option, const OptionType type,
       break;
 
     case oRuntime_threads:
-      if ( !hasValue )
-        return false;
+      REQUIRE_VALUE;
 
       sizeValue = runtime.threads;
       if ( sscanf( optionValue, "%zu %n", &sizeValue, &n ) != 1 ||
@@ -289,8 +315,7 @@ bool Config::parseOrValidate( const char * option, const OptionType type,
       break;
 
     case oRuntime_cacheSize:
-      if ( !hasValue )
-        return false;
+      REQUIRE_VALUE;
 
       sizeValue = runtime.cacheSize;
       if ( sscanf( optionValue, "%zu %15s %n",
@@ -358,8 +383,7 @@ bool Config::parseOrValidate( const char * option, const OptionType type,
       break;
 
     case oRuntime_exchange:
-      if ( !hasValue )
-        return false;
+      REQUIRE_VALUE;
 
       if ( strcmp( optionValue, "backups" ) == 0 )
         runtime.exchange.set( BackupExchanger::backups );
@@ -427,11 +451,11 @@ string Config::toString( google::protobuf::Message const & message )
   return str;
 }
 
-bool Config::validateProto( const string & configData, const string & newConfigData )
+bool Config::validateProto( const string & oldConfigData, const string & configData )
 {
   Config config;
   dPrintf( "Validating proto...\n" );
-  if ( !parseProto( newConfigData, config.storable ) )
+  if ( !parseProto( configData, config.storable ) )
     return false;
 
   const ::google::protobuf::Descriptor * configDescriptor =
@@ -495,13 +519,12 @@ void Config::show( const ConfigInfo & config )
 bool Config::editInteractively( ZBackupBase * zbb )
 {
   string configData( toString( *zbb->config.storable ) );
-  string newConfigData( configData );
 
-  if ( !zbb->spawnEditor( newConfigData, &validateProto ) )
+  if ( !zbb->spawnEditor( configData, &validateProto ) )
     return false;
 
   ConfigInfo newConfig;
-  parseProto( newConfigData, &newConfig );
+  parseProto( configData, &newConfig );
   if ( toString( *zbb->config.storable ) == toString( newConfig ) )
   {
     verbosePrintf( "No changes made to config\n" );
