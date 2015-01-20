@@ -13,12 +13,10 @@
 
 // TODO: make *_storable to be variadic
 #define SET_STORABLE( storage, property, value ) \
-({ \
-  dPrintf( "storable->mutable_"#storage"()->set_"#property"( "#value" )\n" ); \
-  storable->mutable_##storage()->set_##property( value ); \
-})
+  storable->mutable_##storage()->set_##property( value )
 
-#define GET_STORABLE( storage, property ) storable->storage().property()
+#define GET_STORABLE( storage, property ) \
+  storable->storage().property()
 
 using std::string;
 using std::bitset;

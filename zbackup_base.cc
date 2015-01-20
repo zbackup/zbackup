@@ -139,12 +139,35 @@ StorageInfo ZBackupBase::loadStorageInfo()
 ExtendedStorageInfo ZBackupBase::loadExtendedStorageInfo(
     EncryptionKey const & encryptionkey )
 {
-  ExtendedStorageInfo extendedStorageInfo;
+  try
+  {
+    ExtendedStorageInfo extendedStorageInfo;
 
-  ExtendedStorageInfoFile::load( getExtendedStorageInfoPath(), encryptionkey,
-      extendedStorageInfo );
+    ExtendedStorageInfoFile::load( getExtendedStorageInfoPath(), encryptionkey,
+        extendedStorageInfo );
 
-  return extendedStorageInfo;
+    return extendedStorageInfo;
+  }
+  catch ( UnbufferedFile::exCantOpen & ex )
+  {
+    verbosePrintf( "Can't open extended storage info (info_extended)!\n"
+                   "Starting repo migration.\n" );
+
+    ExtendedStorageInfo extendedStorageInfo;
+    Config config( extendedStorageInfo.mutable_config() );
+    config.SET_STORABLE( chunk, max_size, storageInfo.chunk_max_size() );
+    config.SET_STORABLE( bundle, max_payload_size,
+        storageInfo.bundle_max_payload_size() );
+    config.SET_STORABLE( bundle, compression_method,
+        storageInfo.default_compression_method() );
+
+    ExtendedStorageInfoFile::save( getExtendedStorageInfoPath(), encryptionkey,
+        extendedStorageInfo );
+
+    verbosePrintf( "Done.\n" );
+
+    return loadExtendedStorageInfo( encryptionkey );
+  }
 }
 
 void ZBackupBase::initStorage( string const & storageDir,
