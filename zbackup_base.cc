@@ -151,22 +151,30 @@ ExtendedStorageInfo ZBackupBase::loadExtendedStorageInfo(
   catch ( UnbufferedFile::exCantOpen & ex )
   {
     verbosePrintf( "Can't open extended storage info (info_extended)!\n"
-                   "Starting repo migration.\n" );
+                   "Attempting to start repo migration.\n" );
 
-    ExtendedStorageInfo extendedStorageInfo;
-    Config config( extendedStorageInfo.mutable_config() );
-    config.SET_STORABLE( chunk, max_size, storageInfo.chunk_max_size() );
-    config.SET_STORABLE( bundle, max_payload_size,
-        storageInfo.bundle_max_payload_size() );
-    config.SET_STORABLE( bundle, compression_method,
-        storageInfo.default_compression_method() );
+    if ( !File::exists( getExtendedStorageInfoPath() ) )
+    {
+      ExtendedStorageInfo extendedStorageInfo;
+      Config config( extendedStorageInfo.mutable_config() );
+      config.SET_STORABLE( chunk, max_size, storageInfo.chunk_max_size() );
+      config.SET_STORABLE( bundle, max_payload_size,
+          storageInfo.bundle_max_payload_size() );
+      config.SET_STORABLE( bundle, compression_method,
+          storageInfo.default_compression_method() );
 
-    ExtendedStorageInfoFile::save( getExtendedStorageInfoPath(), encryptionkey,
-        extendedStorageInfo );
+      ExtendedStorageInfoFile::save( getExtendedStorageInfoPath(), encryptionkey,
+          extendedStorageInfo );
 
-    verbosePrintf( "Done.\n" );
+      verbosePrintf( "Done.\n" );
 
-    return loadExtendedStorageInfo( encryptionkey );
+      return loadExtendedStorageInfo( encryptionkey );
+    }
+    else
+    {
+      fprintf( stderr, "info_extended exists but can't be opened!\n"
+                       "Please check file permissions.\n" );
+    }
   }
 }
 
