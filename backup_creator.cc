@@ -15,10 +15,10 @@ namespace {
   unsigned const MinChunkSize = 256;
 }
 
-BackupCreator::BackupCreator( StorageInfo const & info,
+BackupCreator::BackupCreator( Config const & config,
                               ChunkIndex & chunkIndex,
                               ChunkStorage::Writer & chunkStorageWriter ):
-  chunkMaxSize( info.chunk_max_size() ),
+  chunkMaxSize( config.GET_STORABLE( chunk, max_size ) ),
   chunkIndex( chunkIndex ), chunkStorageWriter( chunkStorageWriter ),
   ringBufferFill( 0 ),
   chunkToSaveFill( 0 ),

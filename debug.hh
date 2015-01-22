@@ -5,17 +5,25 @@
 #define DEBUG_HH_INCLUDED__
 
 #include <stdio.h>
+#include <typeinfo>
 
 // Macros we use to output debugging information
 
+#define __CLASS typeid( *this ).name()
+
 #ifndef NDEBUG
 
-#define dPrintf( ... ) (fprintf( stderr, __VA_ARGS__ ))
+#define __FILE_BASE (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
+
+#define dPrintf( ... ) ({ fprintf( stderr, "[DEBUG] at %s( %s:%d ): ", __func__,\
+      __FILE_BASE, __LINE__ );\
+    fprintf( stderr, __VA_ARGS__ ); })
 
 #ifdef HAVE_LIBUNWIND
 #define UNW_LOCAL_ONLY
 #include <libunwind.h>
 
+// TODO: pretty backtraces
 #define dPrintBacktrace( ... ) ()
 #else
 #define dPrintBacktrace( ... ) ()

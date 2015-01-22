@@ -1,43 +1,25 @@
 // Copyright (c) 2012-2014 Konstantin Isakov <ikm@zbackup.org> and ZBackup contributors, see CONTRIBUTORS
 // Part of ZBackup. Licensed under GNU GPLv2 or later + OpenSSL, see LICENSE
 
-#include <ctype.h>
-#include <stdint.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
-#include <unistd.h>
-#include <vector>
-#include <bitset>
-
+#include "zbackup.hh"
 #include "backup_creator.hh"
 #include "backup_file.hh"
 #include "backup_restorer.hh"
-#include "compression.hh"
 #include "debug.hh"
-#include "dir.hh"
-#include "encryption_key.hh"
-#include "ex.hh"
-#include "file.hh"
-#include "mt.hh"
 #include "sha256.hh"
-#include "sptr.hh"
-#include "storage_info_file.hh"
-#include "zbackup.hh"
-#include "index_file.hh"
-#include "bundle.hh"
 #include "backup_collector.hh"
+#include "config.hh"
+#include "utils.hh"
 
 using std::vector;
 using std::bitset;
 using std::iterator;
 
 ZBackup::ZBackup( string const & storageDir, string const & password,
-                  size_t threads ):
-  ZBackupBase( storageDir, password ),
-  chunkStorageWriter( storageInfo, encryptionkey, tmpMgr, chunkIndex,
-                      getBundlesPath(), getIndexPath(), threads )
+                  Config & configIn ):
+  ZBackupBase( storageDir, password, configIn ),
+  chunkStorageWriter( config, encryptionkey, tmpMgr, chunkIndex,
+                      getBundlesPath(), getIndexPath(), config.runtime.threads )
 {
 }
 
@@ -50,7 +32,7 @@ void ZBackup::backupFromStdin( string const & outputFileName )
     throw exWontOverwrite( outputFileName );
 
   Sha256 sha256;
-  BackupCreator backupCreator( storageInfo, chunkIndex, chunkStorageWriter );
+  BackupCreator backupCreator( config, chunkIndex, chunkStorageWriter );
 
   time_t startTime = time( 0 );
   uint64_t totalDataSize = 0;
@@ -95,7 +77,7 @@ void ZBackup::backupFromStdin( string const & outputFileName )
   // Shrink the serialized data iteratively until it wouldn't shrink anymore
   for ( ; ; )
   {
-    BackupCreator backupCreator( storageInfo, chunkIndex, chunkStorageWriter );
+    BackupCreator backupCreator( config, chunkIndex, chunkStorageWriter );
     char const * ptr = serialized.data();
     size_t left = serialized.size();
     while( left )
@@ -140,10 +122,10 @@ void ZBackup::backupFromStdin( string const & outputFileName )
 }
 
 ZRestore::ZRestore( string const & storageDir, string const & password,
-                    size_t cacheSize ):
-  ZBackupBase( storageDir, password ),
-  chunkStorageReader( storageInfo, encryptionkey, chunkIndex, getBundlesPath(),
-                      cacheSize )
+                    Config & configIn ):
+  ZBackupBase( storageDir, password, configIn ),
+  chunkStorageReader( config, encryptionkey, chunkIndex, getBundlesPath(),
+                      config.runtime.cacheSize )
 {
 }
 
@@ -180,19 +162,19 @@ void ZRestore::restoreToStdin( string const & inputFileName )
 }
 
 ZExchange::ZExchange( string const & srcStorageDir, string const & srcPassword,
-                    string const & dstStorageDir, string const & dstPassword,
-                    bool prohibitChunkIndexLoading ):
-  srcZBackupBase( srcStorageDir, srcPassword, prohibitChunkIndexLoading ),
-  dstZBackupBase( dstStorageDir, dstPassword, prohibitChunkIndexLoading )
+                      string const & dstStorageDir, string const & dstPassword,
+                      Config & configIn ):
+  srcZBackupBase( srcStorageDir, srcPassword, configIn, true ),
+  dstZBackupBase( dstStorageDir, dstPassword, configIn, true ),
+  config( configIn )
 {
 }
 
-void ZExchange::exchange( string const & srcPath, string const & dstPath,
-    bitset< BackupExchanger::Flags > const & exchange )
+void ZExchange::exchange()
 {
   vector< BackupExchanger::PendingExchangeRename > pendingExchangeRenames;
 
-  if ( exchange.test( BackupExchanger::bundles ) )
+  if ( config.runtime.exchange.test( BackupExchanger::bundles ) )
   {
     verbosePrintf( "Searching for bundles...\n" );
 
@@ -229,7 +211,7 @@ void ZExchange::exchange( string const & srcPath, string const & dstPath,
     verbosePrintf( "Bundle exchange completed.\n" );
   }
 
-  if ( exchange.test( BackupExchanger::index ) )
+  if ( config.runtime.exchange.test( BackupExchanger::index ) )
   {
     verbosePrintf( "Searching for indicies...\n" );
     vector< string > indicies = BackupExchanger::recreateDirectories(
@@ -272,7 +254,7 @@ void ZExchange::exchange( string const & srcPath, string const & dstPath,
     verbosePrintf( "Index exchange completed.\n" );
   }
 
-  if ( exchange.test( BackupExchanger::backups ) )
+  if ( config.runtime.exchange.test( BackupExchanger::backups ) )
   {
     BackupInfo backupInfo;
 
@@ -325,24 +307,22 @@ DEF_EX( exSpecifyTwoKeys, "Specify password flag (--non-encrypted or --password-
   " for import/export/passwd operation twice (first for source and second for destination)", std::exception )
 DEF_EX( exNonEncryptedWithKey, "--non-encrypted and --password-file are incompatible", std::exception )
 DEF_EX( exSpecifyEncryptionOptions, "Specify either --password-file or --non-encrypted", std::exception )
-DEF_EX_STR( exInvalidThreadsValue, "Invalid threads value specified:", std::exception )
 
 int main( int argc, char *argv[] )
 {
   try
   {
-    size_t const defaultThreads = getNumberOfCpus();
-    size_t threads = defaultThreads;
-    size_t const defaultCacheSizeMb = 40;
-    size_t cacheSizeMb = defaultCacheSizeMb;
     bool printHelp = false;
-    bool forcedCompressionMethod = false;
     vector< char const * > args;
     vector< string > passwords;
-    bitset< BackupExchanger::Flags > exchange;
+    Config config;
 
     for( int x = 1; x < argc; ++x )
     {
+      char const * option;
+      string deprecated;
+      Config::OptionType optionType = Config::Runtime;
+
       if ( strcmp( argv[ x ], "--password-file" ) == 0 && x + 1 < argc )
       {
         // Read the password
@@ -364,28 +344,6 @@ int main( int argc, char *argv[] )
         ++x;
       }
       else
-      if ( strcmp( argv[ x ], "--exchange" ) == 0 && x + 1 < argc )
-      {
-        char const * exchangeValue = argv[ x + 1 ];
-        if ( strcmp( exchangeValue, "backups" ) == 0 )
-          exchange.set( BackupExchanger::backups );
-        else
-        if ( strcmp( exchangeValue, "bundles" ) == 0 )
-          exchange.set( BackupExchanger::bundles );
-        else
-        if ( strcmp( exchangeValue, "index" ) == 0 )
-          exchange.set( BackupExchanger::index );
-        else
-        {
-          fprintf( stderr, "Invalid exchange value specified: %s\n"
-                   "Must be one of the following: backups, bundles, index\n",
-                   exchangeValue );
-          return EXIT_FAILURE;
-        }
-
-        ++x;
-      }
-      else
       if ( strcmp( argv[ x ], "--non-encrypted" ) == 0 )
       {
           passwords.push_back( "" );
@@ -394,87 +352,89 @@ int main( int argc, char *argv[] )
       if ( strcmp( argv[ x ], "--silent" ) == 0 )
         verboseMode = false;
       else
+      if ( strcmp( argv[ x ], "--exchange" ) == 0 && x + 1 < argc )
+      {
+        fprintf( stderr, "%s is deprecated, use -O exchange instead\n", argv[ x ] );
+        deprecated = argv[ x ] + 2;//; + "=" + argv[ x + 1 ];
+        deprecated += "=";
+        deprecated += argv[ x + 1 ];
+        option = deprecated.c_str();
+        goto parse_option;
+      }
+      else
       if ( strcmp( argv[ x ], "--threads" ) == 0 && x + 1 < argc )
       {
-        int n;
-        if ( sscanf( argv[ x + 1 ], "%zu %n", &threads, &n ) != 1 ||
-             argv[ x + 1 ][ n ] || threads < 1 )
-          throw exInvalidThreadsValue( argv[ x + 1 ] );
-        ++x;
+        fprintf( stderr, "%s is deprecated, use -O threads instead\n", argv[ x ] );
+        deprecated = argv[ x ] + 2;
+        deprecated += "=";
+        deprecated += argv[ x + 1 ];
+        option = deprecated.c_str();
+        goto parse_option;
       }
       else
       if ( strcmp( argv[ x ], "--cache-size" ) == 0 && x + 1 < argc )
       {
+        fprintf( stderr, "%s is deprecated, use -O cache-size instead\n", argv[ x ] );
+        size_t cacheSizeMb;
         char suffix[ 16 ];
         int n;
         if ( sscanf( argv[ x + 1 ], "%zu %15s %n",
-                     &cacheSizeMb, suffix, &n ) == 2 && !argv[ x + 1 ][ n ] )
-        {
-          // Check the suffix
-          for ( char * c = suffix; *c; ++c )
-            *c = tolower( *c );
+              &cacheSizeMb, suffix, &n ) == 2 && !argv[ x + 1][ n ] )
 
-          if ( strcmp( suffix, "mb" ) != 0 )
-          {
-            fprintf( stderr, "Invalid suffix specified in cache size: %s. "
-                     "The only supported suffix is 'mb' for megabytes\n",
-                     argv[ x + 1 ] );
-            return EXIT_FAILURE;
-          }
-
-          ++x;
-        }
-        else
-        {
-          fprintf( stderr, "Invalid cache size value specified: %s. "
-                   "Must be a number with the 'mb' suffix, e.g. '100mb'\n",
-                   argv[ x + 1 ] );
-          return EXIT_FAILURE;
-        }
+        deprecated = argv[ x ] + 2;
+        deprecated += "=" + Utils::numberToString( cacheSizeMb ) + "MiB";
+        option = deprecated.c_str();
+        goto parse_option;
       }
       else
       if ( strcmp( argv[ x ], "--compression" ) == 0 && x + 1 < argc )
       {
-        forcedCompressionMethod = true;
-
-        // next argument names the compression method
-        ++x;
-        if ( strcmp( argv[ x ], "lzma" ) == 0 )
-        {
-          const_sptr<Compression::CompressionMethod> lzma = Compression::CompressionMethod::findCompression( "lzma" );
-          if ( !lzma )
-          {
-            fprintf( stderr, "zbackup is compiled without LZMA support, but the code "
-              "would support it. If you install liblzma (including development files) "
-              "and recompile zbackup, you can use LZMA.\n" );
-            return EXIT_FAILURE;
-          }
-          Compression::CompressionMethod::defaultCompression = lzma;
-        }
-        else
-        if ( strcmp( argv[ x ], "lzo" ) == 0 )
-        {
-          const_sptr<Compression::CompressionMethod> lzo = Compression::CompressionMethod::findCompression( "lzo1x_1" );
-          if ( !lzo )
-          {
-            fprintf( stderr, "zbackup is compiled without LZO support, but the code "
-              "would support it. If you install liblzo2 (including development files) "
-              "and recompile zbackup, you can use LZO.\n" );
-            return EXIT_FAILURE;
-          }
-          Compression::CompressionMethod::defaultCompression = lzo;
-        }
-        else
-        {
-          fprintf( stderr, "zbackup doesn't support compression method '%s'. You may need a newer version.\n",
-            argv[ x ] );
-          return EXIT_FAILURE;
-        }
+        fprintf( stderr, "%s is deprecated, use -o bundle.compression_method instead\n", argv[ x ] );
+        deprecated = argv[ x ] + 2;
+        deprecated += "=";
+        deprecated += argv[ x + 1 ];
+        option = deprecated.c_str();
+        optionType = Config::Storable;
+        goto parse_option;
       }
       else
       if ( strcmp( argv[ x ], "--help" ) == 0 || strcmp( argv[ x ], "-h" ) == 0 )
       {
         printHelp = true;
+      }
+      else
+      if ( ( strcmp( argv[ x ], "-o" ) == 0 || strcmp( argv[ x ], "-O" ) == 0 )
+          && x + 1 < argc )
+      {
+        option = argv[ x + 1 ];
+        if ( option )
+        {
+          if ( strcmp( argv[ x ], "-O" ) == 0 )
+            optionType = Config::Runtime;
+          else
+          if ( strcmp( argv[ x ], "-o" ) == 0 )
+            optionType = Config::Storable;
+
+          if ( strcmp( option, "help" ) == 0 )
+          {
+            Config::showHelp( optionType );
+            return EXIT_SUCCESS;
+          }
+          else
+          {
+parse_option:
+            if ( !config.parseOrValidate( option, optionType ) )
+              goto invalid_option;
+          }
+        }
+        else
+        {
+invalid_option:
+          fprintf( stderr, "Invalid option specified: %s\n",
+                   option );
+          return EXIT_FAILURE;
+        }
+        ++x;
       }
       else
         args.push_back( argv[ x ] );
@@ -489,30 +449,33 @@ int main( int argc, char *argv[] )
 "Comes with no warranty. Licensed under GNU GPLv2 or later + OpenSSL.\n"
 "Visit the project's home page at http://zbackup.org/\n\n"
 
-"Usage: %s [flags] <command> [command args]\n"
+"Usage: %s [flags] <command [action]> [command args]\n"
 "  Flags: --non-encrypted|--password-file <file>\n"
 "          password flag should be specified twice if import/export/passwd\n"
 "          command specified\n"
 "         --silent (default is verbose)\n"
-"         --threads <number> (default is %zu on your system)\n"
-"         --cache-size <number> MB (default is %zu)\n"
-"         --exchange [backups|bundles|index] (can be\n"
-"          specified multiple times)\n"
-"         --compression <compression> <lzma|lzo> (default is lzma)\n"
 "         --help|-h show this message\n"
+"         -O <Option[=Value]> (overrides runtime configuration,\n"
+"          can be specified multiple times,\n"
+"          for detailed runtime options overview run with -O help)\n"
+"         -o <Option[=Value]> (overrides storable repository\n"
+"          configuration, can be specified multiple times,\n"
+"          for detailed storable options overview run with -o help)\n"
 "  Commands:\n"
-"    init <storage path> - initializes new storage;\n"
-"    backup <backup file name> - performs a backup from stdin;\n"
-"    restore <backup file name> - restores a backup to stdout;\n"
+"    init <storage path> - initializes new storage\n"
+"    backup <backup file name> - performs a backup from stdin\n"
+"    restore <backup file name> - restores a backup to stdout\n"
 "    export <source storage path> <destination storage path> -\n"
-"            performs export from source to destination storage;\n"
+"            performs export from source to destination storage\n"
 "    import <source storage path> <destination storage path> -\n"
-"            performs import from source to destination storage;\n"
-"    gc <storage path> - performs chunk garbage collection;\n"
-"    passwd <storage path> - changes repository info file passphrase.\n"
-"  For export/import storage path must be valid (initialized) storage.\n"
-"", *argv,
-               defaultThreads, defaultCacheSizeMb );
+"            performs import from source to destination storage\n"
+"    gc <storage path> - performs chunk garbage collection\n"
+"    passwd <storage path> - changes repo info file passphrase\n"
+//"    info <storage path> - shows repo information\n"
+"    config [show|edit|set] <storage path> - performs configuration\n"
+"            manipulations (default is show)\n"
+"  For export/import storage path must be a valid (initialized) storage\n"
+"", *argv );
       return EXIT_FAILURE;
     }
 
@@ -538,7 +501,7 @@ int main( int argc, char *argv[] )
       // Perform the init
       if ( args.size() != 2 )
       {
-        fprintf( stderr, "Usage: %s init <storage path>\n", *argv );
+        fprintf( stderr, "Usage: %s %s <storage path>\n", *argv, args[ 0 ] );
         return EXIT_FAILURE;
       }
 
@@ -550,14 +513,12 @@ int main( int argc, char *argv[] )
       // Perform the backup
       if ( args.size() != 2 )
       {
-        fprintf( stderr, "Usage: %s backup <backup file name>\n",
-                 *argv );
+        fprintf( stderr, "Usage: %s %s <backup file name>\n",
+                 *argv, args[ 0 ] );
         return EXIT_FAILURE;
       }
       ZBackup zb( ZBackup::deriveStorageDirFromBackupsFile( args[ 1 ] ),
-                  passwords[ 0 ], threads );
-      if ( !forcedCompressionMethod )
-        zb.useDefaultCompressionMethod();
+                  passwords[ 0 ], config );
       zb.backupFromStdin( args[ 1 ] );
     }
     else
@@ -566,14 +527,12 @@ int main( int argc, char *argv[] )
       // Perform the restore
       if ( args.size() != 2 )
       {
-        fprintf( stderr, "Usage: %s restore <backup file name>\n",
-                 *argv );
+        fprintf( stderr, "Usage: %s %s <backup file name>\n",
+                 *argv , args[ 0 ] );
         return EXIT_FAILURE;
       }
       ZRestore zr( ZRestore::deriveStorageDirFromBackupsFile( args[ 1 ] ),
-                   passwords[ 0 ], cacheSizeMb * 1048576 );
-      if ( !forcedCompressionMethod )
-        zr.useDefaultCompressionMethod();
+                   passwords[ 0 ], config );
       zr.restoreToStdin( args[ 1 ] );
     }
     else
@@ -585,7 +544,7 @@ int main( int argc, char *argv[] )
                  *argv, args[ 0 ] );
         return EXIT_FAILURE;
       }
-      if ( exchange.none() )
+      if ( config.runtime.exchange.none() )
       {
         fprintf( stderr, "Specify any --exchange flag\n" );
         return EXIT_FAILURE;
@@ -610,8 +569,8 @@ int main( int argc, char *argv[] )
                     passwords[ src - 1 ],
                     ZBackupBase::deriveStorageDirFromBackupsFile( args[ dst ], true ),
                     passwords[ dst - 1 ],
-                    true );
-      ze.exchange( args[ src ], args[ dst ], exchange );
+                    config );
+      ze.exchange();
     }
     else
     if ( strcmp( args[ 0 ], "gc" ) == 0 )
@@ -619,12 +578,12 @@ int main( int argc, char *argv[] )
       // Perform the restore
       if ( args.size() != 2 )
       {
-        fprintf( stderr, "Usage: %s gc <storage path>\n",
-                 *argv );
+        fprintf( stderr, "Usage: %s %s <storage path>\n",
+                 *argv, args[ 0 ] );
         return EXIT_FAILURE;
       }
-      ZCollector zr( args[ 1 ], passwords[ 0 ], threads, cacheSizeMb * 1048576 );
-      zr.gc();
+      ZCollector zc( args[ 1 ], passwords[ 0 ], config );
+      zc.gc();
     }
     else
     if ( strcmp( args[ 0 ], "passwd" ) == 0 )
@@ -632,21 +591,81 @@ int main( int argc, char *argv[] )
       // Perform the password change
       if ( args.size() != 2 )
       {
-        fprintf( stderr, "Usage: %s passwd <storage path>\n",
-                 *argv );
+        fprintf( stderr, "Usage: %s %s <storage path>\n",
+                 *argv, args[ 0 ] );
         return EXIT_FAILURE;
       }
 
-      ZBackupBase zbb( args[ 1 ], passwords[ 0 ], true );
+      ZBackupBase zbb( ZBackupBase::deriveStorageDirFromBackupsFile( args[ 1 ], true ),
+          passwords[ 0 ], true );
+
       if ( passwords[ 0 ].empty() != passwords[ 1 ].empty() )
       {
         fprintf( stderr,
-"Changing repo encryption type (non-encrypted to encrypted and vice versa) "
-"is not supported yet.\n"
-"Current repo type: %s\n", zbb.encryptionkey.hasKey() ? "encrypted" : "non-encrypted" );
+"Changing repo encryption type (non-encrypted to encrypted and vice versa) is possible "
+"only via import/export operations.\n"
+"Current repo type: %s.\n", zbb.encryptionkey.hasKey() ? "encrypted" : "non-encrypted" );
         return EXIT_FAILURE;
       }
       zbb.setPassword( passwords[ 1 ] );
+    }
+    else
+    if ( strcmp( args[ 0 ], "info" ) == 0 )
+    {
+      // Show repo info
+      if ( args.size() != 2 )
+      {
+        fprintf( stderr, "Usage: %s %s <storage path>\n",
+                 *argv, args[ 0 ] );
+        return EXIT_FAILURE;
+      }
+
+      // TODO: implementation in ZBackupBase
+      ZBackupBase zbb( ZBackupBase::deriveStorageDirFromBackupsFile( args[ 1 ], true ),
+          passwords[ 0 ], true );
+      fprintf( stderr, "NOT IMPLEMENTED YET!\n" );
+      return EXIT_FAILURE;
+    }
+    else
+    if ( strcmp( args[ 0 ], "config" ) == 0 )
+    {
+      if ( args.size() < 2 || args.size() > 3 )
+      {
+        fprintf( stderr, "Usage: %s %s [show|edit|set] <storage path>\n",
+                 *argv, args[ 0 ] );
+        return EXIT_FAILURE;
+      }
+
+      int fieldStorage = 1;
+      int fieldAction = 2;
+
+      if ( args.size() == 3 )
+      {
+        fieldStorage = 2;
+        fieldAction = 1;
+      }
+
+      if ( args.size() > 2 && strcmp( args[ fieldAction ], "edit" ) == 0 )
+      {
+        ZBackupBase zbb( ZBackupBase::deriveStorageDirFromBackupsFile( args[ fieldStorage ], true ),
+            passwords[ 0 ], true );
+        if ( Config::editInteractively( &zbb ) )
+          zbb.saveExtendedStorageInfo();
+      }
+      else
+      if ( args.size() > 2 && strcmp( args[ fieldAction ], "set" ) == 0 )
+      {
+        ZBackupBase zbb( ZBackupBase::deriveStorageDirFromBackupsFile( args[ fieldStorage ], true ),
+            passwords[ 0 ], config, true );
+        zbb.config.show();
+        zbb.saveExtendedStorageInfo();
+      }
+      else
+      {
+        ZBackupBase zbb( ZBackupBase::deriveStorageDirFromBackupsFile( args[ fieldStorage ], true ),
+            passwords[ 0 ], true );
+        zbb.config.show();
+      }
     }
     else
     {

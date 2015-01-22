@@ -4,12 +4,15 @@ to the ZBackup.
 Original design and implementation:
   Konstantin Isakov <ikm@zbackup.org>
 
+Core maintainers:
+  Konstantin Isakov <ikm@zbackup.org>
+  Vladimir Stackov <amigo.elite@gmail.com>
+
 Code contributions:
   Benjamin Koch <bbbsnowball@gmail.com>
-  Vladimir Stackov <amigo.elite@gmail.com>
   Gleb Golubitsky <sectoid@gnolltech.org>
-  ikatson
-  Eugene Agafonov
+  Igor Katson <igor.katson@gmail.com>
+  Eugene Agafonov <e.a.agafonov@gmail.com>
   Antonia Stevens <a@antevens.com>
 
 Feel free to add yourself to this list in your pull-request.

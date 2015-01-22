@@ -33,7 +33,7 @@ void ChunkIndex::loadIndex( IndexProcessor & ip )
 
   while( lst.getNext( entry ) )
   {
-    verbosePrintf( "Loading index file %s... ", entry.getFileName().c_str() );
+    verbosePrintf( "Loading index file %s...\n", entry.getFileName().c_str() );
     try
     {
       string indexFn = Dir::addPath( indexPath, entry.getFileName() );
@@ -70,10 +70,9 @@ void ChunkIndex::loadIndex( IndexProcessor & ip )
     }
     catch( std::exception & e )
     {
-      fprintf( stderr, "error: %s\n", e.what() );
+      verbosePrintf( "error: %s\n", e.what() );
       continue;
     }
-    verbosePrintf( "\n" );
   }
 
   verbosePrintf( "Index loaded.\n" );
@@ -108,6 +107,8 @@ ChunkIndex::ChunkIndex( EncryptionKey const & key, TmpMgr & tmpMgr,
 {
   if ( !prohibitChunkIndexLoading )
     loadIndex( *this );
+  dPrintf( "%s for %s is instantiated and initialized, hasKey: %s\n",
+      __CLASS, indexPath.c_str(), key.hasKey() ? "true" : "false" );
 }
 
 Bundle::Id const * ChunkIndex::findChunk( ChunkId::RollingHashPart rollingHash,

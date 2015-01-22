@@ -9,6 +9,7 @@
 
 #include "ex.hh"
 #include "chunk_index.hh"
+#include "config.hh"
 
 struct Paths
 {
@@ -21,6 +22,7 @@ struct Paths
   std::string getCreatePath();
   std::string getBundlesPath();
   std::string getStorageInfoPath();
+  std::string getExtendedStorageInfoPath();
   std::string getIndexPath();
   std::string getBackupsPath();
 };
@@ -41,7 +43,11 @@ public:
 
   /// Opens the storage
   ZBackupBase( std::string const & storageDir, std::string const & password );
-  ZBackupBase( std::string const & storageDir, std::string const & password, bool prohibitChunkIndexLoading );
+  ZBackupBase( std::string const & storageDir, std::string const & password, Config & configIn );
+  ZBackupBase( std::string const & storageDir, std::string const & password,
+      bool prohibitChunkIndexLoading );
+  ZBackupBase( std::string const & storageDir, std::string const & password, Config & configIn,
+      bool prohibitChunkIndexLoading );
 
   /// Creates new storage
   static void initStorage( std::string const & storageDir, std::string const & password,
@@ -51,18 +57,26 @@ public:
   /// storage dir or throws an exception
   static std::string deriveStorageDirFromBackupsFile( std::string const & backupsFile, bool allowOutside = false );
 
-  void useDefaultCompressionMethod();
+  void propagateUpdate();
+
+  void saveExtendedStorageInfo();
 
   void setPassword( std::string const & password );
 
+  // returns true if data is changed
+  bool spawnEditor( std::string & data, bool( * validator )
+      ( string const &, string const & ) );
+
   StorageInfo storageInfo;
   EncryptionKey encryptionkey;
+  ExtendedStorageInfo extendedStorageInfo;
   TmpMgr tmpMgr;
   ChunkIndex chunkIndex;
+  Config config;
 
 private:
   StorageInfo loadStorageInfo();
+  ExtendedStorageInfo loadExtendedStorageInfo( EncryptionKey const & );
 };
-
 
 #endif

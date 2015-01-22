@@ -98,7 +98,7 @@ void Creator::write( std::string const & fileName, EncryptionKey const & key )
 
   BundleFileHeader header;
 
-  const_sptr<Compression::CompressionMethod> compression = Compression::CompressionMethod::defaultCompression;
+  const_sptr<Compression::CompressionMethod> compression = Compression::CompressionMethod::selectedCompression;
   header.set_compression_method( compression->getName() );
 
   // The old code only support lzma, so we will bump up the version, if we're
