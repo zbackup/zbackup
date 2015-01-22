@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include <cerrno>
 #include <cstring>
-#ifdef __APPLE__
+#if defined( __APPLE__ ) || defined( __OpenBSD__ )
   #include <sys/socket.h>
 #else
   #include <sys/sendfile.h>
@@ -65,9 +65,20 @@ void File::rename( std::string const & from,
        source file. */
       write_fd = ::open( to.c_str(), O_WRONLY | O_CREAT, stat_buf.st_mode );
       /* Blast the bytes from one file to the other. */
-      #ifdef __APPLE__
+      #if defined( __APPLE__ )
       if ( -1 == sendfile(write_fd, read_fd, offset, &stat_buf.st_size, NULL, 0) )
          throw exCantRename( from + " to " + to );
+      #elif defined( __OpenBSD__ )
+
+      size_t BUFSIZE = 4096, size;
+      char buf[BUFSIZE];
+
+      while ( ( size = ::read( read_fd, buf, BUFSIZE ) ) != -1 && size != 0 )
+        ::write( write_fd, buf, size );
+
+      if ( size == -1 )
+         throw exCantRename( from + " to " + to );
+
       #else
       if ( -1 == sendfile(write_fd, read_fd, &offset, stat_buf.st_size) )
          throw exCantRename( from + " to " + to );

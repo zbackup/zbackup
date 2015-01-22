@@ -13,7 +13,7 @@
 #include "unbuffered_file.hh"
 
 
-#ifdef __APPLE__
+#if defined( __APPLE__ ) || defined( __OpenBSD__ )
 #define lseek64 lseek
 #endif
 
@@ -24,7 +24,7 @@ UnbufferedFile::UnbufferedFile( char const * fileName, Mode mode )
 
   int flags = ( mode == WriteOnly ? ( O_WRONLY | O_CREAT | O_TRUNC ) :
                                     O_RDONLY );
-#ifndef __APPLE__
+#if !defined( __APPLE__ ) && !defined( __OpenBSD__ )
   flags |= O_LARGEFILE;
 #endif
   fd = open( fileName, flags, 0666 );
