@@ -130,7 +130,8 @@ void Writer::finishCurrentBundle()
   while ( runningCompressors >= maxCompressorsToRun )
     runningCompressorsCondition.wait( runningCompressorsMutex );
 
-  Compressor * compressor = new Compressor( *this, currentBundle,
+  Compressor * compressor = new Compressor( config,
+                                            *this, currentBundle,
                                             file->getFileName() );
 
   currentBundle.reset();
@@ -159,10 +160,11 @@ Bundle::Id const & Writer::getCurrentBundleId()
   return currentBundleId;
 }
 
-Writer::Compressor::Compressor( Writer & writer,
+Writer::Compressor::Compressor( Config const & configIn, Writer & writer,
                                 sptr< Bundle::Creator > const & bundleCreator,
                                 string const & fileName ):
-  writer( writer ), bundleCreator( bundleCreator ), fileName( fileName )
+  writer( writer ), bundleCreator( bundleCreator ), fileName( fileName ),
+  config( configIn )
 {
 }
 
@@ -170,7 +172,7 @@ void * Writer::Compressor::Compressor::threadFunction() throw()
 {
   try
   {
-    bundleCreator->write( fileName, writer.encryptionKey );
+    bundleCreator->write( config, fileName, writer.encryptionKey );
   }
   catch( std::exception & e )
   {

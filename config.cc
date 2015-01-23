@@ -22,6 +22,9 @@
     return true; \
 }
 
+// Some configurables could be just a switch
+// So we introducing a macros that would indicate
+// that this configurable is not a switch
 #define REQUIRE_VALUE \
 { \
   if ( !hasValue && !validate ) \
@@ -52,7 +55,9 @@ static struct
     Config::oChunk_max_size,
     Config::Storable,
     "Maximum chunk size used when storing chunks\n"
-    "Affects deduplication ratio directly"
+    "Affects deduplication ratio directly\n"
+    "Default is %s",
+    Utils::numberToString( defaultConfig.GET_STORABLE( chunk, max_size ) )
   },
   {
     "bundle.max_payload_size",
@@ -61,13 +66,26 @@ static struct
     "Maximum number of bytes a bundle can hold. Only real chunk bytes are\n"
     "counted, not metadata. Any bundle should be able to contain at least\n"
     "one arbitrary single chunk, so this should not be smaller than\n"
-    "chunk.max_size"
+    "chunk.max_size\n"
+    "Default is %s",
+    Utils::numberToString( defaultConfig.GET_STORABLE( bundle, max_payload_size ) )
   },
   {
     "bundle.compression_method",
     Config::oBundle_compression_method,
     Config::Storable,
-    "Compression method for new bundles"
+    "Compression method for new bundles\n"
+    "Default is %s",
+    defaultConfig.GET_STORABLE( bundle, compression_method )
+  },
+  {
+    "lzma.compression_level",
+    Config::oLZMA_compression_level,
+    Config::Storable,
+    "Compression level for new LZMA-compressed files\n"
+    "Valid values: 0-19 (values over 9 enables extreme mode)\n"
+    "Default is %s",
+    Utils::numberToString( defaultConfig.GET_STORABLE( lzma, compression_level ) )
   },
 
   // Shortcuts for storable options
@@ -75,7 +93,9 @@ static struct
     "compression",
     Config::oBundle_compression_method,
     Config::Storable,
-    "Shortcut for bundle.compression_method"
+    "Shortcut for bundle.compression_method\n"
+    "Default is %s",
+    defaultConfig.GET_STORABLE( bundle, compression_method )
   },
 
   // Runtime options
@@ -236,6 +256,25 @@ bool Config::parseOrValidate( const char * option, const OptionType type,
       }
 
       return false;
+      /* NOTREACHED */
+      break;
+
+    case oLZMA_compression_level:
+      REQUIRE_VALUE;
+
+      if ( PARSE_OR_VALIDATE(
+            sscanf( optionValue, "%zu %n", &uint32Value, &n ) != 1 ||
+            optionValue[ n ] || uint32Value > 19,
+            GET_STORABLE( lzma, compression_level ) > 19 )
+         )
+        return false;
+
+      SKIP_ON_VALIDATION;
+      SET_STORABLE( lzma, compression_level, uint32Value );
+      dPrintf( "storable[lzma][compression_level] = %zu\n",
+          GET_STORABLE( lzma, compression_level ) );
+
+      return true;
       /* NOTREACHED */
       break;
 
@@ -504,6 +543,7 @@ void Config::reset_storable()
   SET_STORABLE( chunk, max_size, GET_STORABLE( chunk, max_size ) );
   SET_STORABLE( bundle, max_payload_size, GET_STORABLE( bundle, max_payload_size ) );
   SET_STORABLE( bundle, compression_method, GET_STORABLE( bundle, compression_method ) );
+  SET_STORABLE( lzma, compression_level, GET_STORABLE( lzma, compression_level ) );
 }
 
 void Config::show()
@@ -514,28 +554,4 @@ void Config::show()
 void Config::show( const ConfigInfo & config )
 {
   printf( "%s", toString( config ).c_str() );
-}
-
-bool Config::editInteractively( ZBackupBase * zbb )
-{
-  string configData( toString( *zbb->config.storable ) );
-
-  if ( !zbb->spawnEditor( configData, &validateProto ) )
-    return false;
-
-  ConfigInfo newConfig;
-  parseProto( configData, &newConfig );
-  if ( toString( *zbb->config.storable ) == toString( newConfig ) )
-  {
-    verbosePrintf( "No changes made to config\n" );
-    return false;
-  }
-
-  verbosePrintf( "Updating configuration...\n" );
-  zbb->config.storable->MergeFrom( newConfig );
-  verbosePrintf(
-"Configuration successfully updated!\n"
-"Updated configuration:\n%s", toString( *zbb->config.storable ).c_str() );
-
-  return true;
 }

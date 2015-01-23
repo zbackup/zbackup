@@ -42,6 +42,12 @@ message StorageInfo
   optional string default_compression_method = 4 [default = "lzma", deprecated = true];
 }
 
+message LZMAConfigInfo
+{
+  // Compression level for new LZMA-compressed files
+  optional uint32 compression_level = 1 [default = 6];
+}
+
 message ChunkConfigInfo
 {
   // Maximum chunk size used when storing chunks
@@ -64,6 +70,7 @@ message ConfigInfo
 {
   required ChunkConfigInfo chunk = 1;
   required BundleConfigInfo bundle = 2;
+  required LZMAConfigInfo lzma = 3;
 }
 
 message ExtendedStorageInfo

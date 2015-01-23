@@ -8,11 +8,17 @@
 
 namespace Compression {
 
-EnDecoder::EnDecoder() { }
-EnDecoder::~EnDecoder() { }
+EnDecoder::EnDecoder()
+{
+}
 
-CompressionMethod::~CompressionMethod() { }
+EnDecoder::~EnDecoder()
+{
+}
 
+CompressionMethod::~CompressionMethod()
+{
+}
 
 // LZMA
 
@@ -72,8 +78,17 @@ class LZMAEncoder : public LZMAEnDecoder
 public:
   LZMAEncoder()
   {
-    uint32_t preset = 6; // TODO: make this customizable, although 6 seems to be
-                         // the best option
+    uint32_t preset = 6;
+    lzma_ret ret = lzma_easy_encoder( &strm, preset, LZMA_CHECK_CRC64 );
+    CHECK( ret == LZMA_OK, "lzma_easy_encoder error: %d", (int) ret );
+  }
+
+  LZMAEncoder( Config const & config )
+  {
+    uint32_t compressionLevel = config.GET_STORABLE( lzma, compression_level );
+    uint32_t preset = ( compressionLevel > 9 ) ?
+      ( compressionLevel - 10 ) | LZMA_PRESET_EXTREME :
+      compressionLevel;
     lzma_ret ret = lzma_easy_encoder( &strm, preset, LZMA_CHECK_CRC64 );
     CHECK( ret == LZMA_OK, "lzma_easy_encoder error: %d", (int) ret );
   }
@@ -92,6 +107,11 @@ public:
 class LZMACompression : public CompressionMethod
 {
 public:
+  sptr<EnDecoder> createEncoder( Config const & config ) const
+  {
+    return new LZMAEncoder( config );
+  }
+
   sptr<EnDecoder> createEncoder() const
   {
     return new LZMAEncoder();
@@ -104,7 +124,6 @@ public:
 
   std::string getName() const { return "lzma"; }
 };
-
 
 // LZO
 
@@ -232,7 +251,7 @@ public:
     {
       // data has been encoded or decoded, remaining output is in accDataOut
       // -> copy to output
-      if (availOut > 0 && accDataOut.size() - posInAccDataOut > 0)
+      if ( availOut > 0 && accDataOut.size() - posInAccDataOut > 0 )
       {
         size_t sz = availOut;
         if ( sz > accDataOut.size() - posInAccDataOut )
@@ -273,7 +292,7 @@ private:
     // we use our own buffer
     size_t bufferSize = suggestOutputSize( dataIn, availIn );
     do {
-      accDataOut.resize(bufferSize);
+      accDataOut.resize( bufferSize );
 
       size_t outputSize;
       //TODO doc says we mustn't modify the pointer returned by data()...
@@ -311,7 +330,6 @@ protected:
   // If you don't know the real decoded size, don't change outputSize.
   virtual bool doProcessNoSize( const char* dataIn, size_t availIn,
       char* dataOut, size_t availOut, size_t& outputSize ) =0;
-
 
   bool shouldTryWith( const char* dataIn, size_t availIn, size_t availOut )
   {
@@ -388,7 +406,6 @@ protected:
   virtual bool doProcessNoSize( const char* dataIn, size_t availIn,
       char* dataOut, size_t availOut, size_t& outputSize ) =0;
 
-
   bool shouldTryWith( const char*, size_t, size_t availOut )
   {
     // If the compression doesn't use any spaces...
@@ -443,7 +460,6 @@ protected:
   }
 };
 
-
 #ifdef HAVE_LIBLZO
 
 #include <lzo/lzo1x.h>
@@ -472,9 +488,9 @@ class LZO1X_1_Compression;
 class LZO1X_1_Encoder : public NoStreamAndUnknownSizeEncoder
 {
   const LZO1X_1_Compression* compression;
-  static size_t calcMaxCompressedSize(size_t availIn);
+  static size_t calcMaxCompressedSize( size_t availIn );
 public:
-  LZO1X_1_Encoder(const LZO1X_1_Compression* compression)
+  LZO1X_1_Encoder( const LZO1X_1_Compression* compression )
   {
     this->compression = compression;
   }
@@ -499,20 +515,25 @@ class LZO1X_1_Compression : public CompressionMethod
     }
   }
 public:
-  sptr<EnDecoder> createEncoder() const
+  sptr< EnDecoder > createEncoder( Config const & config ) const
   {
     init();
     return new LZO1X_1_Encoder(this);
   }
 
-  sptr<EnDecoder> createDecoder() const
+  sptr< EnDecoder > createEncoder() const
+  {
+    init();
+    return new LZO1X_1_Encoder(this);
+  }
+
+  sptr< EnDecoder > createDecoder() const
   {
     init();
     return new LZO1X_1_Decoder();
   }
 
   std::string getName() const { return "lzo1x_1"; }
-
 
   lzo_voidp getWorkmem( size_t size ) const
   {
@@ -530,7 +551,6 @@ public:
 };
 
 bool LZO1X_1_Compression::initialized = false;
-
 
 size_t LZO1X_1_Encoder::calcMaxCompressedSize( size_t availIn )
 {
@@ -596,12 +616,12 @@ const_sptr< CompressionMethod > const CompressionMethod::compressions[] = {
 };
 
 const_sptr< CompressionMethod > CompressionMethod::selectedCompression =
-  compressions[0];
+  compressions[ 0 ];
 
 const_sptr< CompressionMethod > CompressionMethod::findCompression(
     const std::string& name, bool optional )
 {
-  for ( const const_sptr<CompressionMethod>* c = compressions+0; *c; ++c )
+  for ( const const_sptr<CompressionMethod>* c = compressions + 0; *c; ++c )
   {
     if ( (*c)->getName() == name )
     {
@@ -616,9 +636,15 @@ const_sptr< CompressionMethod > CompressionMethod::findCompression(
 }
 
 // iterator over compressions
+CompressionMethod::iterator::iterator( const const_sptr< CompressionMethod > * ptr ):
+  ptr( ptr )
+{
+}
 
-CompressionMethod::iterator::iterator( const const_sptr<CompressionMethod>* ptr ) : ptr(   ptr) { }
-CompressionMethod::iterator::iterator( const iterator&                 it ) : ptr(it.ptr) { }
+CompressionMethod::iterator::iterator( const iterator & it ):
+  ptr( it.ptr )
+{
+}
 
 CompressionMethod::iterator& CompressionMethod::iterator::operator =( const iterator& it )
 {

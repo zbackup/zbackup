@@ -17,6 +17,7 @@
 #include "static_assert.hh"
 #include "zbackup.pb.h"
 #include "encrypted_file.hh"
+#include "config.hh"
 
 namespace Bundle {
 
@@ -101,7 +102,7 @@ public:
   /// Compresses and writes the bundle to the given file. The operation is
   /// time-consuming - calling this function from a worker thread could be
   /// warranted
-  void write( string const & fileName, EncryptionKey const & );
+  void write( Config const &, string const & fileName, EncryptionKey const & );
   void write( string const & fileName, EncryptionKey const &,
       Bundle::Reader & reader );
 

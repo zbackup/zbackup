@@ -649,7 +649,7 @@ invalid_option:
       {
         ZBackupBase zbb( ZBackupBase::deriveStorageDirFromBackupsFile( args[ fieldStorage ], true ),
             passwords[ 0 ], true );
-        if ( Config::editInteractively( &zbb ) )
+        if ( zbb.editConfigInteractively() )
           zbb.saveExtendedStorageInfo();
       }
       else

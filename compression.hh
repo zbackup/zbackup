@@ -7,6 +7,7 @@
 #include "sptr.hh"
 #include "ex.hh"
 #include "nocopy.hh"
+#include "config.hh"
 
 namespace Compression {
 
@@ -48,6 +49,7 @@ public:
   // This name is saved in the file header of the compressed file.
   virtual std::string getName() const = 0;
 
+  virtual sptr< EnDecoder > createEncoder( Config const & ) const = 0;
   virtual sptr< EnDecoder > createEncoder() const = 0;
   virtual sptr< EnDecoder > createDecoder() const = 0;
 
