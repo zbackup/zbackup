@@ -505,7 +505,8 @@ invalid_option:
         return EXIT_FAILURE;
       }
 
-      ZBackup::initStorage( args[ 1 ], passwords[ 0 ], !passwords[ 0 ].empty() );
+      ZBackup::initStorage( args[ 1 ],
+          passwords[ 0 ], !passwords[ 0 ].empty(), config );
     }
     else
     if ( strcmp( args[ 0 ], "backup" ) == 0 )

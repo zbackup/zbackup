@@ -180,12 +180,14 @@ ExtendedStorageInfo ZBackupBase::loadExtendedStorageInfo(
 
 void ZBackupBase::initStorage( string const & storageDir,
                                string const & password,
-                               bool isEncrypted )
+                               bool isEncrypted,
+                               Config const & configIn )
 {
   StorageInfo storageInfo;
   ExtendedStorageInfo extendedStorageInfo;
   Config config( extendedStorageInfo.mutable_config() );
   config.reset_storable();
+  config.storable->MergeFrom( *configIn.storable );
 
   EncryptionKey encryptionkey = EncryptionKey::noKey();
 
