@@ -90,7 +90,8 @@ void Creator::write( std::string const & fileName, EncryptionKey const & key,
   }
 }
 
-void Creator::write( std::string const & fileName, EncryptionKey const & key )
+void Creator::write( Config const & config, std::string const & fileName,
+    EncryptionKey const & key )
 {
   EncryptedFile::OutputStream os( fileName.c_str(), key, Encryption::ZeroIv );
 
@@ -98,7 +99,8 @@ void Creator::write( std::string const & fileName, EncryptionKey const & key )
 
   BundleFileHeader header;
 
-  const_sptr<Compression::CompressionMethod> compression = Compression::CompressionMethod::selectedCompression;
+  const_sptr<Compression::CompressionMethod> compression =
+    Compression::CompressionMethod::selectedCompression;
   header.set_compression_method( compression->getName() );
 
   // The old code only support lzma, so we will bump up the version, if we're
@@ -115,7 +117,8 @@ void Creator::write( std::string const & fileName, EncryptionKey const & key )
 
   // Compress
 
-  sptr<Compression::EnDecoder> encoder = compression->createEncoder();
+  sptr<Compression::EnDecoder> encoder = compression->createEncoder(
+      config );
 
   encoder->setInput( payload.data(), payload.size() );
 
@@ -135,7 +138,7 @@ void Creator::write( std::string const & fileName, EncryptionKey const & key )
     }
 
     // Perform the compression
-    if ( encoder->process(true) )
+    if ( encoder->process( true ) )
     {
       if ( encoder->getAvailableOutput() )
         os.BackUp( encoder->getAvailableOutput() );
@@ -190,7 +193,8 @@ Reader::Reader( string const & fileName, EncryptionKey const & key, bool prohibi
       decoder->setInput( data, size );
     }
 
-    if ( decoder->process(false) ) {
+    if ( decoder->process( false ) )
+    {
       if ( decoder->getAvailableInput() )
         is.BackUp( decoder->getAvailableInput() );
       break;

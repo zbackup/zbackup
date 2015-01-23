@@ -68,8 +68,9 @@ private:
     Writer & writer;
     sptr< Bundle::Creator > bundleCreator;
     string fileName;
+    Config const & config;
   public:
-    Compressor( Writer &, sptr< Bundle::Creator > const &,
+    Compressor( Config const &, Writer &, sptr< Bundle::Creator > const &,
                 string const & fileName );
   protected:
     virtual void * threadFunction() throw();

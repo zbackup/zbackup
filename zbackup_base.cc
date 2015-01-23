@@ -116,7 +116,7 @@ ZBackupBase::ZBackupBase( string const & storageDir, string const & password,
       storageDir.c_str() );
 }
 
-// Update all internal variables after configuration change
+// Update all internal variables according to real configuration
 // Dunno why someone need to store duplicate information
 // in deduplication utility
 void ZBackupBase::propagateUpdate()
@@ -418,4 +418,29 @@ end:
   tmpFile.reset();
 
   return isChanged;
+}
+
+bool ZBackupBase::editConfigInteractively()
+{
+  string configData( Config::toString( *config.storable ) );
+
+  if ( !spawnEditor( configData, &Config::validateProto ) )
+    return false;
+
+  ConfigInfo newConfig;
+  Config::parseProto( configData, &newConfig );
+  if ( Config::toString( *config.storable ) ==
+      Config::toString( newConfig ) )
+  {
+    verbosePrintf( "No changes made to config\n" );
+    return false;
+  }
+
+  verbosePrintf( "Updating configuration...\n" );
+  config.storable->MergeFrom( newConfig );
+  verbosePrintf(
+"Configuration successfully updated!\n"
+"Updated configuration:\n%s", Config::toString( *config.storable ).c_str() );
+
+  return true;
 }

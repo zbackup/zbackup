@@ -21,8 +21,6 @@
 using std::string;
 using std::bitset;
 
-class ZBackupBase;
-
 class Config
 {
 public:
@@ -55,6 +53,7 @@ public:
     oChunk_max_size,
     oBundle_max_payload_size,
     oBundle_compression_method,
+    oLZMA_compression_level,
 
     oRuntime_threads,
     oRuntime_cacheSize,
@@ -71,10 +70,6 @@ public:
   static void showHelp( const OptionType );
 
   static string toString( google::protobuf::Message const & );
-
-  // Edit current configuration
-  // returns true if configuration is changed
-  static bool editInteractively( ZBackupBase * );
 
   // Print configuration to screen
   static void show( const ConfigInfo & );
@@ -95,7 +90,5 @@ public:
 private:
   bool want_cleanup;
 };
-
-#include "zbackup_base.hh"
 
 #endif
