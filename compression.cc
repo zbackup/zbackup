@@ -5,6 +5,7 @@
 
 #include "compression.hh"
 #include "check.hh"
+#include "endian.hh"
 
 namespace Compression {
 
