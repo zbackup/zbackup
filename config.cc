@@ -55,9 +55,9 @@ static struct
     Config::oChunk_max_size,
     Config::Storable,
     "Maximum chunk size used when storing chunks\n"
-    "Affects deduplication ratio directly\n"
-    "Default is %s",
-    Utils::numberToString( defaultConfig.GET_STORABLE( chunk, max_size ) )
+    "Affects deduplication ratio directly"
+    //"Default is %s",
+    //Utils::numberToString( defaultConfig.GET_STORABLE( chunk, max_size ) )
   },
   {
     "bundle.max_payload_size",
@@ -66,26 +66,26 @@ static struct
     "Maximum number of bytes a bundle can hold. Only real chunk bytes are\n"
     "counted, not metadata. Any bundle should be able to contain at least\n"
     "one arbitrary single chunk, so this should not be smaller than\n"
-    "chunk.max_size\n"
-    "Default is %s",
-    Utils::numberToString( defaultConfig.GET_STORABLE( bundle, max_payload_size ) )
+    "chunk.max_size"
+    //"Default is %s",
+    //Utils::numberToString( defaultConfig.GET_STORABLE( bundle, max_payload_size ) )
   },
   {
     "bundle.compression_method",
     Config::oBundle_compression_method,
     Config::Storable,
-    "Compression method for new bundles\n"
-    "Default is %s",
-    defaultConfig.GET_STORABLE( bundle, compression_method )
+    "Compression method for new bundles"
+    //"Default is %s",
+    //defaultConfig.GET_STORABLE( bundle, compression_method )
   },
   {
     "lzma.compression_level",
     Config::oLZMA_compression_level,
     Config::Storable,
     "Compression level for new LZMA-compressed files\n"
-    "Valid values: 0-19 (values over 9 enables extreme mode)\n"
-    "Default is %s",
-    Utils::numberToString( defaultConfig.GET_STORABLE( lzma, compression_level ) )
+    "Valid values: 0-19 (values over 9 enables extreme mode)"
+    //"Default is %s",
+    //Utils::numberToString( defaultConfig.GET_STORABLE( lzma, compression_level ) )
   },
 
   // Shortcuts for storable options
@@ -93,9 +93,9 @@ static struct
     "compression",
     Config::oBundle_compression_method,
     Config::Storable,
-    "Shortcut for bundle.compression_method\n"
-    "Default is %s",
-    defaultConfig.GET_STORABLE( bundle, compression_method )
+    "Shortcut for bundle.compression_method"
+    //"Default is %s",
+    //defaultConfig.GET_STORABLE( bundle, compression_method )
   },
 
   // Runtime options
