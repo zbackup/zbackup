@@ -679,5 +679,10 @@ invalid_option:
     fprintf( stderr, "%s\n", e.what() );
     return EXIT_FAILURE;
   }
+  catch( ... )
+  {
+    fprintf( stderr, "Unknown exception!\n" );
+    return EXIT_FAILURE;
+  }
   return EXIT_SUCCESS;
 }
