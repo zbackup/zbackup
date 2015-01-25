@@ -10,6 +10,7 @@
 #include "backup_collector.hh"
 #include "config.hh"
 #include "utils.hh"
+#include "version.hh"
 
 using std::vector;
 using std::bitset;
@@ -443,7 +444,7 @@ invalid_option:
     if ( args.size() < 1 || printHelp )
     {
       fprintf( stderr,
-"ZBackup, a versatile deduplicating backup tool, version 1.4\n"
+"ZBackup, a versatile deduplicating backup tool, version %s\n"
 "Copyright (c) 2012-2014 Konstantin Isakov <ikm@zbackup.org> and\n"
 "ZBackup contributors\n"
 "Comes with no warranty. Licensed under GNU GPLv2 or later + OpenSSL.\n"
@@ -475,7 +476,7 @@ invalid_option:
 "    config [show|edit|set] <storage path> - performs configuration\n"
 "            manipulations (default is show)\n"
 "  For export/import storage path must be a valid (initialized) storage\n"
-"", *argv );
+"", zbackup_version.c_str(), *argv );
       return EXIT_FAILURE;
     }
 
