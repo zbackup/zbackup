@@ -178,7 +178,7 @@ void ZExchange::exchange()
   {
     verbosePrintf( "Searching for bundles...\n" );
 
-    vector< string > bundles = BackupExchanger::recreateDirectories(
+    vector< string > bundles = BackupExchanger::findOrRebuild(
         srcZBackupBase.getBundlesPath(), dstZBackupBase.getBundlesPath() );
 
     for ( std::vector< string >::iterator it = bundles.begin(); it != bundles.end(); ++it )
@@ -214,7 +214,7 @@ void ZExchange::exchange()
   if ( config.runtime.exchange.test( BackupExchanger::index ) )
   {
     verbosePrintf( "Searching for indicies...\n" );
-    vector< string > indicies = BackupExchanger::recreateDirectories(
+    vector< string > indicies = BackupExchanger::findOrRebuild(
         srcZBackupBase.getIndexPath(), dstZBackupBase.getIndexPath() );
 
     for ( std::vector< string >::iterator it = indicies.begin(); it != indicies.end(); ++it )
@@ -259,7 +259,7 @@ void ZExchange::exchange()
     BackupInfo backupInfo;
 
     verbosePrintf( "Searching for backups...\n" );
-    vector< string > backups = BackupExchanger::recreateDirectories(
+    vector< string > backups = BackupExchanger::findOrRebuild(
         srcZBackupBase.getBackupsPath(), dstZBackupBase.getBackupsPath() );
 
     for ( std::vector< string >::iterator it = backups.begin(); it != backups.end(); ++it )

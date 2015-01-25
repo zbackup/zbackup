@@ -10,6 +10,7 @@
 #include "chunk_index.hh"
 #include "backup_restorer.hh"
 #include "backup_file.hh"
+#include "backup_exchanger.hh"
 
 #include "debug.hh"
 
@@ -138,9 +139,6 @@ void ZCollector::gc()
       chunkReindex, getBundlesPath(), getIndexPath(), config.runtime.threads );
 
   string fileName;
-  string backupsPath = getBackupsPath();
-
-  Dir::Listing lst( backupsPath );
 
   Dir::Entry entry;
 
@@ -152,13 +150,18 @@ void ZCollector::gc()
 
   verbosePrintf( "Checking used chunks...\n" );
 
-  while( lst.getNext( entry ) )
+  verbosePrintf( "Searching for backups...\n" );
+  vector< string > backups = BackupExchanger::findOrRebuild( getBackupsPath() );
+
+  for ( std::vector< string >::iterator it = backups.begin(); it != backups.end(); ++it )
   {
-    verbosePrintf( "Checking backup %s...\n", entry.getFileName().c_str() );
+    string backup( Dir::addPath( getBackupsPath(), *it ) );
+
+    verbosePrintf( "Checking backup %s...\n", backup.c_str() );
 
     BackupInfo backupInfo;
 
-    BackupFile::load( Dir::addPath( backupsPath, entry.getFileName() ), encryptionkey, backupInfo );
+    BackupFile::load( backup, encryptionkey, backupInfo );
 
     string backupData;
 
@@ -180,10 +183,11 @@ void ZCollector::gc()
   while( bundleLst.getNext( entry ) )
   {
     const string dirPath = Dir::addPath( bundlesPath, entry.getFileName());
-    if (entry.isDir() && Dir::isDirEmpty(dirPath)) {
-      Dir::remove(dirPath);
+    if ( entry.isDir() && Dir::isDirEmpty( dirPath ) )
+    {
+      Dir::remove( dirPath );
     }
   }
-  
+
   verbosePrintf( "Garbage collection complete\n" );
 }

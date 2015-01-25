@@ -143,7 +143,7 @@ Config::~Config()
 }
 
 Config::Config():
-  want_cleanup( true )
+  want_cleanup( false )
 {
   ConfigInfo * configInfo = new ConfigInfo;
   storable = configInfo;
