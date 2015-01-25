@@ -1,8 +1,8 @@
 // Copyright (c) 2012-2014 Konstantin Isakov <ikm@zbackup.org> and ZBackup contributors, see CONTRIBUTORS
 // Part of ZBackup. Licensed under GNU GPLv2 or later + OpenSSL, see LICENSE
 
-#ifndef ENCRYPTED_FILE_HH_INCLUDED__
-#define ENCRYPTED_FILE_HH_INCLUDED__
+#ifndef ENCRYPTED_FILE_HH_INCLUDED
+#define ENCRYPTED_FILE_HH_INCLUDED
 
 #include <google/protobuf/io/zero_copy_stream.h>
 #include <stddef.h>

@@ -11,14 +11,14 @@
 #include "debug.hh"
 
 // TODO: make configurable by cmake
-#if defined(_PATH_VI)
-# define EDITOR _PATH_VI
+#if defined(PATH_VI)
+# define EDITOR PATH_VI
 #else
 # define EDITOR "/bin/vi"
 #endif
 
-#ifndef _PATH_BSHELL
-# define _PATH_BSHELL "/bin/sh"
+#ifndef PATH_BSHELL
+# define PATH_BSHELL "/bin/sh"
 #endif
 
 using std::string;
@@ -318,9 +318,9 @@ fatal:
       goto fatal;
     case 0:
       /* child */
-      dPrintf( "Spawning editor: %s %s %s %s\n", _PATH_BSHELL, _PATH_BSHELL,
+      dPrintf( "Spawning editor: %s %s %s %s\n", PATH_BSHELL, PATH_BSHELL,
           "-c", shellArgs.c_str() );
-      execlp( _PATH_BSHELL, _PATH_BSHELL, "-c", shellArgs.c_str(), (char *) 0 );
+      execlp( PATH_BSHELL, PATH_BSHELL, "-c", shellArgs.c_str(), (char *) 0 );
       perror( editor.c_str() );
       exit( EXIT_FAILURE );
     /*NOTREACHED*/

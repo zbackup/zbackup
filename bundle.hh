@@ -1,8 +1,8 @@
 // Copyright (c) 2012-2014 Konstantin Isakov <ikm@zbackup.org> and ZBackup contributors, see CONTRIBUTORS
 // Part of ZBackup. Licensed under GNU GPLv2 or later + OpenSSL, see LICENSE
 
-#ifndef BUNDLE_HH_INCLUDED__
-#define BUNDLE_HH_INCLUDED__
+#ifndef BUNDLE_HH_INCLUDED
+#define BUNDLE_HH_INCLUDED
 
 #include <stddef.h>
 #include <string.h>

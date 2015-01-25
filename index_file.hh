@@ -1,8 +1,8 @@
 // Copyright (c) 2012-2014 Konstantin Isakov <ikm@zbackup.org> and ZBackup contributors, see CONTRIBUTORS
 // Part of ZBackup. Licensed under GNU GPLv2 or later + OpenSSL, see LICENSE
 
-#ifndef INDEX_FILE_HH_INCLUDED__
-#define INDEX_FILE_HH_INCLUDED__
+#ifndef INDEX_FILE_HH_INCLUDED
+#define INDEX_FILE_HH_INCLUDED
 
 #include <exception>
 #include <string>

@@ -1,8 +1,8 @@
 // Copyright (c) 2012-2014 Konstantin Isakov <ikm@zbackup.org> and ZBackup contributors, see CONTRIBUTORS
 // Part of ZBackup. Licensed under GNU GPLv2 or later + OpenSSL, see LICENSE
 
-#ifndef OBJECTCACHE_HH_INCLUDED__
-#define OBJECTCACHE_HH_INCLUDED__
+#ifndef OBJECTCACHE_HH_INCLUDED
+#define OBJECTCACHE_HH_INCLUDED
 
 #include <string>
 #include <list>

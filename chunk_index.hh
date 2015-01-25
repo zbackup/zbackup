@@ -1,8 +1,8 @@
 // Copyright (c) 2012-2014 Konstantin Isakov <ikm@zbackup.org> and ZBackup contributors, see CONTRIBUTORS
 // Part of ZBackup. Licensed under GNU GPLv2 or later + OpenSSL, see LICENSE
 
-#ifndef CHUNK_INDEX_HH_INCLUDED__
-#define CHUNK_INDEX_HH_INCLUDED__
+#ifndef CHUNK_INDEX_HH_INCLUDED
+#define CHUNK_INDEX_HH_INCLUDED
 
 // <ext/hash_map> is obsolete, but <unordered_map> requires C++11. Make up your
 // mind, GNU people!
