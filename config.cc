@@ -229,11 +229,11 @@ bool Config::parseOrValidate( const char * option, const OptionType type,
       SKIP_ON_VALIDATION;
       REQUIRE_VALUE;
 
-      if ( sscanf( optionValue, "%zu %n", &uint32Value, &n ) == 1
+      if ( sscanf( optionValue, "%u %n", &uint32Value, &n ) == 1
           && !optionValue[ n ] )
       {
         SET_STORABLE( chunk, max_size, uint32Value );
-        dPrintf( "storable[chunk][max_size] = %zu\n",
+        dPrintf( "storable[chunk][max_size] = %u\n",
             GET_STORABLE( chunk, max_size ) );
 
         return true;
@@ -247,11 +247,11 @@ bool Config::parseOrValidate( const char * option, const OptionType type,
       SKIP_ON_VALIDATION;
       REQUIRE_VALUE;
 
-      if ( sscanf( optionValue, "%zu %n", &uint32Value, &n ) == 1
+      if ( sscanf( optionValue, "%u %n", &uint32Value, &n ) == 1
           && !optionValue[ n ] )
       {
         SET_STORABLE( bundle, max_payload_size, uint32Value );
-        dPrintf( "storable[bundle][max_payload_size] = %zu\n",
+        dPrintf( "storable[bundle][max_payload_size] = %u\n",
             GET_STORABLE( bundle, max_payload_size ) );
 
         return true;
@@ -265,7 +265,7 @@ bool Config::parseOrValidate( const char * option, const OptionType type,
       REQUIRE_VALUE;
 
       if ( PARSE_OR_VALIDATE(
-            sscanf( optionValue, "%zu %n", &uint32Value, &n ) != 1 ||
+            sscanf( optionValue, "%u %n", &uint32Value, &n ) != 1 ||
             optionValue[ n ] || uint32Value > 19,
             GET_STORABLE( lzma, compression_level ) > 19 )
          )
@@ -273,7 +273,7 @@ bool Config::parseOrValidate( const char * option, const OptionType type,
 
       SKIP_ON_VALIDATION;
       SET_STORABLE( lzma, compression_level, uint32Value );
-      dPrintf( "storable[lzma][compression_level] = %zu\n",
+      dPrintf( "storable[lzma][compression_level] = %u\n",
           GET_STORABLE( lzma, compression_level ) );
 
       return true;
