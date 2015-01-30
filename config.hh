@@ -4,7 +4,6 @@
 #ifndef CONFIG_HH_INCLUDED
 #define CONFIG_HH_INCLUDED
 
-#include <vector>
 #include <string>
 #include <bitset>
 #include <google/protobuf/text_format.h>
@@ -21,7 +20,6 @@
 
 using std::string;
 using std::bitset;
-using std::vector;
 
 class Config
 {
