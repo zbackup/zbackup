@@ -67,13 +67,13 @@ public:
 
   static bool parseProto( const string &, google::protobuf::Message * );
 
-  static void showHelp( const OptionType );
-
   static string toString( google::protobuf::Message const & );
 
   // Print configuration to screen
   static void show( const ConfigInfo & );
   void show();
+
+  void showHelp( const OptionType );
 
   OpCodes parseToken( const char *, const OptionType );
   bool parseOrValidate( const char *, const OptionType, bool validate = false );
@@ -88,7 +88,21 @@ public:
   RuntimeConfig runtime;
   ConfigInfo * storable;
 private:
-  bool want_cleanup;
+  struct Keyword
+  {
+    string name;
+    Config::OpCodes opcode;
+    Config::OptionType type;
+    string description;
+    string defaultValue;
+  };
+
+  Keyword * keywords;
+
+  bool cleanup_storable;
+  bool cleanup_keywords;
+
+  void prefillKeywords();
 };
 
 #endif

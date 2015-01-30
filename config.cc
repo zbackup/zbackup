@@ -1,6 +1,7 @@
 // Copyright (c) 2012-2014 Konstantin Isakov <ikm@zbackup.org> and ZBackup contributors, see CONTRIBUTORS
 // Part of ZBackup. Licensed under GNU GPLv2 or later + OpenSSL, see LICENSE
 
+#include <algorithm>
 #include "config.hh"
 #include "ex.hh"
 #include "debug.hh"
@@ -36,125 +37,125 @@
 
 DEF_EX_STR( exInvalidThreadsValue, "Invalid threads value specified:", std::exception )
 
-namespace ConfigHelper {
-Config defaultConfig;
-
-/* Textual representations of the tokens. */
-
-static struct
+void Config::prefillKeywords()
 {
-  const char * name;
-  const Config::OpCodes opcode;
-  const Config::OptionType type;
-  const char * description;
-  const string defaultValue;
-} keywords[] = {
-  // Storable options
-  {
-    "chunk.max_size",
-    Config::oChunk_max_size,
-    Config::Storable,
-    "Maximum chunk size used when storing chunks\n"
-    "Affects deduplication ratio directly"
-    //"Default is %s",
-    //Utils::numberToString( defaultConfig.GET_STORABLE( chunk, max_size ) )
-  },
-  {
-    "bundle.max_payload_size",
-    Config::oBundle_max_payload_size,
-    Config::Storable,
-    "Maximum number of bytes a bundle can hold. Only real chunk bytes are\n"
-    "counted, not metadata. Any bundle should be able to contain at least\n"
-    "one arbitrary single chunk, so this should not be smaller than\n"
-    "chunk.max_size"
-    //"Default is %s",
-    //Utils::numberToString( defaultConfig.GET_STORABLE( bundle, max_payload_size ) )
-  },
-  {
-    "bundle.compression_method",
-    Config::oBundle_compression_method,
-    Config::Storable,
-    "Compression method for new bundles"
-    //"Default is %s",
-    //defaultConfig.GET_STORABLE( bundle, compression_method )
-  },
-  {
-    "lzma.compression_level",
-    Config::oLZMA_compression_level,
-    Config::Storable,
-    "Compression level for new LZMA-compressed files\n"
-    "Valid values: 0-19 (values over 9 enables extreme mode)"
-    //"Default is %s",
-    //Utils::numberToString( defaultConfig.GET_STORABLE( lzma, compression_level ) )
-  },
+  /* Textual representations of the tokens. */
 
-  // Shortcuts for storable options
-  {
-    "compression",
-    Config::oBundle_compression_method,
-    Config::Storable,
-    "Shortcut for bundle.compression_method"
-    //"Default is %s",
-    //defaultConfig.GET_STORABLE( bundle, compression_method )
-  },
+  Keyword defaultKeywords[] = {
+    // Storable options
+    {
+      "chunk.max_size",
+      Config::oChunk_max_size,
+      Config::Storable,
+      "Maximum chunk size used when storing chunks\n"
+      "Affects deduplication ratio directly\n"
+      "Default is %s",
+      Utils::numberToString( GET_STORABLE( chunk, max_size ) )
+    },
+    {
+      "bundle.max_payload_size",
+      Config::oBundle_max_payload_size,
+      Config::Storable,
+      "Maximum number of bytes a bundle can hold. Only real chunk bytes are\n"
+      "counted, not metadata. Any bundle should be able to contain at least\n"
+      "one arbitrary single chunk, so this should not be smaller than\n"
+      "chunk.max_size\n"
+      "Default is %s",
+      Utils::numberToString( GET_STORABLE( bundle, max_payload_size ) )
+    },
+    {
+      "bundle.compression_method",
+      Config::oBundle_compression_method,
+      Config::Storable,
+      "Compression method for new bundles\n"
+      "Default is %s",
+      GET_STORABLE( bundle, compression_method )
+    },
+    {
+      "lzma.compression_level",
+      Config::oLZMA_compression_level,
+      Config::Storable,
+      "Compression level for new LZMA-compressed files\n"
+      "Valid values: 0-19 (values over 9 enables extreme mode)\n"
+      "Default is %s",
+      Utils::numberToString( GET_STORABLE( lzma, compression_level ) )
+    },
 
-  // Runtime options
-  {
-    "threads",
-    Config::oRuntime_threads,
-    Config::Runtime,
-    "Maximum number of compressor threads to use in backup process\n"
-    "Default is %s on your system",
-    Utils::numberToString( defaultConfig.runtime.threads )
-  },
-  {
-    "cache-size",
-    Config::oRuntime_cacheSize,
-    Config::Runtime,
-    "Cache size to use in restore process\n"
-    "Affects restore process speed directly\n"
-    VALID_SUFFIXES
-    "Default is %sMiB",
-    Utils::numberToString( defaultConfig.runtime.cacheSize / 1024 / 1024 )
-  },
-  {
-    "exchange",
-    Config::oRuntime_exchange,
-    Config::Runtime,
-    "Data to exchange between repositories in import/export process\n"
-    "Can be specified multiple times\n"
-    "Valid values:\n"
-    "backups - exchange backup instructions (files in backups/ directory)\n"
-    "bundles - exchange bundles with data (files in bunles/ directory)\n"
-    "index - exchange indicies of chunks (files in index/ directory)\n"
-    "No default value, you should specify it explicitly"
-  },
+    // Shortcuts for storable options
+    {
+      "compression",
+      Config::oBundle_compression_method,
+      Config::Storable,
+      "Shortcut for bundle.compression_method\n"
+      "Default is %s",
+      GET_STORABLE( bundle, compression_method )
+    },
 
-  { NULL, Config::oBadOption, Config::None }
-};
+    // Runtime options
+    {
+      "threads",
+      Config::oRuntime_threads,
+      Config::Runtime,
+      "Maximum number of compressor threads to use in backup process\n"
+      "Default is %s on your system",
+      Utils::numberToString( runtime.threads )
+    },
+    {
+      "cache-size",
+      Config::oRuntime_cacheSize,
+      Config::Runtime,
+      "Cache size to use in restore process\n"
+      "Affects restore process speed directly\n"
+      VALID_SUFFIXES
+      "Default is %sMiB",
+      Utils::numberToString( runtime.cacheSize / 1024 / 1024 )
+    },
+    {
+      "exchange",
+      Config::oRuntime_exchange,
+      Config::Runtime,
+      "Data to exchange between repositories in import/export process\n"
+      "Can be specified multiple times\n"
+      "Valid values:\n"
+      "backups - exchange backup instructions (files in backups/ directory)\n"
+      "bundles - exchange bundles with data (files in bunles/ directory)\n"
+      "index - exchange indicies of chunks (files in index/ directory)\n"
+      "No default value, you should specify it explicitly"
+    },
 
+    { "", Config::oBadOption, Config::None }
+  };
+
+  keywords = new Keyword[ sizeof( defaultKeywords) / sizeof( Keyword ) ];
+  std::copy( defaultKeywords, defaultKeywords +
+      sizeof( defaultKeywords) / sizeof( Keyword ), keywords );
+  cleanup_keywords = true;
 }
 
 Config::~Config()
 {
-  // prevent memleak
-  if ( want_cleanup )
+  // prevent memleaks
+  // TODO: use sptr
+  if ( cleanup_storable )
     delete storable;
+  if ( cleanup_keywords )
+    delete[] keywords;
 }
 
 Config::Config():
-  want_cleanup( false )
+  cleanup_storable( true )
 {
-  ConfigInfo * configInfo = new ConfigInfo;
-  storable = configInfo;
+  storable = new ConfigInfo;
+  prefillKeywords();
   dPrintf( "%s is instantiated and initialized with default values\n",
       __CLASS );
 }
 
 Config::Config( ConfigInfo * configInfo ):
-  want_cleanup( false )
+  cleanup_storable( false )
 {
   storable = configInfo;
+  prefillKeywords();
   dPrintf( "%s is instantiated and initialized with supplied ConfigInfo\n",
       __CLASS );
 }
@@ -164,24 +165,25 @@ Config::Config( const Config & configIn, ConfigInfo * configInfo )
   configInfo->MergeFrom( *configIn.storable );
   *this = configIn;
   storable = configInfo;
-  want_cleanup = false;
+  cleanup_storable = false;
+  cleanup_keywords = false;
   dPrintf( "%s is instantiated and initialized with supplied values\n",
       __CLASS );
 }
 
 Config::OpCodes Config::parseToken( const char * option, const OptionType type )
 {
-  for ( u_int i = 0; ConfigHelper::keywords[ i ].name; i++ )
+  for ( u_int i = 0; !keywords[ i ].name.empty(); i++ )
   {
-    if ( strcasecmp( option, ConfigHelper::keywords[ i ].name ) == 0 )
+    if ( strcasecmp( option, keywords[ i ].name.c_str() ) == 0 )
     {
-      if ( ConfigHelper::keywords[ i ].type != type )
+      if ( keywords[ i ].type != type )
       {
         fprintf( stderr, "Invalid option type specified for %s\n", option );
         break;
       }
 
-      return ConfigHelper::keywords[ i ].opcode;
+      return keywords[ i ].opcode;
     }
   }
 
@@ -227,11 +229,11 @@ bool Config::parseOrValidate( const char * option, const OptionType type,
       SKIP_ON_VALIDATION;
       REQUIRE_VALUE;
 
-      if ( sscanf( optionValue, "%zu %n", &uint32Value, &n ) == 1
+      if ( sscanf( optionValue, "%u %n", &uint32Value, &n ) == 1
           && !optionValue[ n ] )
       {
         SET_STORABLE( chunk, max_size, uint32Value );
-        dPrintf( "storable[chunk][max_size] = %zu\n",
+        dPrintf( "storable[chunk][max_size] = %u\n",
             GET_STORABLE( chunk, max_size ) );
 
         return true;
@@ -245,11 +247,11 @@ bool Config::parseOrValidate( const char * option, const OptionType type,
       SKIP_ON_VALIDATION;
       REQUIRE_VALUE;
 
-      if ( sscanf( optionValue, "%zu %n", &uint32Value, &n ) == 1
+      if ( sscanf( optionValue, "%u %n", &uint32Value, &n ) == 1
           && !optionValue[ n ] )
       {
         SET_STORABLE( bundle, max_payload_size, uint32Value );
-        dPrintf( "storable[bundle][max_payload_size] = %zu\n",
+        dPrintf( "storable[bundle][max_payload_size] = %u\n",
             GET_STORABLE( bundle, max_payload_size ) );
 
         return true;
@@ -263,7 +265,7 @@ bool Config::parseOrValidate( const char * option, const OptionType type,
       REQUIRE_VALUE;
 
       if ( PARSE_OR_VALIDATE(
-            sscanf( optionValue, "%zu %n", &uint32Value, &n ) != 1 ||
+            sscanf( optionValue, "%u %n", &uint32Value, &n ) != 1 ||
             optionValue[ n ] || uint32Value > 19,
             GET_STORABLE( lzma, compression_level ) > 19 )
          )
@@ -271,7 +273,7 @@ bool Config::parseOrValidate( const char * option, const OptionType type,
 
       SKIP_ON_VALIDATION;
       SET_STORABLE( lzma, compression_level, uint32Value );
-      dPrintf( "storable[lzma][compression_level] = %zu\n",
+      dPrintf( "storable[lzma][compression_level] = %u\n",
           GET_STORABLE( lzma, compression_level ) );
 
       return true;
@@ -465,14 +467,14 @@ void Config::showHelp( const OptionType type )
 "show this message\n"
 "", ( type == Runtime ? "runtime" : ( type == Storable ? "storable" : "" ) ) );
 
-  for ( u_int i = 0; ConfigHelper::keywords[ i ].name; i++ )
+  for ( u_int i = 0; !keywords[ i ].name.empty(); i++ )
   {
-    if ( ConfigHelper::keywords[ i ].type != type )
+    if ( keywords[ i ].type != type )
       continue;
 
-    fprintf( stderr, "\n== %s ==\n", ConfigHelper::keywords[ i ].name );
-    fprintf( stderr, ConfigHelper::keywords[ i ].description,
-       ConfigHelper::keywords[ i ].defaultValue.c_str() );
+    fprintf( stderr, "\n== %s ==\n", keywords[ i ].name.c_str() );
+    fprintf( stderr, keywords[ i ].description.c_str(),
+       keywords[ i ].defaultValue.c_str() );
     fprintf( stderr, "\n" );
   }
 }
