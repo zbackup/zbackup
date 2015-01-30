@@ -418,7 +418,7 @@ int main( int argc, char *argv[] )
 
           if ( strcmp( option, "help" ) == 0 )
           {
-            Config::showHelp( optionType );
+            config.showHelp( optionType );
             return EXIT_SUCCESS;
           }
           else
