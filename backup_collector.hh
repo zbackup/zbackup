@@ -7,15 +7,46 @@
 #include "zbackup_base.hh"
 #include "chunk_storage.hh"
 
-class ZCollector : public ZBackupBase
+#include <string>
+#include <vector>
+
+#include "bundle.hh"
+#include "chunk_index.hh"
+#include "backup_restorer.hh"
+#include "backup_file.hh"
+#include "backup_exchanger.hh"
+
+#include "debug.hh"
+
+using std::string;
+
+class BundleCollector: public IndexProcessor
 {
-  ChunkStorage::Reader chunkStorageReader;
+private:
+  Bundle::Id savedId;
+  int totalChunks, usedChunks, indexTotalChunks, indexUsedChunks;
+  int indexModifiedBundles, indexKeptBundles, indexRemovedBundles;
+  bool indexModified;
+  vector< string > filesToUnlink;
 
 public:
-  ZCollector( std::string const & storageDir, std::string const & password,
-              Config & configIn );
+  string bundlesPath;
+  bool verbose;
+  ChunkStorage::Reader *chunkStorageReader;
+  ChunkStorage::Writer *chunkStorageWriter;
+  BackupRestorer::ChunkSet usedChunkSet;
 
-  void gc();
+  void startIndex( string const & indexFn );
+
+  void finishIndex( string const & indexFn );
+
+  void startBundle( Bundle::Id const & bundleId );
+
+  void processChunk( ChunkId const & chunkId );
+
+  void finishBundle( Bundle::Id const & bundleId, BundleInfo const & info );
+
+  void commit();
 };
 
 #endif

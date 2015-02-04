@@ -16,178 +16,88 @@
 
 using std::string;
 
-namespace {
-
-class BundleCollector: public IndexProcessor
+void BundleCollector::startIndex( string const & indexFn )
 {
-private:
-  Bundle::Id savedId;
-  int totalChunks, usedChunks, indexTotalChunks, indexUsedChunks;
-  int indexModifiedBundles, indexKeptBundles, indexRemovedBundles;
-  bool indexModified;
-  vector< string > filesToUnlink;
+  indexModified = false;
+  indexTotalChunks = indexUsedChunks = 0;
+  indexModifiedBundles = indexKeptBundles = indexRemovedBundles = 0;
+}
 
-public:
-  string bundlesPath;
-  bool verbose;
-  ChunkStorage::Reader *chunkStorageReader;
-  ChunkStorage::Writer *chunkStorageWriter;
-  BackupRestorer::ChunkSet usedChunkSet;
-
-  void startIndex( string const & indexFn )
+void BundleCollector::finishIndex( string const & indexFn )
+{
+  if ( indexModified )
   {
-    indexModified = false;
-    indexTotalChunks = indexUsedChunks = 0;
-    indexModifiedBundles = indexKeptBundles = indexRemovedBundles = 0;
+    verbosePrintf( "Chunks: %d used / %d total, bundles: %d kept / %d modified / %d removed\n",
+                   indexUsedChunks, indexTotalChunks, indexKeptBundles, indexModifiedBundles, indexRemovedBundles);
+    filesToUnlink.push_back( indexFn );
   }
+}
 
-  void finishIndex( string const & indexFn )
+void BundleCollector::startBundle( Bundle::Id const & bundleId )
+{
+  savedId = bundleId;
+  totalChunks = 0;
+  usedChunks = 0;
+}
+
+void BundleCollector::processChunk( ChunkId const & chunkId )
+{
+  totalChunks++;
+  if ( usedChunkSet.find( chunkId ) != usedChunkSet.end() )
   {
-    if ( indexModified )
-    {
-      verbosePrintf( "Chunks: %d used / %d total, bundles: %d kept / %d modified / %d removed\n",
-                     indexUsedChunks, indexTotalChunks, indexKeptBundles, indexModifiedBundles, indexRemovedBundles);
-      filesToUnlink.push_back( indexFn );
-    }
+    usedChunks++;
   }
+}
 
-  void startBundle( Bundle::Id const & bundleId )
+void BundleCollector::finishBundle( Bundle::Id const & bundleId, BundleInfo const & info )
+{
+  string i = Bundle::generateFileName( savedId, "", false );
+  indexTotalChunks += totalChunks;
+  indexUsedChunks += usedChunks;
+  if ( usedChunks == 0 )
   {
-    savedId = bundleId;
-    totalChunks = 0;
-    usedChunks = 0;
+    if ( verbose )
+      printf( "delete %s\n", i.c_str() );
+    filesToUnlink.push_back( Dir::addPath( bundlesPath, i ) );
+    indexModified = true;
+    indexRemovedBundles++;
   }
-
-  void processChunk( ChunkId const & chunkId )
+  else if ( usedChunks < totalChunks )
   {
-    totalChunks++;
-    if ( usedChunkSet.find( chunkId ) != usedChunkSet.end() )
+    if ( verbose )
+      printf( "%s: used %d/%d\n", i.c_str(), usedChunks, totalChunks );
+    filesToUnlink.push_back( Dir::addPath( bundlesPath, i ) );
+    indexModified = true;
+    // Copy used chunks to the new index
+    string chunk;
+    size_t chunkSize;
+    for ( int x = info.chunk_record_size(); x--; )
     {
-      usedChunks++;
-    }
-  }
-
-  void finishBundle( Bundle::Id const & bundleId, BundleInfo const & info )
-  {
-    string i = Bundle::generateFileName( savedId, "", false );
-    indexTotalChunks += totalChunks;
-    indexUsedChunks += usedChunks;
-    if ( usedChunks == 0 )
-    {
-      if ( verbose )
-        printf( "delete %s\n", i.c_str() );
-      filesToUnlink.push_back( Dir::addPath( bundlesPath, i ) );
-      indexModified = true;
-      indexRemovedBundles++;
-    }
-    else if ( usedChunks < totalChunks )
-    {
-      if ( verbose )
-        printf( "%s: used %d/%d\n", i.c_str(), usedChunks, totalChunks );
-      filesToUnlink.push_back( Dir::addPath( bundlesPath, i ) );
-      indexModified = true;
-      // Copy used chunks to the new index
-      string chunk;
-      size_t chunkSize;
-      for ( int x = info.chunk_record_size(); x--; )
+      BundleInfo_ChunkRecord const & record = info.chunk_record( x );
+      ChunkId id( record.id() );
+      if ( usedChunkSet.find( id ) != usedChunkSet.end() )
       {
-        BundleInfo_ChunkRecord const & record = info.chunk_record( x );
-        ChunkId id( record.id() );
-        if ( usedChunkSet.find( id ) != usedChunkSet.end() )
-        {
-          chunkStorageReader->get( id, chunk, chunkSize );
-          chunkStorageWriter->add( id, chunk.data(), chunkSize );
-        }
+        chunkStorageReader->get( id, chunk, chunkSize );
+        chunkStorageWriter->add( id, chunk.data(), chunkSize );
       }
-      indexModifiedBundles++;
     }
-    else
-    {
-      chunkStorageWriter->addBundle( info, savedId );
-      if ( verbose )
-        printf( "keep %s\n", i.c_str() );
-      indexKeptBundles++;
-    }
+    indexModifiedBundles++;
   }
-
-  void commit()
+  else
   {
-    for ( int i = filesToUnlink.size(); i--; )
-    {
-      unlink( filesToUnlink[i].c_str() );
-    }
-    filesToUnlink.clear();
-    chunkStorageWriter->commit();
+    chunkStorageWriter->addBundle( info, savedId );
+    if ( verbose )
+      printf( "keep %s\n", i.c_str() );
+    indexKeptBundles++;
   }
-};
-
 }
 
-ZCollector::ZCollector( string const & storageDir, string const & password,
-                    Config & configIn ):
-  ZBackupBase( storageDir, password, configIn ),
-  chunkStorageReader( config, encryptionkey, chunkIndex, getBundlesPath(),
-                      config.runtime.cacheSize )
+void BundleCollector::commit()
 {
-}
-
-void ZCollector::gc()
-{
-  ChunkIndex chunkReindex( encryptionkey, tmpMgr, getIndexPath(), true );
-
-  ChunkStorage::Writer chunkStorageWriter( config, encryptionkey, tmpMgr,
-      chunkReindex, getBundlesPath(), getIndexPath(), config.runtime.threads );
-
-  string fileName;
-
-  Dir::Entry entry;
-
-  BundleCollector collector;
-  collector.bundlesPath = getBundlesPath();
-  collector.chunkStorageReader = &this->chunkStorageReader;
-  collector.chunkStorageWriter = &chunkStorageWriter;
-  collector.verbose = false;
-
-  verbosePrintf( "Checking used chunks...\n" );
-
-  verbosePrintf( "Searching for backups...\n" );
-  vector< string > backups = BackupExchanger::findOrRebuild( getBackupsPath() );
-
-  for ( std::vector< string >::iterator it = backups.begin(); it != backups.end(); ++it )
+  for ( int i = filesToUnlink.size(); i--; )
   {
-    string backup( Dir::addPath( getBackupsPath(), *it ) );
-
-    verbosePrintf( "Checking backup %s...\n", backup.c_str() );
-
-    BackupInfo backupInfo;
-
-    BackupFile::load( backup, encryptionkey, backupInfo );
-
-    string backupData;
-
-    BackupRestorer::restoreIterations( chunkStorageReader, backupInfo, backupData, &collector.usedChunkSet );
-
-    BackupRestorer::restore( chunkStorageReader, backupData, NULL, &collector.usedChunkSet );
+    unlink( filesToUnlink[i].c_str() );
   }
-
-  verbosePrintf( "Checking bundles...\n" );
-
-  chunkIndex.loadIndex( collector );
-
-  collector.commit();
-
-  verbosePrintf( "Cleaning up...\n" );
-
-  string bundlesPath = getBundlesPath();
-  Dir::Listing bundleLst( bundlesPath );
-  while( bundleLst.getNext( entry ) )
-  {
-    const string dirPath = Dir::addPath( bundlesPath, entry.getFileName());
-    if ( entry.isDir() && Dir::isDirEmpty( dirPath ) )
-    {
-      Dir::remove( dirPath );
-    }
-  }
-
-  verbosePrintf( "Garbage collection complete\n" );
+  filesToUnlink.clear();
+  chunkStorageWriter->commit();
 }
