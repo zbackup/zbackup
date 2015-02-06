@@ -40,7 +40,7 @@ sudo make install
 # or just run as ./zbackup
 ```
 
-ZBackup is also part of the [Fedora/EPEL](https://apps.fedoraproject.org/packages/zbackup), [Debian](https://packages.debian.org/search?keywords=zbackup), [Ubuntu](http://packages.ubuntu.com/search?keywords=zbackup), [Arch Linux](https://aur.archlinux.org/packages/zbackup/) and [FreeBSD](http://www.freshports.org/sysutils/zbackup/).
+`zbackup` is also part of the [Fedora/EPEL](https://apps.fedoraproject.org/packages/zbackup), [Debian](https://packages.debian.org/search?keywords=zbackup), [Ubuntu](http://packages.ubuntu.com/search?keywords=zbackup), [Arch Linux](https://aur.archlinux.org/packages/zbackup/) and [FreeBSD](http://www.freshports.org/sysutils/zbackup/).
 
 To use:
 
@@ -86,9 +86,7 @@ If you have a 32-bit system and a lot of cores, consider lowering the number of 
  * Right now the only modes supported are reading from standard input and writing to standard output. FUSE mounts and NBD servers may be added later if someone contributes the code.
  * The program keeps all known blocks in an in-RAM hash table, which may create scalability problems for very large repos (see [below](#scalability)).
  * The only encryption mode currently implemented is `AES-128` in `CBC` mode with `PKCS#7` padding. If you believe that this is not secure enough, patches are welcome. Before you jump to conclusions however, read [this article](http://www.schneier.com/blog/archives/2009/07/another_new_aes.html).
- * The only compression mode supported is LZMA, which suits backups very nicely.
  * It's only possible to fully restore the backup in order to get to a required file, without any option to quickly pick it out. `tar` would not allow to do it anyway, but e.g. for `zip` files it could have been possible. This is possible to implement though, e.g. by exposing the data over a FUSE filesystem.
- * There's no option to specify block and bundle sizes other than the default ones (currently `64k` and `2MB` respectively), though it's trivial to add command-line switches for those.
 
 Most of those limitations can be lifted by implementing the respective features.
 
@@ -143,29 +141,25 @@ All in all, as long as the amount of RAM permits, one can go up to several terab
 
 # Compression
 
-zbackup uses LZMA to compress stored data. It compresses very well, but it will slow down your backup
+`zbackup` uses LZMA to compress stored data. It compresses very well, but it will slow down your backup
 (unless you have a very fast CPU).
 
 LZO is much faster, but the files will be bigger. If you don't
 want your backup process to be cpu-bound, you should consider using LZO. However, there are some caveats:
 
-1. LZO is so fast that other parts of zbackup consume significant portions of the CPU. In fact, it is only
-   using one core on my machine because compression is the only thing that can run in parallel.
-2. I've hacked the LZO support in a day. You shouldn't trust it. Please make sure that restore works before
-   you assume that your data is safe. That may still be faster than a backup with LZMA ;-)
-3. LZMA is still the default, so make sure that you use the `--compression lzo` argument when you init the
-   repo or whenever you do a backup.
+* LZO is so fast that other parts of `zbackup` consume significant portions of the CPU. In fact, it is only using one core on my machine because compression is the only thing that can run in parallel.
+* I've hacked the LZO support in a day. You shouldn't trust it. Please make sure that restore works before you assume that your data is safe. That may still be faster than a backup with LZMA ;-)
+* LZMA is still the default, so make sure that you use the `-o bundle.compression_method=lzo` argument when you init the repo or whenever you do a backup.
 
 You can mix LZMA and LZO in a repository. Each bundle file has a field that says how it was compressed, so
-zbackup will use the right method to decompress it. You could use an old zbackup respository with only LZMA
-bundles and start using LZO. However, please think twice before you do that because old versions of zbackup
+`zbackup` will use the right method to decompress it. You could use an old `zbackup` respository with only LZMA
+bundles and start using LZO. However, please think twice before you do that because old versions of `zbackup`
 won't be able to read those bundles.
 
 # Improvements
 
 There's a lot to be improved in the program. It was released with the minimum amount of functionality to be useful. It is also stable. This should hopefully stimulate people to join the development and add all those other fancy features. Here's a list of ideas:
 
- * Additional options, such as configurable chunk and bundle sizes etc.
  * Ability to change bundle type (between encrypted and non-encrypted).
  * Improved garbage collection. The program should support ability to specify maximum index file size / maximum index file count (for better compatibility with cloud storages as well) or something like retention policy.
  * A command to fsck the repo by doing something close to what garbage collection does, but also checking all hashes and so on.
@@ -193,7 +187,7 @@ The author is reachable over email at <ikm@zbackup.org>. Please be constructive 
  * [rdiff-backup](http://www.nongnu.org/rdiff-backup/), based on the original `rsync` algorithm. Does not do global deduplication, only working over the files with the same file name.
  * [duplicity](http://duplicity.nongnu.org/), which looks similar to `rdiff-backup` with regards to mode of operation.
  * Some filesystems (most notably [ZFS](http://en.wikipedia.org/wiki/ZFS) and [Btrfs](http://en.wikipedia.org/wiki/Btrfs)) provide deduplication features. They do so only at block level though, without a sliding window, so they can not accomodate to arbitrary byte insertion/deletion in the middle of data.
- * [Attic](https://attic-backup.org/), which looks very similar to zbackup.
+ * [Attic](https://attic-backup.org/), which looks very similar to `zbackup`.
 
 # Credits
 
