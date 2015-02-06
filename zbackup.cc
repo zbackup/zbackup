@@ -15,6 +15,8 @@ int main( int argc, char *argv[] )
 {
   try
   {
+    dPrintf( "ZBackup version %s\n", zbackup_version.c_str() );
+
     bool printHelp = false;
     vector< char const * > args;
     vector< string > passwords;
