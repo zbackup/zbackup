@@ -157,6 +157,7 @@ ExtendedStorageInfo ZBackupBase::loadExtendedStorageInfo(
     {
       ExtendedStorageInfo extendedStorageInfo;
       Config config( extendedStorageInfo.mutable_config() );
+      config.reset_storable();
       config.SET_STORABLE( chunk, max_size, storageInfo.chunk_max_size() );
       config.SET_STORABLE( bundle, max_payload_size,
           storageInfo.bundle_max_payload_size() );
