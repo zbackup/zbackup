@@ -542,10 +542,15 @@ void Config::reset_storable()
   // TODO: Use protobuf introspection
   // to fill messages in loop with default values
   // without explicit declaration
-  SET_STORABLE( chunk, max_size, GET_STORABLE( chunk, max_size ) );
-  SET_STORABLE( bundle, max_payload_size, GET_STORABLE( bundle, max_payload_size ) );
-  SET_STORABLE( bundle, compression_method, GET_STORABLE( bundle, compression_method ) );
-  SET_STORABLE( lzma, compression_level, GET_STORABLE( lzma, compression_level ) );
+  Config defaultConfig;
+
+  SET_STORABLE( chunk, max_size, defaultConfig.GET_STORABLE( chunk, max_size ) );
+  SET_STORABLE( bundle, max_payload_size, defaultConfig.GET_STORABLE(
+        bundle, max_payload_size ) );
+  SET_STORABLE( bundle, compression_method, defaultConfig.GET_STORABLE(
+        bundle, compression_method ) );
+  SET_STORABLE( lzma, compression_level, defaultConfig.GET_STORABLE(
+        lzma, compression_level ) );
 }
 
 void Config::show()

@@ -156,8 +156,8 @@ invalid_option:
 
 "Usage: %s [flags] <command [action]> [command args]\n"
 "  Flags: --non-encrypted|--password-file <file>\n"
-"          password flag should be specified twice if import/export/passwd\n"
-"          command specified\n"
+"          password flag should be specified twice if\n"
+"          import/export/passwd command specified\n"
 "         --silent (default is verbose)\n"
 "         --help|-h show this message\n"
 "         -O <Option[=Value]> (overrides runtime configuration,\n"
@@ -173,13 +173,14 @@ invalid_option:
 "    export <source storage path> <destination storage path> -\n"
 "            performs export from source to destination storage\n"
 "    import <source storage path> <destination storage path> -\n"
-"            performs import from source to destination storage\n"
+"            performs import from source to destination storage,\n"
+"            for export/import storage path must be\n"
+"            a valid (initialized) storage\n"
 "    gc <storage path> - performs chunk garbage collection\n"
 "    passwd <storage path> - changes repo info file passphrase\n"
 //"    info <storage path> - shows repo information\n"
-"    config [show|edit|set] <storage path> - performs configuration\n"
-"            manipulations (default is show)\n"
-"  For export/import storage path must be a valid (initialized) storage\n"
+"    config [show|edit|set|reset] <storage path> - performs\n"
+"            configuration manipulations (default is show)\n"
 "", zbackup_version.c_str(), *argv );
       return EXIT_FAILURE;
     }
@@ -337,7 +338,7 @@ invalid_option:
     {
       if ( args.size() < 2 || args.size() > 3 )
       {
-        fprintf( stderr, "Usage: %s %s [show|edit|set] <storage path>\n",
+        fprintf( stderr, "Usage: %s %s [show|edit|set|reset] <storage path>\n",
                  *argv, args[ 0 ] );
         return EXIT_FAILURE;
       }
@@ -363,6 +364,15 @@ invalid_option:
       {
         ZBackupBase zbb( ZBackupBase::deriveStorageDirFromBackupsFile( args[ fieldStorage ], true ),
             passwords[ 0 ], config, true );
+        zbb.config.show();
+        zbb.saveExtendedStorageInfo();
+      }
+      else
+      if ( args.size() > 2 && strcmp( args[ fieldAction ], "reset" ) == 0 )
+      {
+        ZBackupBase zbb( ZBackupBase::deriveStorageDirFromBackupsFile( args[ fieldStorage ], true ),
+            passwords[ 0 ], true );
+        zbb.config.reset_storable();
         zbb.config.show();
         zbb.saveExtendedStorageInfo();
       }
