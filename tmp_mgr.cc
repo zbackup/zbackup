@@ -3,6 +3,7 @@
 
 #include "tmp_mgr.hh"
 
+#include <sys/stat.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include "dir.hh"
@@ -43,6 +44,7 @@ sptr< TemporaryFile > TmpMgr::makeTemporaryFile()
 {
   string name( Dir::addPath( path, "XXXXXX") );
 
+  umask( S_IRUSR | S_IWUSR | S_IRGRP );
   int fd = mkstemp( &name[ 0 ] );
 
   if ( fd == -1 || close( fd ) != 0 )
