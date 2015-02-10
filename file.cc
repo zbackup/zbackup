@@ -44,7 +44,8 @@ void File::erase( std::string const & filename ) throw( exCantErase )
 }
 
 void File::rename( std::string const & from,
-                   std::string const & to ) throw( exCantRename )
+                   std::string const & to ) throw( exCantRename,
+                                                   exCantErase )
 {
   int res = 0;
   res = ::rename( from.c_str(), to.c_str() );
@@ -60,13 +61,14 @@ void File::rename( std::string const & from,
       /* Open the input file. */
       read_fd = ::open( from.c_str(), O_RDONLY );
       /* Stat the input file to obtain its size. */
-      fstat( read_fd, &stat_buf );
+      if ( fstat( read_fd, &stat_buf ) != 0 )
+        throw exCantRename( from + " to " + to );
       /* Open the output file for writing, with the same permissions as the
        source file. */
       write_fd = ::open( to.c_str(), O_WRONLY | O_CREAT, stat_buf.st_mode );
       /* Blast the bytes from one file to the other. */
       #if defined( __APPLE__ )
-      if ( -1 == sendfile(write_fd, read_fd, offset, &stat_buf.st_size, NULL, 0) )
+      if ( -1 == sendfile( write_fd, read_fd, offset, &stat_buf.st_size, NULL, 0 ) )
          throw exCantRename( from + " to " + to );
       #elif defined( __OpenBSD__ )
 
@@ -80,7 +82,7 @@ void File::rename( std::string const & from,
          throw exCantRename( from + " to " + to );
 
       #else
-      if ( -1 == sendfile(write_fd, read_fd, &offset, stat_buf.st_size) )
+      if ( -1 == sendfile( write_fd, read_fd, &offset, stat_buf.st_size ) )
          throw exCantRename( from + " to " + to );
       #endif
 

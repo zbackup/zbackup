@@ -138,7 +138,8 @@ public:
 
   /// Renames the given file
   static void rename( std::string const & from,
-                      std::string const & to ) throw( exCantRename );
+                      std::string const & to ) throw( exCantRename,
+                                                      exCantErase );
 
   /// Throwing this class instead of exReadError will make the description
   /// include the file name

@@ -76,7 +76,7 @@ public:
   void showHelp( const OptionType );
 
   OpCodes parseToken( const char *, const OptionType );
-  bool parseOrValidate( const char *, const OptionType, bool validate = false );
+  bool parseOrValidate( const string &, const OptionType, bool validate = false );
 
   Config( const Config &, ConfigInfo * );
   Config( ConfigInfo * );

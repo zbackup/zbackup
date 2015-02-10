@@ -190,7 +190,7 @@ Config::OpCodes Config::parseToken( const char * option, const OptionType type )
   return Config::oBadOption;
 }
 
-bool Config::parseOrValidate( const char * option, const OptionType type,
+bool Config::parseOrValidate( const string & option, const OptionType type,
    bool validate )
 {
   string prefix;
@@ -201,21 +201,21 @@ bool Config::parseOrValidate( const char * option, const OptionType type,
     prefix.assign( "storable" );
 
   dPrintf( "%s %s option \"%s\"...\n", ( validate ? "Validating" : "Parsing" ),
-      prefix.c_str(), option );
+      prefix.c_str(), option.c_str() );
 
   bool hasValue = false;
-  size_t optionLength = strlen( option );
+  size_t optionLength = option.length() + 1;
   char optionName[ optionLength ], optionValue[ optionLength ];
 
-  if ( sscanf( option, "%[^=]=%s", optionName, optionValue ) == 2 )
+  if ( sscanf( option.c_str(), "%[^=]=%s", optionName, optionValue ) == 2 )
   {
     dPrintf( "%s option %s: %s\n", prefix.c_str(), optionName, optionValue );
     hasValue = true;
   }
   else
-    dPrintf( "%s option %s\n", prefix.c_str(), option );
+    dPrintf( "%s option %s\n", prefix.c_str(), option.c_str() );
 
-  int opcode = parseToken( hasValue ? optionName : option, type );
+  int opcode = parseToken( hasValue ? optionName : option.c_str(), type );
 
   size_t sizeValue;
   char suffix[ 16 ];

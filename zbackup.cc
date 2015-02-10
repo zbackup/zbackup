@@ -24,8 +24,7 @@ int main( int argc, char *argv[] )
 
     for( int x = 1; x < argc; ++x )
     {
-      char const * option;
-      string deprecated;
+      string option;
       Config::OptionType optionType = Config::Runtime;
 
       if ( strcmp( argv[ x ], "--password-file" ) == 0 && x + 1 < argc )
@@ -60,20 +59,18 @@ int main( int argc, char *argv[] )
       if ( strcmp( argv[ x ], "--exchange" ) == 0 && x + 1 < argc )
       {
         fprintf( stderr, "%s is deprecated, use -O exchange instead\n", argv[ x ] );
-        deprecated = argv[ x ] + 2;//; + "=" + argv[ x + 1 ];
-        deprecated += "=";
-        deprecated += argv[ x + 1 ];
-        option = deprecated.c_str();
+        option = argv[ x ] + 2;//; + "=" + argv[ x + 1 ];
+        option += "=";
+        option += argv[ x + 1 ];
         goto parse_option;
       }
       else
       if ( strcmp( argv[ x ], "--threads" ) == 0 && x + 1 < argc )
       {
         fprintf( stderr, "%s is deprecated, use -O threads instead\n", argv[ x ] );
-        deprecated = argv[ x ] + 2;
-        deprecated += "=";
-        deprecated += argv[ x + 1 ];
-        option = deprecated.c_str();
+        option = argv[ x ] + 2;
+        option += "=";
+        option += argv[ x + 1 ];
         goto parse_option;
       }
       else
@@ -85,20 +82,19 @@ int main( int argc, char *argv[] )
         int n;
         if ( sscanf( argv[ x + 1 ], "%zu %15s %n",
               &cacheSizeMb, suffix, &n ) == 2 && !argv[ x + 1][ n ] )
-
-        deprecated = argv[ x ] + 2;
-        deprecated += "=" + Utils::numberToString( cacheSizeMb ) + "MiB";
-        option = deprecated.c_str();
-        goto parse_option;
+        {
+          option = argv[ x ] + 2;
+          option += "=" + Utils::numberToString( cacheSizeMb ) + "MiB";
+          goto parse_option;
+        }
       }
       else
       if ( strcmp( argv[ x ], "--compression" ) == 0 && x + 1 < argc )
       {
         fprintf( stderr, "%s is deprecated, use -o bundle.compression_method instead\n", argv[ x ] );
-        deprecated = argv[ x ] + 2;
-        deprecated += "=";
-        deprecated += argv[ x + 1 ];
-        option = deprecated.c_str();
+        option = argv[ x ] + 2;
+        option += "=";
+        option += argv[ x + 1 ];
         optionType = Config::Storable;
         goto parse_option;
       }
@@ -112,7 +108,7 @@ int main( int argc, char *argv[] )
           && x + 1 < argc )
       {
         option = argv[ x + 1 ];
-        if ( option )
+        if ( !option.empty() )
         {
           if ( strcmp( argv[ x ], "-O" ) == 0 )
             optionType = Config::Runtime;
@@ -120,7 +116,7 @@ int main( int argc, char *argv[] )
           if ( strcmp( argv[ x ], "-o" ) == 0 )
             optionType = Config::Storable;
 
-          if ( strcmp( option, "help" ) == 0 )
+          if ( strcmp( option.c_str(), "help" ) == 0 )
           {
             config.showHelp( optionType );
             return EXIT_SUCCESS;
@@ -136,7 +132,7 @@ parse_option:
         {
 invalid_option:
           fprintf( stderr, "Invalid option specified: %s\n",
-                   option );
+                   option.c_str() );
           return EXIT_FAILURE;
         }
         ++x;
