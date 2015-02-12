@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/zbackup/zbackup.svg)](https://travis-ci.org/zbackup/zbackup)
+[![Build Status](https://travis-ci.org/zbackup/zbackup.svg)](https://travis-ci.org/zbackup/zbackup) [![Coverity Scan Build Status](https://scan.coverity.com/projects/4229/badge.svg)](https://scan.coverity.com/projects/4229)
 
 # Introduction
 
