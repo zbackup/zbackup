@@ -22,7 +22,7 @@ BackupCreator::BackupCreator( Config const & config,
   chunkIndex( chunkIndex ), chunkStorageWriter( chunkStorageWriter ),
   ringBufferFill( 0 ),
   chunkToSaveFill( 0 ),
-  backupDataStream( new google::protobuf::io::StringOutputStream( &backupData ) ),
+  backupDataStream( new google::protobuf::io::CodedOutputStream( new google::protobuf::io::StringOutputStream( &backupData ) ) ),
   chunkIdGenerated( false )
 {
   // In our ring buffer we have enough space to store one chunk plus an extra

@@ -49,7 +49,8 @@ class BackupCreator: ChunkIndex::ChunkInfoInterface, NoCopy
   RollingHash rollingHash;
 
   string backupData;
-  sptr< google::protobuf::io::StringOutputStream > backupDataStream;
+
+  sptr< google::protobuf::io::CodedOutputStream > backupDataStream;
 
   /// Sees if the current block in the ring buffer exists in the chunk store.
   /// If it does, the reference is emitted and the ring buffer is cleared
