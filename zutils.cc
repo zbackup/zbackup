@@ -5,6 +5,7 @@
 #include "backup_creator.hh"
 #include "sha256.hh"
 #include "backup_collector.hh"
+#include <unistd.h>
 
 using std::vector;
 using std::bitset;

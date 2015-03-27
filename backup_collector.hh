@@ -9,6 +9,7 @@
 
 #include <string>
 #include <vector>
+#include <unistd.h>
 
 #include "bundle.hh"
 #include "chunk_index.hh"
