@@ -3,6 +3,8 @@
 
 #include <sys/wait.h>
 #include <cerrno>
+#include <unistd.h>
+#include <signal.h>
 
 #include "zbackup_base.hh"
 
