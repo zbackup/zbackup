@@ -44,8 +44,13 @@ sptr< TemporaryFile > TmpMgr::makeTemporaryFile()
 {
   string name( Dir::addPath( path, "XXXXXX") );
 
-  umask( S_IRUSR | S_IWUSR | S_IRGRP );
+  // Set the umask to remove permisions of grp and other
+  // in case an insecure (older) mkstemp is used.
+  mode_t old_mask = umask( S_IRWXG | S_IRWXO );
+  // Create the temporary file.
   int fd = mkstemp( &name[ 0 ] );
+  // Reset the umask to the previous setting
+  umask(old_mask);
 
   if ( fd == -1 || close( fd ) != 0 )
     throw exCantCreate( path );
