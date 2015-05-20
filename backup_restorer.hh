@@ -9,6 +9,9 @@
 #include <string>
 #include <set>
 
+#undef __DEPRECATED
+#include <ext/hash_map>
+
 #include "chunk_storage.hh"
 #include "ex.hh"
 
@@ -20,17 +23,41 @@ public:
   virtual ~DataSink() {}
 };
 
+/// Generic interface to seekable data output
+class SeekableSink
+{
+public:
+  virtual void saveData( int64_t position, void const * data, size_t size )=0;
+};
+
+namespace __gnu_cxx
+{
+  template<>
+  struct hash< Bundle::Id >
+  {
+    size_t operator()( Bundle::Id v ) const
+    { return *((size_t*)(v.blob)); }
+  };
+}
+
 /// Restores the backup
 namespace BackupRestorer {
 
 DEF_EX( Ex, "Backup restorer exception", std::exception )
 DEF_EX( exTooManyBytesToEmit, "A backup record asks to emit too many bytes", Ex )
+DEF_EX( exBytesToMap, "Can't restore bytes to ChunkMap", Ex )
 
 typedef std::set< ChunkId > ChunkSet;
+typedef std::vector< std::pair < ChunkId, int64_t > > ChunkPosition;
+typedef __gnu_cxx::hash_map< Bundle::Id, ChunkPosition > ChunkMap;
 
 /// Restores the given backup
 void restore( ChunkStorage::Reader &, std::string const & backupData,
-              DataSink *, ChunkSet * );
+              DataSink *, ChunkSet *, ChunkMap *, SeekableSink * );
+
+/// Restores ChunkMap using seekable output
+void restoreMap( ChunkStorage::Reader & chunkStorageReader,
+              ChunkMap const * chunkMap, SeekableSink *output );
 
 /// Performs restore iterations on backupData
 void restoreIterations( ChunkStorage::Reader &, BackupInfo &, std::string &, ChunkSet * );

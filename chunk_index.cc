@@ -12,8 +12,8 @@
 #include "index_file.hh"
 #include "zbackup.pb.h"
 
-ChunkIndex::Chain::Chain( ChunkId const & id, Bundle::Id const * bundleId ):
-  next( 0 ), bundleId( bundleId )
+ChunkIndex::Chain::Chain( ChunkId const & id, uint32_t size, Bundle::Id const * bundleId ):
+  next( 0 ), size( size ), bundleId( bundleId )
 {
   memcpy( cryptoHash, id.cryptoHash, sizeof( cryptoHash ) );
 }
@@ -60,7 +60,7 @@ void ChunkIndex::loadIndex( IndexProcessor & ip )
             throw exIncorrectChunkIdSize();
 
           id.setFromBlob( record.id().data() );
-          ip.processChunk( id );
+          ip.processChunk( id, record.size() );
         }
 
         ip.finishBundle( *savedId, info );
@@ -87,9 +87,9 @@ void ChunkIndex::startBundle( Bundle::Id const & bundleId )
   lastBundleId = &bundleId;
 }
 
-void ChunkIndex::processChunk( ChunkId const & chunkId )
+void ChunkIndex::processChunk( ChunkId const & chunkId, uint32_t size )
 {
-  registerNewChunkId( chunkId, lastBundleId );
+  registerNewChunkId( chunkId, size, lastBundleId );
 }
 
 void ChunkIndex::finishBundle( Bundle::Id const &, BundleInfo const & )
@@ -112,7 +112,7 @@ ChunkIndex::ChunkIndex( EncryptionKey const & key, TmpMgr & tmpMgr,
 }
 
 Bundle::Id const * ChunkIndex::findChunk( ChunkId::RollingHashPart rollingHash,
-                                          ChunkInfoInterface & chunkInfo )
+                                          ChunkInfoInterface & chunkInfo, uint32_t *size )
 {
   HashTable::iterator i = hashTable.find( rollingHash );
 
@@ -124,8 +124,14 @@ Bundle::Id const * ChunkIndex::findChunk( ChunkId::RollingHashPart rollingHash,
       id = &chunkInfo.getChunkId();
     // Check the chains
     for ( Chain * chain = i->second; chain; chain = chain->next )
+    {
       if ( chain->equalsTo( *id ) )
+      {
+        if ( size )
+          *size = chain->size;
         return chain->bundleId;
+      }
+    }
   }
 
   return NULL;
@@ -143,13 +149,13 @@ struct ChunkInfoImmediate: public ChunkIndex::ChunkInfoInterface
 };
 }
 
-Bundle::Id const * ChunkIndex::findChunk( ChunkId const & chunkId )
+Bundle::Id const * ChunkIndex::findChunk( ChunkId const & chunkId, uint32_t *size )
 {
   ChunkInfoImmediate chunkInfo( chunkId );
-  return findChunk( chunkId.rollingHash, chunkInfo );
+  return findChunk( chunkId.rollingHash, chunkInfo, size );
 }
 
-ChunkIndex::Chain * ChunkIndex::registerNewChunkId( ChunkId const & id,
+ChunkIndex::Chain * ChunkIndex::registerNewChunkId( ChunkId const & id, uint32_t size,
                                                     Bundle::Id const * bundleId )
 {
   HashTable::iterator i =
@@ -165,15 +171,15 @@ ChunkIndex::Chain * ChunkIndex::registerNewChunkId( ChunkId const & id,
     }
 
   // Create a new chain
-  *chain = new ( storage.allocateObjects< Chain >( 1 ) ) Chain( id, bundleId );
+  *chain = new ( storage.allocateObjects< Chain >( 1 ) ) Chain( id, size, bundleId );
 
   return *chain;
 }
 
 
-bool ChunkIndex::addChunk( ChunkId const & id, Bundle::Id const & bundleId )
+bool ChunkIndex::addChunk( ChunkId const & id, uint32_t size, Bundle::Id const & bundleId )
 {
-  if ( Chain * chain = registerNewChunkId( id, NULL ) )
+  if ( Chain * chain = registerNewChunkId( id, size, NULL ) )
   {
     // Allocate or re-use bundle id
     if ( !lastBundleId || *lastBundleId != bundleId )

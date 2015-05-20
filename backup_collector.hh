@@ -40,7 +40,7 @@ public:
 
   void startBundle( Bundle::Id const & bundleId );
 
-  void processChunk( ChunkId const & chunkId );
+  void processChunk( ChunkId const & chunkId, uint32_t size );
 
   void finishBundle( Bundle::Id const & bundleId, BundleInfo const & info );
 

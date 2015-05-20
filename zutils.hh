@@ -27,7 +27,10 @@ public:
   ZRestore( string const & storageDir, string const & password,
             Config & configIn );
 
-  /// Restores the data to stdin
+  /// Restores the data to file
+  void restoreToFile( string const & inputFileName, string const & outputFileName );
+
+  /// Restores the data to stdout
   void restoreToStdin( string const & inputFileName );
 };
 

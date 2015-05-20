@@ -31,7 +31,8 @@ public:
   enum Mode
   {
     ReadOnly,
-    WriteOnly
+    WriteOnly,
+    ReadWrite
   };
 
   typedef int64_t Offset;
@@ -52,6 +53,9 @@ public:
 
   /// Seeks to the given offset, relative to the current file offset
   void seekCur( Offset ) throw( exSeekError );
+
+  /// Seeks to the given offset, relative to the beginning
+  void seek( Offset ) throw( exSeekError );
 
   ~UnbufferedFile() throw();
 
