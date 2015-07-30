@@ -44,8 +44,9 @@ sptr< TemporaryFile > TmpMgr::makeTemporaryFile()
 {
   string name( Dir::addPath( path, "XXXXXX") );
 
-  umask( S_IRUSR | S_IWUSR | S_IRGRP );
   int fd = mkstemp( &name[ 0 ] );
+  if ( fchmod ( fd, S_IRUSR | S_IWUSR | S_IRGRP ) != 0 )
+    throw exCantCreate( path );
 
   if ( fd == -1 || close( fd ) != 0 )
     throw exCantCreate( path );
