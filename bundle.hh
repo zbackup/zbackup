@@ -17,6 +17,7 @@
 #include "static_assert.hh"
 #include "zbackup.pb.h"
 #include "encrypted_file.hh"
+#include "sptr.hh"
 
 namespace Bundle {
 
