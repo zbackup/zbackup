@@ -54,7 +54,7 @@ void Creator::write( std::string const & fileName, EncryptionKey const & key,
 
   for ( ; ; )
   {
-    bool readCurr = reader.is.Next( &bufCurr, &sizeCurr );
+    bool readCurr = reader.is->Next( &bufCurr, &sizeCurr );
 
     if ( readCurr )
     {
@@ -88,6 +88,9 @@ void Creator::write( std::string const & fileName, EncryptionKey const & key,
       }
     }
   }
+
+  if ( reader.is.get() )
+    reader.is.reset();
 }
 
 void Creator::write( std::string const & fileName, EncryptionKey const & key )
@@ -148,18 +151,18 @@ void Creator::write( std::string const & fileName, EncryptionKey const & key )
   os.writeAdler32();
 }
 
-Reader::Reader( string const & fileName, EncryptionKey const & key, bool prohibitProcessing ):
-  is( fileName.c_str(), key, Encryption::ZeroIv )
+Reader::Reader( string const & fileName, EncryptionKey const & key, bool keepStream )
 {
-  is.consumeRandomIv();
+  is = new EncryptedFile::InputStream( fileName.c_str(), key, Encryption::ZeroIv );
+  is->consumeRandomIv();
 
-  Message::parse( header, is );
+  Message::parse( header, *is );
 
   if ( header.version() >= FileFormatVersionFirstUnsupported )
     throw exUnsupportedVersion();
 
-  Message::parse( info, is );
-  is.checkAdler32();
+  Message::parse( info, *is );
+  is->checkAdler32();
 
   size_t payloadSize = 0;
   for ( int x = info.chunk_record_size(); x--; )
@@ -167,7 +170,7 @@ Reader::Reader( string const & fileName, EncryptionKey const & key, bool prohibi
 
   payload.resize( payloadSize );
 
-  if ( prohibitProcessing )
+  if ( keepStream )
     return;
 
   sptr<Compression::EnDecoder> decoder = Compression::CompressionMethod::findCompression(
@@ -180,7 +183,7 @@ Reader::Reader( string const & fileName, EncryptionKey const & key, bool prohibi
     {
       void const * data;
       int size;
-      if ( !is.Next( &data, &size ) )
+      if ( !is->Next( &data, &size ) )
       {
         decoder.reset();
         throw exBundleReadFailed();
@@ -192,7 +195,7 @@ Reader::Reader( string const & fileName, EncryptionKey const & key, bool prohibi
 
     if ( decoder->process(false) ) {
       if ( decoder->getAvailableInput() )
-        is.BackUp( decoder->getAvailableInput() );
+        is->BackUp( decoder->getAvailableInput() );
       break;
     }
 
@@ -206,7 +209,9 @@ Reader::Reader( string const & fileName, EncryptionKey const & key, bool prohibi
 
   decoder.reset();
 
-  is.checkAdler32();
+  is->checkAdler32();
+  if ( is.get() )
+    is.reset();
 
   // Populate the map
   char const * next = payload.data();

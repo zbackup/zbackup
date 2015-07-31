@@ -64,7 +64,7 @@ public:
   DEF_EX( exDuplicateChunks, "Chunks with the same id found in a bundle", Ex )
 
   Reader( string const & fileName, EncryptionKey const & key,
-      bool prohibitProcessing = false );
+      bool keepStream = false );
 
   /// Reads the chunk into chunkData and returns true, or returns false if there
   /// was no such chunk in the bundle. chunkData may be enlarged but won't
@@ -77,7 +77,7 @@ public:
   string getPayload()
   { return payload; }
 
-  EncryptedFile::InputStream is;
+  sptr< EncryptedFile::InputStream > is;
 };
 
 /// Creates a bundle by adding chunks to it until it's full, then compressing
