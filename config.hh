@@ -78,6 +78,7 @@ public:
   OpCodes parseToken( const char *, const OptionType );
   bool parseOrValidate( const string &, const OptionType, bool validate = false );
 
+  Config( const Config & );
   Config( const Config &, ConfigInfo * );
   Config( ConfigInfo * );
   Config();

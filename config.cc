@@ -151,6 +151,13 @@ Config::Config():
       __CLASS );
 }
 
+Config::Config( const Config & configIn )
+{
+  *this = configIn;
+  cleanup_storable = false;
+  cleanup_keywords = false;
+}
+
 Config::Config( ConfigInfo * configInfo ):
   cleanup_storable( false )
 {
