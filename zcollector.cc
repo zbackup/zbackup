@@ -25,7 +25,7 @@ private:
   int indexModifiedBundles, indexKeptBundles, indexRemovedBundles;
   bool indexModified;
   vector< string > filesToUnlink;
-  
+
 public:
   string bundlesPath;
   bool verbose;
@@ -44,9 +44,15 @@ public:
   {
     if ( indexModified )
     {
-      verbosePrintf( "Chunks: %d used / %d total, bundles: %d kept / %d modified / %d removed\n",
-                     indexUsedChunks, indexTotalChunks, indexKeptBundles, indexModifiedBundles, indexRemovedBundles);
+      verbosePrintf( "Chunks used: %d/%d, bundles: %d kept, %d modified, %d removed\n",
+                     indexUsedChunks, indexTotalChunks, indexKeptBundles,
+                     indexModifiedBundles, indexRemovedBundles);
       filesToUnlink.push_back( indexFn );
+      commit();
+    }
+    else
+    {
+      chunkStorageWriter->reset();
     }
   }
 
@@ -73,16 +79,14 @@ public:
     indexUsedChunks += usedChunks;
     if ( usedChunks == 0 )
     {
-      if ( verbose )
-        printf( "delete %s\n", i.c_str() );
+      verbosePrintf( "Deleting %s bundle\n", i.c_str() );
       filesToUnlink.push_back( Dir::addPath( bundlesPath, i ) );
       indexModified = true;
       indexRemovedBundles++;
     }
     else if ( usedChunks < totalChunks )
     {
-      if ( verbose )
-        printf( "%s: used %d/%d\n", i.c_str(), usedChunks, totalChunks );
+      verbosePrintf( "%s: used %d/%d chunks\n", i.c_str(), usedChunks, totalChunks );
       filesToUnlink.push_back( Dir::addPath( bundlesPath, i ) );
       indexModified = true;
       // Copy used chunks to the new index
@@ -103,8 +107,7 @@ public:
     else
     {
       chunkStorageWriter->addBundle( info, savedId );
-      if ( verbose )
-        printf( "keep %s\n", i.c_str() );
+      verbosePrintf( "Keeping %s bundle\n", i.c_str() );
       indexKeptBundles++;
     }
   }
@@ -149,7 +152,6 @@ void ZCollector::gc()
   collector.bundlesPath = getBundlesPath();
   collector.chunkStorageReader = &this->chunkStorageReader;
   collector.chunkStorageWriter = &chunkStorageWriter;
-  collector.verbose = false;
 
   verbosePrintf( "Checking used chunks...\n" );
 
@@ -185,6 +187,6 @@ void ZCollector::gc()
       Dir::remove(dirPath);
     }
   }
-  
+
   verbosePrintf( "Garbage collection complete\n" );
 }
