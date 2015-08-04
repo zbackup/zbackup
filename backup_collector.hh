@@ -32,7 +32,6 @@ private:
 
 public:
   string bundlesPath;
-  bool verbose;
   ChunkStorage::Reader *chunkStorageReader;
   ChunkStorage::Writer *chunkStorageWriter;
   BackupRestorer::ChunkSet usedChunkSet;
