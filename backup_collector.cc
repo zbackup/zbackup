@@ -3,17 +3,6 @@
 
 #include "backup_collector.hh"
 
-#include <string>
-#include <vector>
-
-#include "bundle.hh"
-#include "chunk_index.hh"
-#include "backup_restorer.hh"
-#include "backup_file.hh"
-#include "backup_exchanger.hh"
-
-#include "debug.hh"
-
 using std::string;
 
 void BundleCollector::startIndex( string const & indexFn )

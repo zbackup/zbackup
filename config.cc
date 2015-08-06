@@ -119,7 +119,7 @@ void Config::prefillKeywords()
       "Valid values:\n"
       "backups - exchange backup instructions (files in backups/ directory)\n"
       "bundles - exchange bundles with data (files in bunles/ directory)\n"
-      "index - exchange indicies of chunks (files in index/ directory)\n"
+      "indexes - exchange indexes of chunks (files in index/ directory)\n"
       "No default value, you should specify it explicitly"
     },
 
@@ -439,12 +439,13 @@ bool Config::parseOrValidate( const string & option, const OptionType type,
       if ( strcmp( optionValue, "bundles" ) == 0 )
         runtime.exchange.set( BackupExchanger::bundles );
       else
-      if ( strcmp( optionValue, "index" ) == 0 )
-        runtime.exchange.set( BackupExchanger::index );
+      if ( strcmp( optionValue, "indexes" ) == 0 ||
+           strcmp( optionValue, "index" ) == 0 )
+        runtime.exchange.set( BackupExchanger::indexes );
       else
       {
         fprintf( stderr, "Invalid exchange value specified: %s\n"
-                 "Must be one of the following: backups, bundles, index.\n",
+                 "Must be one of the following: backups, bundles, indexes.\n",
                  optionValue );
         return false;
       }

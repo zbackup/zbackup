@@ -17,7 +17,7 @@ using std::pair;
 enum {
   backups,
   bundles,
-  index,
+  indexes,
   Flags
 };
 

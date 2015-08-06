@@ -55,7 +55,8 @@ public:
   ZCollector( std::string const & storageDir, std::string const & password,
               Config & configIn );
 
-  void gc();
+  void gcChunks();
+  void gcIndexes();
 };
 
 #endif

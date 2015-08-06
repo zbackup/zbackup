@@ -4,18 +4,11 @@
 #ifndef BACKUP_COLLECTOR_HH_INCLUDED
 #define BACKUP_COLLECTOR_HH_INCLUDED
 
-#include "zbackup_base.hh"
-#include "chunk_storage.hh"
-
 #include <string>
 #include <vector>
-#include <unistd.h>
 
-#include "bundle.hh"
-#include "chunk_index.hh"
 #include "backup_restorer.hh"
 #include "backup_file.hh"
-#include "backup_exchanger.hh"
 
 #include "debug.hh"
 

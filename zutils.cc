@@ -207,13 +207,13 @@ void ZExchange::exchange()
     verbosePrintf( "Bundle exchange completed.\n" );
   }
 
-  if ( config.runtime.exchange.test( BackupExchanger::index ) )
+  if ( config.runtime.exchange.test( BackupExchanger::indexes ) )
   {
-    verbosePrintf( "Searching for indicies...\n" );
-    vector< string > indicies = BackupExchanger::findOrRebuild(
+    verbosePrintf( "Searching for indexes...\n" );
+    vector< string > indexes = BackupExchanger::findOrRebuild(
         srcZBackupBase.getIndexPath(), dstZBackupBase.getIndexPath() );
 
-    for ( std::vector< string >::iterator it = indicies.begin(); it != indicies.end(); ++it )
+    for ( std::vector< string >::iterator it = indexes.begin(); it != indexes.end(); ++it )
     {
       verbosePrintf( "Processing index file %s... ", it->c_str() );
       string outputFileName ( Dir::addPath( dstZBackupBase.getIndexPath(), *it ) );
@@ -307,7 +307,7 @@ ZCollector::ZCollector( string const & storageDir, string const & password,
 {
 }
 
-void ZCollector::gc()
+void ZCollector::gcChunks()
 {
   ChunkIndex chunkReindex( encryptionkey, tmpMgr, getIndexPath(), true );
 
@@ -365,4 +365,8 @@ void ZCollector::gc()
   }
 
   verbosePrintf( "Garbage collection complete\n" );
+}
+
+void ZCollector::gcIndexes()
+{
 }
