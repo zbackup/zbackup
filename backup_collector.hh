@@ -20,14 +20,16 @@ private:
   Bundle::Id savedId;
   int totalChunks, usedChunks, indexTotalChunks, indexUsedChunks;
   int indexModifiedBundles, indexKeptBundles, indexRemovedBundles;
-  bool indexModified;
+  bool indexModified, indexNecessary;
   vector< string > filesToUnlink;
+  BackupRestorer::ChunkSet overallChunkSet;
 
 public:
   string bundlesPath;
   ChunkStorage::Reader *chunkStorageReader;
   ChunkStorage::Writer *chunkStorageWriter;
   BackupRestorer::ChunkSet usedChunkSet;
+  bool indexGC;
 
   void startIndex( string const & indexFn );
 

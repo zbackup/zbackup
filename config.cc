@@ -123,6 +123,16 @@ void Config::prefillKeywords()
       "No default value, you should specify it explicitly"
     },
 
+    {
+      "gc-indexes",
+      Config::oRuntime_gcIndexes,
+      Config::Runtime,
+      "Purge duplicated indexes from repo during\n"
+      "garbage collection\n"
+      "Normally you would not need this\n"
+      "No value, specify to enable"
+    },
+
     { "", Config::oBadOption, Config::None }
   };
 
@@ -451,6 +461,15 @@ bool Config::parseOrValidate( const string & option, const OptionType type,
       }
 
       dPrintf( "runtime[exchange] = %s\n", runtime.exchange.to_string().c_str() );
+
+      return true;
+      /* NOTREACHED */
+      break;
+
+    case oRuntime_gcIndexes:
+      runtime.gcIndexes = true;
+
+      dPrintf( "runtime[gcIndexes] = true\n" );
 
       return true;
       /* NOTREACHED */

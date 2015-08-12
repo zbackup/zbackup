@@ -87,7 +87,7 @@ public:
   DEF_EX( Ex, "Chunk index exception", std::exception )
   DEF_EX( exIncorrectChunkIdSize, "Incorrect chunk id size encountered", Ex )
 
-  ChunkIndex( EncryptionKey const &, TmpMgr &, string const & indexPath, bool prohibitChunkIndexLoading );
+  ChunkIndex( EncryptionKey const &, TmpMgr &, string const & indexPath, bool );
 
   struct ChunkInfoInterface
   {

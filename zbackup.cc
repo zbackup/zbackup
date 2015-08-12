@@ -280,42 +280,16 @@ invalid_option:
     if ( strcmp( args[ 0 ], "gc" ) == 0 )
     {
       // Perform the garbage collection
-      if ( args.size() < 2 || args.size() > 3 )
+      if ( args.size() != 2 )
       {
-        fprintf( stderr, "Usage: %s %s [chunks|indexes] <storage path>\n",
+        fprintf( stderr, "Usage: %s %s <storage path>\n",
                  *argv, args[ 0 ] );
         return EXIT_FAILURE;
       }
 
-      int fieldStorage = 1;
-      int fieldAction = 2;
-
-      if ( args.size() == 3 )
-      {
-        fieldStorage = 2;
-        fieldAction = 1;
-      }
-
-      if ( args.size() > 2 && strcmp( args[ fieldAction ], "chunks" ) == 0 )
-      {
-        ZCollector zc( ZBackupBase::deriveStorageDirFromBackupsFile( args[ fieldStorage ], true ),
-            passwords[ 0 ], config );
-        zc.gcChunks();
-      }
-      else
-      if ( args.size() > 2 && strcmp( args[ fieldAction ], "indexes" ) == 0 )
-      {
-        ZCollector zc( ZBackupBase::deriveStorageDirFromBackupsFile( args[ fieldStorage ], true ),
-            passwords[ 0 ], config );
-        fprintf( stderr, "NOT IMPLEMENTED YET!\n" );
-        zc.gcIndexes();
-      }
-      else
-      {
-        ZCollector zc( ZBackupBase::deriveStorageDirFromBackupsFile( args[ fieldStorage ], true ),
-            passwords[ 0 ], config );
-        zc.gcChunks();
-      }
+      ZCollector zc( ZBackupBase::deriveStorageDirFromBackupsFile( args[ 1 ], true ),
+          passwords[ 0 ], config );
+      zc.gc();
     }
     else
     if ( strcmp( args[ 0 ], "passwd" ) == 0 )

@@ -307,7 +307,7 @@ ZCollector::ZCollector( string const & storageDir, string const & password,
 {
 }
 
-void ZCollector::gcChunks()
+void ZCollector::gc()
 {
   ChunkIndex chunkReindex( encryptionkey, tmpMgr, getIndexPath(), true );
 
@@ -322,6 +322,7 @@ void ZCollector::gcChunks()
   collector.bundlesPath = getBundlesPath();
   collector.chunkStorageReader = &this->chunkStorageReader;
   collector.chunkStorageWriter = &chunkStorageWriter;
+  collector.indexGC = config.runtime.gcIndexes;
 
   verbosePrintf( "Checking used chunks...\n" );
 
@@ -365,8 +366,4 @@ void ZCollector::gcChunks()
   }
 
   verbosePrintf( "Garbage collection complete\n" );
-}
-
-void ZCollector::gcIndexes()
-{
 }
