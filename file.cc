@@ -6,7 +6,7 @@
 #include <unistd.h>
 #include <cerrno>
 #include <cstring>
-#if defined( __APPLE__ ) || defined( __OpenBSD__ ) || defined(__FreeBSD__)
+#if defined( __APPLE__ ) || defined( __OpenBSD__ ) || defined(__FreeBSD__) || defined(__CYGWIN__)
   #include <sys/socket.h>
 #else
   #include <sys/sendfile.h>
@@ -70,7 +70,7 @@ void File::rename( std::string const & from,
       #if defined( __APPLE__ )
       if ( -1 == sendfile( write_fd, read_fd, offset, &stat_buf.st_size, NULL, 0 ) )
          throw exCantRename( from + " to " + to );
-      #elif defined( __OpenBSD__ ) || defined(__FreeBSD__)
+      #elif defined( __OpenBSD__ ) || defined(__FreeBSD__) || defined(__CYGWIN__)
 
       size_t BUFSIZE = 4096, size;
       char buf[BUFSIZE];
@@ -249,7 +249,7 @@ char * File::gets( char * s, int size, bool stripNl )
   if ( result && stripNl )
   {
     size_t len = strlen( result );
-    
+
     char * last = result + len;
 
     while( len-- )
