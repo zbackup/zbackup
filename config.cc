@@ -104,8 +104,8 @@ void Config::prefillKeywords()
       "cache-size",
       Config::oRuntime_cacheSize,
       Config::Runtime,
-      "Cache size to use in restore process\n"
-      "Affects restore process speed directly\n"
+      "Cache size to use in restore process.\n"
+      "Affects restore process speed directly.\n"
       VALID_SUFFIXES
       "Default is %sMiB",
       Utils::numberToString( runtime.cacheSize / 1024 / 1024 )
@@ -114,13 +114,23 @@ void Config::prefillKeywords()
       "exchange",
       Config::oRuntime_exchange,
       Config::Runtime,
-      "Data to exchange between repositories in import/export process\n"
-      "Can be specified multiple times\n"
+      "Data to exchange between repositories in import/export process.\n"
+      "Can be specified multiple times.\n"
       "Valid values:\n"
       "backups - exchange backup instructions (files in backups/ directory)\n"
       "bundles - exchange bundles with data (files in bunles/ directory)\n"
-      "index - exchange indicies of chunks (files in index/ directory)\n"
-      "No default value, you should specify it explicitly"
+      "indexes - exchange indexes of chunks (files in index/ directory)\n"
+      "No default value, you should specify it explicitly."
+    },
+
+    {
+      "gc-repack",
+      Config::oRuntime_gcRepack,
+      Config::Runtime,
+      "Repack indexes and bundles during garbage collection.\n"
+      "Normally you would not need this.\n"
+      "Beware that this options causes very intensive IO!\n"
+      "Not default, you should specify it explicitly."
     },
 
     { "", Config::oBadOption, Config::None }
@@ -439,17 +449,27 @@ bool Config::parseOrValidate( const string & option, const OptionType type,
       if ( strcmp( optionValue, "bundles" ) == 0 )
         runtime.exchange.set( BackupExchanger::bundles );
       else
-      if ( strcmp( optionValue, "index" ) == 0 )
-        runtime.exchange.set( BackupExchanger::index );
+      if ( strcmp( optionValue, "indexes" ) == 0 ||
+           strcmp( optionValue, "index" ) == 0 )
+        runtime.exchange.set( BackupExchanger::indexes );
       else
       {
         fprintf( stderr, "Invalid exchange value specified: %s\n"
-                 "Must be one of the following: backups, bundles, index.\n",
+                 "Must be one of the following: backups, bundles, indexes.\n",
                  optionValue );
         return false;
       }
 
       dPrintf( "runtime[exchange] = %s\n", runtime.exchange.to_string().c_str() );
+
+      return true;
+      /* NOTREACHED */
+      break;
+
+    case oRuntime_gcRepack:
+      runtime.gcRepack = true;
+
+      dPrintf( "runtime[gcRepack] = true\n" );
 
       return true;
       /* NOTREACHED */

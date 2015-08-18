@@ -172,7 +172,8 @@ invalid_option:
 "            performs import from source to destination storage,\n"
 "            for export/import storage path must be\n"
 "            a valid (initialized) storage\n"
-"    gc <storage path> - performs chunk garbage collection\n"
+"    gc [chunks|indexes] <storage path> - performs garbage\n"
+"            collection (default is chunks)\n"
 "    passwd <storage path> - changes repo info file passphrase\n"
 //"    info <storage path> - shows repo information\n"
 "    config [show|edit|set|reset] <storage path> - performs\n"
@@ -278,14 +279,16 @@ invalid_option:
     else
     if ( strcmp( args[ 0 ], "gc" ) == 0 )
     {
-      // Perform the restore
+      // Perform the garbage collection
       if ( args.size() != 2 )
       {
         fprintf( stderr, "Usage: %s %s <storage path>\n",
                  *argv, args[ 0 ] );
         return EXIT_FAILURE;
       }
-      ZCollector zc( args[ 1 ], passwords[ 0 ], config );
+
+      ZCollector zc( ZBackupBase::deriveStorageDirFromBackupsFile( args[ 1 ], true ),
+          passwords[ 0 ], config );
       zc.gc();
     }
     else

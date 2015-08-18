@@ -4,18 +4,11 @@
 #ifndef BACKUP_COLLECTOR_HH_INCLUDED
 #define BACKUP_COLLECTOR_HH_INCLUDED
 
-#include "zbackup_base.hh"
-#include "chunk_storage.hh"
-
 #include <string>
 #include <vector>
-#include <unistd.h>
 
-#include "bundle.hh"
-#include "chunk_index.hh"
 #include "backup_restorer.hh"
 #include "backup_file.hh"
-#include "backup_exchanger.hh"
 
 #include "debug.hh"
 
@@ -27,14 +20,19 @@ private:
   Bundle::Id savedId;
   int totalChunks, usedChunks, indexTotalChunks, indexUsedChunks;
   int indexModifiedBundles, indexKeptBundles, indexRemovedBundles;
-  bool indexModified;
+  bool indexModified, indexNecessary;
   vector< string > filesToUnlink;
+  BackupRestorer::ChunkSet overallChunkSet;
+  std::set< Bundle::Id > overallBundleSet;
+
+  void copyUsedChunks( BundleInfo const & info );
 
 public:
   string bundlesPath;
   ChunkStorage::Reader *chunkStorageReader;
   ChunkStorage::Writer *chunkStorageWriter;
   BackupRestorer::ChunkSet usedChunkSet;
+  bool gcRepack;
 
   void startIndex( string const & indexFn );
 

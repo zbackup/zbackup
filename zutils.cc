@@ -207,13 +207,13 @@ void ZExchange::exchange()
     verbosePrintf( "Bundle exchange completed.\n" );
   }
 
-  if ( config.runtime.exchange.test( BackupExchanger::index ) )
+  if ( config.runtime.exchange.test( BackupExchanger::indexes ) )
   {
-    verbosePrintf( "Searching for indicies...\n" );
-    vector< string > indicies = BackupExchanger::findOrRebuild(
+    verbosePrintf( "Searching for indexes...\n" );
+    vector< string > indexes = BackupExchanger::findOrRebuild(
         srcZBackupBase.getIndexPath(), dstZBackupBase.getIndexPath() );
 
-    for ( std::vector< string >::iterator it = indicies.begin(); it != indicies.end(); ++it )
+    for ( std::vector< string >::iterator it = indexes.begin(); it != indexes.end(); ++it )
     {
       verbosePrintf( "Processing index file %s... ", it->c_str() );
       string outputFileName ( Dir::addPath( dstZBackupBase.getIndexPath(), *it ) );
@@ -316,14 +316,13 @@ void ZCollector::gc()
 
   string fileName;
 
-  Dir::Entry entry;
-
   BundleCollector collector;
   collector.bundlesPath = getBundlesPath();
   collector.chunkStorageReader = &this->chunkStorageReader;
   collector.chunkStorageWriter = &chunkStorageWriter;
+  collector.gcRepack = config.runtime.gcRepack;
 
-  verbosePrintf( "Checking used chunks...\n" );
+  verbosePrintf( "Performing garbage collection...\n" );
 
   verbosePrintf( "Searching for backups...\n" );
   vector< string > backups = BackupExchanger::findOrRebuild( getBackupsPath() );
@@ -355,6 +354,7 @@ void ZCollector::gc()
 
   string bundlesPath = getBundlesPath();
   Dir::Listing bundleLst( bundlesPath );
+  Dir::Entry entry;
   while( bundleLst.getNext( entry ) )
   {
     const string dirPath = Dir::addPath( bundlesPath, entry.getFileName());
