@@ -316,15 +316,13 @@ void ZCollector::gc()
 
   string fileName;
 
-  Dir::Entry entry;
-
   BundleCollector collector;
   collector.bundlesPath = getBundlesPath();
   collector.chunkStorageReader = &this->chunkStorageReader;
   collector.chunkStorageWriter = &chunkStorageWriter;
-  collector.deepGC = config.runtime.gcDeep;
+  collector.gcRepack = config.runtime.gcRepack;
 
-  verbosePrintf( "Checking used chunks...\n" );
+  verbosePrintf( "Performing garbage collection...\n" );
 
   verbosePrintf( "Searching for backups...\n" );
   vector< string > backups = BackupExchanger::findOrRebuild( getBackupsPath() );
@@ -356,6 +354,7 @@ void ZCollector::gc()
 
   string bundlesPath = getBundlesPath();
   Dir::Listing bundleLst( bundlesPath );
+  Dir::Entry entry;
   while( bundleLst.getNext( entry ) )
   {
     const string dirPath = Dir::addPath( bundlesPath, entry.getFileName());

@@ -104,8 +104,8 @@ void Config::prefillKeywords()
       "cache-size",
       Config::oRuntime_cacheSize,
       Config::Runtime,
-      "Cache size to use in restore process\n"
-      "Affects restore process speed directly\n"
+      "Cache size to use in restore process.\n"
+      "Affects restore process speed directly.\n"
       VALID_SUFFIXES
       "Default is %sMiB",
       Utils::numberToString( runtime.cacheSize / 1024 / 1024 )
@@ -114,25 +114,23 @@ void Config::prefillKeywords()
       "exchange",
       Config::oRuntime_exchange,
       Config::Runtime,
-      "Data to exchange between repositories in import/export process\n"
-      "Can be specified multiple times\n"
+      "Data to exchange between repositories in import/export process.\n"
+      "Can be specified multiple times.\n"
       "Valid values:\n"
       "backups - exchange backup instructions (files in backups/ directory)\n"
       "bundles - exchange bundles with data (files in bunles/ directory)\n"
       "indexes - exchange indexes of chunks (files in index/ directory)\n"
-      "No default value, you should specify it explicitly"
+      "No default value, you should specify it explicitly."
     },
 
     {
-      "gc-deep",
-      Config::oRuntime_gcDeep,
+      "gc-repack",
+      Config::oRuntime_gcRepack,
       Config::Runtime,
-      "Perform inter-bundle and inter-index deduplication\n"
-      "during garbage collection\n"
-      "You would probably need it after exchange operation\n"
-      "You could also use this switch to repack all bundles\n"
-      "Beware that this switch causes very intensive IO!\n"
-      "This switch is not used by default, specify to enable"
+      "Repack indexes and bundles during garbage collection.\n"
+      "Normally you would not need this.\n"
+      "Beware that this options causes very intensive IO!\n"
+      "Not default, you should specify it explicitly."
     },
 
     { "", Config::oBadOption, Config::None }
@@ -468,10 +466,10 @@ bool Config::parseOrValidate( const string & option, const OptionType type,
       /* NOTREACHED */
       break;
 
-    case oRuntime_gcDeep:
-      runtime.gcDeep = true;
+    case oRuntime_gcRepack:
+      runtime.gcRepack = true;
 
-      dPrintf( "runtime[gcDeep] = true\n" );
+      dPrintf( "runtime[gcRepack] = true\n" );
 
       return true;
       /* NOTREACHED */

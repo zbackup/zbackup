@@ -14,11 +14,11 @@ void BundleCollector::startIndex( string const & indexFn )
 
 void BundleCollector::finishIndex( string const & indexFn )
 {
+  verbosePrintf( "Chunks used: %d/%d, bundles: %d kept, %d modified, %d removed\n",
+                 indexUsedChunks, indexTotalChunks, indexKeptBundles,
+                 indexModifiedBundles, indexRemovedBundles );
   if ( indexModified )
   {
-    verbosePrintf( "Chunks used: %d/%d, bundles: %d kept, %d modified, %d removed\n",
-                   indexUsedChunks, indexTotalChunks, indexKeptBundles,
-                   indexModifiedBundles, indexRemovedBundles );
     filesToUnlink.push_back( indexFn );
     commit();
   }
@@ -75,18 +75,39 @@ void BundleCollector::finishBundle( Bundle::Id const & bundleId, BundleInfo cons
   }
   else
   {
-    if ( !deepGC )
-    {
-      chunkStorageWriter->addBundle( info, savedId );
-      dPrintf( "Keeping %s bundle\n", i.c_str() );
-      indexKeptBundles++;
-    }
-    else
+    if ( gcRepack )
     {
       filesToUnlink.push_back( Dir::addPath( bundlesPath, i ) );
       indexModified = true;
       copyUsedChunks( info );
       indexModifiedBundles++;
+    }
+    else
+    {
+      if ( 0 == totalChunks )
+      {
+        if ( overallBundleSet.find ( bundleId ) == overallBundleSet.end() )
+        {
+          overallBundleSet.insert( bundleId );
+          dPrintf( "Deleting %s bundle\n", i.c_str() );
+          filesToUnlink.push_back( Dir::addPath( bundlesPath, i ) );
+          indexModified = true;
+          indexRemovedBundles++;
+        }
+        else
+        {
+          // trigger index update
+          indexModified = true;
+        }
+      }
+      else
+      {
+        if ( overallBundleSet.find ( bundleId ) == overallBundleSet.end() )
+          overallBundleSet.insert( bundleId );
+        chunkStorageWriter->addBundle( info, savedId );
+        dPrintf( "Keeping %s bundle\n", i.c_str() );
+        indexKeptBundles++;
+      }
     }
   }
 }

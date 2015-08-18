@@ -23,6 +23,7 @@ private:
   bool indexModified, indexNecessary;
   vector< string > filesToUnlink;
   BackupRestorer::ChunkSet overallChunkSet;
+  std::set< Bundle::Id > overallBundleSet;
 
   void copyUsedChunks( BundleInfo const & info );
 
@@ -31,7 +32,7 @@ public:
   ChunkStorage::Reader *chunkStorageReader;
   ChunkStorage::Writer *chunkStorageWriter;
   BackupRestorer::ChunkSet usedChunkSet;
-  bool deepGC;
+  bool gcRepack;
 
   void startIndex( string const & indexFn );
 
