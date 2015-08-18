@@ -124,13 +124,15 @@ void Config::prefillKeywords()
     },
 
     {
-      "gc-indexes",
-      Config::oRuntime_gcIndexes,
+      "gc-deep",
+      Config::oRuntime_gcDeep,
       Config::Runtime,
-      "Purge duplicated indexes from repo during\n"
-      "garbage collection\n"
-      "Normally you would not need this\n"
-      "No value, specify to enable"
+      "Perform inter-bundle and inter-index deduplication\n"
+      "during garbage collection\n"
+      "You would probably need it after exchange operation\n"
+      "You could also use this switch to repack all bundles\n"
+      "Beware that this switch causes very intensive IO!\n"
+      "This switch is not used by default, specify to enable"
     },
 
     { "", Config::oBadOption, Config::None }
@@ -466,10 +468,10 @@ bool Config::parseOrValidate( const string & option, const OptionType type,
       /* NOTREACHED */
       break;
 
-    case oRuntime_gcIndexes:
-      runtime.gcIndexes = true;
+    case oRuntime_gcDeep:
+      runtime.gcDeep = true;
 
-      dPrintf( "runtime[gcIndexes] = true\n" );
+      dPrintf( "runtime[gcDeep] = true\n" );
 
       return true;
       /* NOTREACHED */

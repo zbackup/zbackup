@@ -18,14 +18,15 @@ void BundleCollector::finishIndex( string const & indexFn )
   {
     verbosePrintf( "Chunks used: %d/%d, bundles: %d kept, %d modified, %d removed\n",
                    indexUsedChunks, indexTotalChunks, indexKeptBundles,
-                   indexModifiedBundles, indexRemovedBundles);
+                   indexModifiedBundles, indexRemovedBundles );
     filesToUnlink.push_back( indexFn );
     commit();
   }
   else
   {
     chunkStorageWriter->reset();
-    if ( indexGC && !indexNecessary )
+    if ( !indexNecessary )
+      // this index was a complete copy so we don't need it
       filesToUnlink.push_back( indexFn );
   }
 }
@@ -39,13 +40,11 @@ void BundleCollector::startBundle( Bundle::Id const & bundleId )
 
 void BundleCollector::processChunk( ChunkId const & chunkId )
 {
-  if ( indexGC )
-  {
-    if ( overallChunkSet.find ( chunkId ) == overallChunkSet.end() )
-      overallChunkSet.insert( chunkId );
-    else
-      return;
-  }
+  if ( overallChunkSet.find ( chunkId ) == overallChunkSet.end() )
+    overallChunkSet.insert( chunkId );
+  else
+    return;
+
   totalChunks++;
   if ( usedChunkSet.find( chunkId ) != usedChunkSet.end() )
   {
@@ -71,26 +70,41 @@ void BundleCollector::finishBundle( Bundle::Id const & bundleId, BundleInfo cons
     dPrintf( "%s: used %d/%d chunks\n", i.c_str(), usedChunks, totalChunks );
     filesToUnlink.push_back( Dir::addPath( bundlesPath, i ) );
     indexModified = true;
-    // Copy used chunks to the new index
-    string chunk;
-    size_t chunkSize;
-    for ( int x = info.chunk_record_size(); x--; )
-    {
-      BundleInfo_ChunkRecord const & record = info.chunk_record( x );
-      ChunkId id( record.id() );
-      if ( usedChunkSet.find( id ) != usedChunkSet.end() )
-      {
-        chunkStorageReader->get( id, chunk, chunkSize );
-        chunkStorageWriter->add( id, chunk.data(), chunkSize );
-      }
-    }
+    copyUsedChunks( info );
     indexModifiedBundles++;
   }
   else
   {
-    chunkStorageWriter->addBundle( info, savedId );
-    dPrintf( "Keeping %s bundle\n", i.c_str() );
-    indexKeptBundles++;
+    if ( !deepGC )
+    {
+      chunkStorageWriter->addBundle( info, savedId );
+      dPrintf( "Keeping %s bundle\n", i.c_str() );
+      indexKeptBundles++;
+    }
+    else
+    {
+      filesToUnlink.push_back( Dir::addPath( bundlesPath, i ) );
+      indexModified = true;
+      copyUsedChunks( info );
+      indexModifiedBundles++;
+    }
+  }
+}
+
+void BundleCollector::copyUsedChunks( BundleInfo const & info )
+{
+  // Copy used chunks to the new index
+  string chunk;
+  size_t chunkSize;
+  for ( int x = info.chunk_record_size(); x--; )
+  {
+    BundleInfo_ChunkRecord const & record = info.chunk_record( x );
+    ChunkId id( record.id() );
+    if ( usedChunkSet.find( id ) != usedChunkSet.end() )
+    {
+      chunkStorageReader->get( id, chunk, chunkSize );
+      chunkStorageWriter->add( id, chunk.data(), chunkSize );
+    }
   }
 }
 

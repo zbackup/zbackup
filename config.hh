@@ -29,13 +29,13 @@ public:
     size_t threads;
     size_t cacheSize;
     bitset< BackupExchanger::Flags > exchange;
-    bool gcIndexes;
+    bool gcDeep;
 
     // Default runtime config
     RuntimeConfig():
       threads( getNumberOfCpus() ),
       cacheSize( 40 * 1024 * 1024 ), // 40 MB
-      gcIndexes ( false )
+      gcDeep ( false )
     {
     }
   };
@@ -60,7 +60,7 @@ public:
     oRuntime_threads,
     oRuntime_cacheSize,
     oRuntime_exchange,
-    oRuntime_gcIndexes,
+    oRuntime_gcDeep,
 
     oDeprecated, oUnsupported
   } OpCodes;

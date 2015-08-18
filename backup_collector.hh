@@ -24,12 +24,14 @@ private:
   vector< string > filesToUnlink;
   BackupRestorer::ChunkSet overallChunkSet;
 
+  void copyUsedChunks( BundleInfo const & info );
+
 public:
   string bundlesPath;
   ChunkStorage::Reader *chunkStorageReader;
   ChunkStorage::Writer *chunkStorageWriter;
   BackupRestorer::ChunkSet usedChunkSet;
-  bool indexGC;
+  bool deepGC;
 
   void startIndex( string const & indexFn );
 

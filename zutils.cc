@@ -322,7 +322,7 @@ void ZCollector::gc()
   collector.bundlesPath = getBundlesPath();
   collector.chunkStorageReader = &this->chunkStorageReader;
   collector.chunkStorageWriter = &chunkStorageWriter;
-  collector.indexGC = config.runtime.gcIndexes;
+  collector.deepGC = config.runtime.gcDeep;
 
   verbosePrintf( "Checking used chunks...\n" );
 
