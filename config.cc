@@ -124,7 +124,7 @@ void Config::prefillKeywords()
     },
 
     {
-      "gc-repack",
+      "gc.repack",
       Config::oRuntime_gcRepack,
       Config::Runtime,
       "Repack indexes and bundles during garbage collection.\n"

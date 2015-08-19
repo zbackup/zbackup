@@ -25,7 +25,7 @@ void BundleCollector::finishIndex( string const & indexFn )
   else
   {
     chunkStorageWriter->reset();
-    if ( !indexNecessary )
+    if ( gcDeep && !indexNecessary )
       // this index was a complete copy so we don't need it
       filesToUnlink.push_back( indexFn );
   }
@@ -40,10 +40,13 @@ void BundleCollector::startBundle( Bundle::Id const & bundleId )
 
 void BundleCollector::processChunk( ChunkId const & chunkId )
 {
-  if ( overallChunkSet.find ( chunkId ) == overallChunkSet.end() )
-    overallChunkSet.insert( chunkId );
-  else
-    return;
+  if ( gcDeep )
+  {
+    if ( overallChunkSet.find ( chunkId ) == overallChunkSet.end() )
+      overallChunkSet.insert( chunkId );
+    else
+      return;
+  }
 
   totalChunks++;
   if ( usedChunkSet.find( chunkId ) != usedChunkSet.end() )
@@ -84,7 +87,7 @@ void BundleCollector::finishBundle( Bundle::Id const & bundleId, BundleInfo cons
     }
     else
     {
-      if ( 0 == totalChunks )
+      if ( gcDeep && 0 == totalChunks )
       {
         if ( overallBundleSet.find ( bundleId ) == overallBundleSet.end() )
         {
@@ -102,8 +105,9 @@ void BundleCollector::finishBundle( Bundle::Id const & bundleId, BundleInfo cons
       }
       else
       {
-        if ( overallBundleSet.find ( bundleId ) == overallBundleSet.end() )
+        if ( gcDeep && overallBundleSet.find ( bundleId ) == overallBundleSet.end() )
           overallBundleSet.insert( bundleId );
+
         chunkStorageWriter->addBundle( info, savedId );
         dPrintf( "Keeping %s bundle\n", i.c_str() );
         indexKeptBundles++;

@@ -32,7 +32,7 @@ public:
   ChunkStorage::Reader *chunkStorageReader;
   ChunkStorage::Writer *chunkStorageWriter;
   BackupRestorer::ChunkSet usedChunkSet;
-  bool gcRepack;
+  bool gcRepack, gcDeep;
 
   void startIndex( string const & indexFn );
 

@@ -307,7 +307,7 @@ ZCollector::ZCollector( string const & storageDir, string const & password,
 {
 }
 
-void ZCollector::gc()
+void ZCollector::gc( bool gcDeep )
 {
   ChunkIndex chunkReindex( encryptionkey, tmpMgr, getIndexPath(), true );
 
@@ -321,6 +321,7 @@ void ZCollector::gc()
   collector.chunkStorageReader = &this->chunkStorageReader;
   collector.chunkStorageWriter = &chunkStorageWriter;
   collector.gcRepack = config.runtime.gcRepack;
+  collector.gcDeep = gcDeep;
 
   verbosePrintf( "Performing garbage collection...\n" );
 
