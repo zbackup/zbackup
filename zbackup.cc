@@ -172,7 +172,7 @@ invalid_option:
 "            performs export from source to destination storage\n"
 "    import <source storage path> <destination storage path> -\n"
 "            performs import from source to destination storage,\n"
-"            for export/import storage path must be\n"
+"            for export/import storage path must point to\n"
 "            a valid (initialized) storage\n"
 "    gc [fast|deep] <storage path> - performs garbage\n"
 "            collection (default is fast)\n"
