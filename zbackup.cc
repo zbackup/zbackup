@@ -282,7 +282,7 @@ invalid_option:
       // Perform the garbage collection
       if ( args.size() < 2 || args.size() > 3 )
       {
-        fprintf( stderr, "Usage: %s %s [chunks|indexes] <storage path>\n",
+        fprintf( stderr, "Usage: %s %s [fast|deep] <storage path>\n",
                  *argv, args[ 0 ] );
         return EXIT_FAILURE;
       }
