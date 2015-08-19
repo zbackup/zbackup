@@ -42,6 +42,8 @@ struct Id
   { return memcmp( blob, other.blob, sizeof( blob ) ) == 0; }
   bool operator != ( Id const & other ) const
   { return ! operator == ( other ); }
+  bool operator < ( Id const & other ) const
+  { return memcmp( blob, other.blob, sizeof( blob ) ) < 0; }
 };
 
 STATIC_ASSERT( sizeof( Id ) == IdSize );

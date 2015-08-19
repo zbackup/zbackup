@@ -33,7 +33,7 @@ void ChunkIndex::loadIndex( IndexProcessor & ip )
 
   while( lst.getNext( entry ) )
   {
-    verbosePrintf( "Loading index file %s... ", entry.getFileName().c_str() );
+    verbosePrintf( "Loading index file %s...\n", entry.getFileName().c_str() );
     try
     {
       string indexFn = Dir::addPath( indexPath, entry.getFileName() );
@@ -73,7 +73,6 @@ void ChunkIndex::loadIndex( IndexProcessor & ip )
       fprintf( stderr, "error: %s\n", e.what() );
       continue;
     }
-    verbosePrintf( "\n" );
   }
 
   verbosePrintf( "Index loaded.\n" );

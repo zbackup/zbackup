@@ -16,7 +16,7 @@ public:
   ZCollector( std::string const & storageDir, std::string const & password,
               size_t threads, size_t cacheSize );
 
-  void gc();
+  void gc( bool );
 };
 
 #endif
