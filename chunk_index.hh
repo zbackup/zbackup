@@ -49,7 +49,7 @@ class IndexProcessor
 public:
   virtual void startIndex( string const & ) = 0;
   virtual void startBundle( Bundle::Id const & ) = 0;
-  virtual void processChunk( ChunkId const & ) = 0;
+  virtual void processChunk( ChunkId const &, uint32_t ) = 0;
   virtual void finishBundle( Bundle::Id const &, BundleInfo const & ) = 0;
   virtual void finishIndex( string const & ) = 0;
 };
@@ -61,10 +61,11 @@ class ChunkIndex: NoCopy, IndexProcessor
   struct Chain
   {
     ChunkId::CryptoHashPart cryptoHash;
+    uint32_t size;
     Chain * next;
     Bundle::Id const * bundleId;
 
-    Chain( ChunkId const &, Bundle::Id const * bundleId );
+    Chain( ChunkId const &, uint32_t, Bundle::Id const * bundleId );
 
     bool equalsTo( ChunkId const & id );
   };
@@ -100,18 +101,18 @@ public:
 
   /// If the given chunk exists, its bundle id is returned, otherwise NULL
   Bundle::Id const * findChunk( ChunkId::RollingHashPart,
-                                ChunkInfoInterface & );
+                                ChunkInfoInterface &, uint32_t *size = NULL );
 
   /// If the given chunk exists, its bundle id is returned, otherwise NULL
-  Bundle::Id const * findChunk( ChunkId const & );
+  Bundle::Id const * findChunk( ChunkId const &, uint32_t *size = NULL );
 
   /// Adds a new chunk to the index if it did not exist already. Returns true
   /// if added, false if existed already
-  bool addChunk( ChunkId const &, Bundle::Id const & );
+  bool addChunk( ChunkId const &, uint32_t, Bundle::Id const & );
 
   void startIndex( string const & );
   void startBundle( Bundle::Id const & );
-  void processChunk( ChunkId const & );
+  void processChunk( ChunkId const &, uint32_t );
   void finishBundle( Bundle::Id const &, BundleInfo const & );
   void finishIndex( string const & );
 
@@ -120,7 +121,7 @@ public:
 private:
   /// Inserts new chunk id into the in-memory hash table. Returns the created
   /// Chain if it was inserted, NULL if it existed before
-  Chain * registerNewChunkId( ChunkId const & id, Bundle::Id const * );
+  Chain * registerNewChunkId( ChunkId const & id, uint32_t, Bundle::Id const * );
 };
 
 #endif

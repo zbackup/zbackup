@@ -22,8 +22,8 @@ UnbufferedFile::UnbufferedFile( char const * fileName, Mode mode )
   throw( exCantOpen )
 {
 
-  int flags = ( mode == WriteOnly ? ( O_WRONLY | O_CREAT | O_TRUNC ) :
-                                    O_RDONLY );
+  int flags = ( mode == ReadWrite ? ( O_RDWR | O_CREAT ) :
+     ( mode == WriteOnly ? ( O_WRONLY | O_CREAT | O_TRUNC ) : O_RDONLY ) );
 #if !defined( __APPLE__ ) && !defined( __OpenBSD__ ) && !defined(__FreeBSD__) && !defined(__CYGWIN__)
   flags |= O_LARGEFILE;
 #endif
@@ -97,6 +97,12 @@ UnbufferedFile::Offset UnbufferedFile::size() throw( exSeekError )
 void UnbufferedFile::seekCur( Offset offset ) throw( exSeekError )
 {
   if ( lseek64( fd, offset, SEEK_CUR ) < 0 )
+    throw exSeekError();
+}
+
+void UnbufferedFile::seek( Offset offset ) throw( exSeekError )
+{
+  if ( lseek64( fd, offset, SEEK_SET ) < 0 )
     throw exSeekError();
 }
 

@@ -125,6 +125,50 @@ ZRestore::ZRestore( string const & storageDir, string const & password,
 {
 }
 
+void ZRestore::restoreToFile( string const & inputFileName, string const & outputFileName )
+{
+  BackupInfo backupInfo;
+
+  BackupFile::load( inputFileName, encryptionkey, backupInfo );
+
+  string backupData;
+
+  // Perform the iterations needed to get to the actual user backup data
+  BackupRestorer::restoreIterations( chunkStorageReader, backupInfo, backupData, NULL );
+
+  UnbufferedFile f( outputFileName.data(), UnbufferedFile::ReadWrite );
+
+  struct FileWriter: public SeekableSink
+  {
+    UnbufferedFile *f;
+
+    FileWriter( UnbufferedFile *f ):
+      f( f )
+    {
+    }
+
+    virtual void saveData( int64_t position, void const * data, size_t size )
+    {
+      f->seek( position );
+      f->write( data, size );
+    }
+  } seekWriter( &f );
+
+  BackupRestorer::ChunkMap map;
+  BackupRestorer::restore( chunkStorageReader, backupData, NULL, NULL, &map, &seekWriter );
+  BackupRestorer::restoreMap( chunkStorageReader, &map, &seekWriter );
+
+  Sha256 sha256;
+  string buf;
+  buf.resize( 0x100000 );
+  size_t r;
+  f.seek( 0 );
+  while ( ( r = f.read( (void*)buf.data(), buf.size() ) ) > 0 )
+    sha256.add( buf.data(), r );
+  if ( sha256.finish() != backupInfo.sha256() )
+    throw exChecksumError();
+}
+
 void ZRestore::restoreToStdin( string const & inputFileName )
 {
   if ( isatty( fileno( stdout ) ) )
@@ -151,7 +195,7 @@ void ZRestore::restoreToStdin( string const & inputFileName )
     }
   } stdoutWriter;
 
-  BackupRestorer::restore( chunkStorageReader, backupData, &stdoutWriter, NULL );
+  BackupRestorer::restore( chunkStorageReader, backupData, &stdoutWriter, NULL, NULL, NULL );
 
   if ( stdoutWriter.sha256.finish() != backupInfo.sha256() )
     throw exChecksumError();
@@ -342,7 +386,7 @@ void ZCollector::gc( bool gcDeep )
 
     BackupRestorer::restoreIterations( chunkStorageReader, backupInfo, backupData, &collector.usedChunkSet );
 
-    BackupRestorer::restore( chunkStorageReader, backupData, NULL, &collector.usedChunkSet );
+    BackupRestorer::restore( chunkStorageReader, backupData, NULL, &collector.usedChunkSet, NULL, NULL );
   }
 
   verbosePrintf( "Checking bundles...\n" );

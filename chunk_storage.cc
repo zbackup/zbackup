@@ -30,7 +30,7 @@ Writer::~Writer()
 
 bool Writer::add( ChunkId const & id, void const * data, size_t size )
 {
-  if ( index.addChunk( id, getCurrentBundleId() ) )
+  if ( index.addChunk( id, size, getCurrentBundleId() ) )
   {
     // Added to the index? Emit to the bundle then
     if ( getCurrentBundle().getPayloadSize() + size >
@@ -209,6 +209,22 @@ Reader::Reader( Config const & configIn,
 {
   verbosePrintf( "Using up to %zu MB of RAM as cache\n",
                  maxCacheSizeBytes / 1048576 );
+}
+
+Bundle::Id const * Reader::getBundleId( ChunkId const & chunkId, size_t & size )
+{
+  uint32_t s;
+  if ( Bundle::Id const * bundleId = index.findChunk( chunkId, &s ) )
+  {
+    size = s;
+    return bundleId;
+  }
+  else
+  {
+    string blob = chunkId.toBlob();
+    throw exNoSuchChunk( toHex( ( unsigned char const * ) blob.data(),
+                                blob.size() ) );
+  }
 }
 
 void Reader::get( ChunkId const & chunkId, string & data, size_t & size )

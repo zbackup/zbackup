@@ -38,7 +38,7 @@ void BundleCollector::startBundle( Bundle::Id const & bundleId )
   usedChunks = 0;
 }
 
-void BundleCollector::processChunk( ChunkId const & chunkId )
+void BundleCollector::processChunk( ChunkId const & chunkId, uint32_t size )
 {
   if ( gcDeep )
   {

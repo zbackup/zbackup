@@ -15,9 +15,29 @@ namespace BackupRestorer {
 using std::vector;
 using google::protobuf::io::CodedInputStream;
 
+void restoreMap( ChunkStorage::Reader & chunkStorageReader,
+              ChunkMap const * chunkMap, SeekableSink *output )
+{
+  string chunk;
+  size_t chunkSize;
+  for ( ChunkMap::const_iterator it = chunkMap->begin(); it != chunkMap->end(); it++ )
+  {
+    for ( ChunkPosition::const_iterator pi = (*it).second.begin(); pi != (*it).second.end(); pi++ )
+    {
+      if ( output )
+      {
+        // Need to emit a chunk, reading it from the store
+        chunkStorageReader.get( (*pi).first, chunk, chunkSize );
+        output->saveData( (*pi).second, chunk.data(), chunkSize );
+      }
+    }
+  }
+}
+
 void restore( ChunkStorage::Reader & chunkStorageReader,
               std::string const & backupData,
-              DataSink * output, ChunkSet * chunkSet )
+              DataSink * output, ChunkSet * chunkSet,
+              ChunkMap * chunkMap, SeekableSink * seekOut )
 {
   google::protobuf::io::ArrayInputStream is( backupData.data(),
                                              backupData.size() );
@@ -33,6 +53,7 @@ void restore( ChunkStorage::Reader & chunkStorageReader,
   string chunk;
 
   BackupInstruction instr;
+  int64_t position = 0;
   while ( cis.BytesUntilLimit() > 0 )
   {
     Message::parse( instr, cis );
@@ -40,12 +61,25 @@ void restore( ChunkStorage::Reader & chunkStorageReader,
     if ( instr.has_chunk_to_emit() )
     {
       ChunkId id( instr.chunk_to_emit() );
+      size_t chunkSize;
       if ( output )
       {
         // Need to emit a chunk, reading it from the store
-        size_t chunkSize;
         chunkStorageReader.get( id, chunk, chunkSize );
         output->saveData( chunk.data(), chunkSize );
+      }
+      if ( chunkMap )
+      {
+        Bundle::Id const *bundleId = chunkStorageReader.getBundleId( id, chunkSize );
+        ChunkMap::iterator it = chunkMap->find( *bundleId );
+        if ( it == chunkMap->end() )
+        {
+          ChunkPosition v;
+          std::pair< ChunkMap::iterator, bool > r = chunkMap->insert( std::make_pair( *bundleId, v ) );
+          it = r.first;
+        }
+        (*it).second.push_back( std::make_pair( id, position ) );
+        position += chunkSize;
       }
       if ( chunkSet )
       {
@@ -53,11 +87,18 @@ void restore( ChunkStorage::Reader & chunkStorageReader,
       }
     }
 
-    if ( output && instr.has_bytes_to_emit() )
+    if ( ( output || chunkMap ) && instr.has_bytes_to_emit() )
     {
       // Need to emit the bytes directly
       string const & bytes = instr.bytes_to_emit();
-      output->saveData( bytes.data(), bytes.size() );
+      if ( output )
+        output->saveData( bytes.data(), bytes.size() );
+      if ( chunkMap )
+      {
+        if ( seekOut )
+          seekOut->saveData( position, bytes.data(), bytes.size() );
+        position += bytes.size();
+      }
     }
   }
 
@@ -84,7 +125,7 @@ void restoreIterations( ChunkStorage::Reader & chunkStorageReader,
         }
       } stringWriter;
 
-      restore( chunkStorageReader, backupData, &stringWriter, chunkSet );
+      restore( chunkStorageReader, backupData, &stringWriter, chunkSet, NULL, NULL );
       backupInfo.mutable_backup_data()->swap( stringWriter.result );
       backupInfo.set_iterations( backupInfo.iterations() - 1 );
     }

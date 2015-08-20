@@ -124,6 +124,8 @@ public:
   Reader( Config const &, EncryptionKey const &, ChunkIndex & index,
           string const & bundlesDir, size_t maxCacheSizeBytes );
 
+  Bundle::Id const * getBundleId( ChunkId const &, size_t & size );
+
   /// Loads the given chunk from the store into the given buffer. May throw file
   /// and decompression exceptions. 'data' may be enlarged but won't be shrunk.
   /// The size of the actual chunk would be stored in 'size'
