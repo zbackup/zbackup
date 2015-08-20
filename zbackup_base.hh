@@ -13,9 +13,11 @@
 
 struct Paths
 {
+  Config config;
   std::string storageDir;
 
   Paths( std::string const & storageDir );
+  Paths( std::string const & storageDir, Config const & );
 
   std::string getTmpPath();
   std::string getRestorePath();

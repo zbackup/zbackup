@@ -29,8 +29,19 @@ Paths::Paths( string const & storageDir ): storageDir( storageDir )
 {
 }
 
+Paths::Paths( string const & storageDir, Config const & config ):
+  storageDir( storageDir ), config( config )
+{
+}
+
 string Paths::getTmpPath()
 {
+  if ( config.runtime.pathsRespectTmp )
+  {
+    char * tmpdir;
+    if ( ( ( tmpdir = getenv( "TMPDIR" ) ) != NULL && *tmpdir != '\0' ) )
+      return string( tmpdir );
+  }
   return string( Dir::addPath( storageDir, "tmp" ) );
 }
 
@@ -75,7 +86,7 @@ ZBackupBase::ZBackupBase( string const & storageDir, string const & password ):
 
 ZBackupBase::ZBackupBase( string const & storageDir, string const & password,
                           Config & configIn ):
-  Paths( storageDir ), storageInfo( loadStorageInfo() ),
+  Paths( storageDir, configIn ), storageInfo( loadStorageInfo() ),
   encryptionkey( password, storageInfo.has_encryption_key() ?
                    &storageInfo.encryption_key() : 0 ),
   extendedStorageInfo( loadExtendedStorageInfo( encryptionkey ) ),
@@ -105,7 +116,7 @@ ZBackupBase::ZBackupBase( string const & storageDir, string const & password,
 
 ZBackupBase::ZBackupBase( string const & storageDir, string const & password,
                           Config & configIn, bool prohibitChunkIndexLoading ):
-  Paths( storageDir ), storageInfo( loadStorageInfo() ),
+  Paths( storageDir, configIn ), storageInfo( loadStorageInfo() ),
   encryptionkey( password, storageInfo.has_encryption_key() ?
                    &storageInfo.encryption_key() : 0 ),
   extendedStorageInfo( loadExtendedStorageInfo( encryptionkey ) ),

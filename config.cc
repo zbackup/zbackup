@@ -133,6 +133,15 @@ void Config::prefillKeywords()
       "Not default, you should specify it explicitly."
     },
 
+    {
+      "paths.respect_tmp",
+      Config::oRuntime_pathsRespectTmp,
+      Config::Runtime,
+      "ZBackup will use TMPDIR environment variable\n"
+      "for temporary files if set.\n"
+      "Not default, you should specify it explicitly."
+    },
+
     { "", Config::oBadOption, Config::None }
   };
 
@@ -470,6 +479,15 @@ bool Config::parseOrValidate( const string & option, const OptionType type,
       runtime.gcRepack = true;
 
       dPrintf( "runtime[gcRepack] = true\n" );
+
+      return true;
+      /* NOTREACHED */
+      break;
+
+    case oRuntime_pathsRespectTmp:
+      runtime.pathsRespectTmp = true;
+
+      dPrintf( "runtime[pathsRespectTmp] = true\n" );
 
       return true;
       /* NOTREACHED */
