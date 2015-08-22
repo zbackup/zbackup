@@ -613,17 +613,22 @@ bool LZO1X_1_Encoder::doProcessNoSize( const char* dataIn, size_t availIn,
 class ZeroEnDecoder : public EnDecoder
 {
 protected:
-  size_t size, offset, toCopy, left;
+  size_t size, offset, toCopy, left, BackUp;
 
 public:
+  ZeroEnDecoder()
+  {
+    BackUp = 0;
+  }
+
   size_t getAvailableInput()
   {
-    return 0;
+    return BackUp;
   }
 
   size_t getAvailableOutput()
   {
-    return 0;
+    return BackUp;
   }
 };
 
@@ -648,17 +653,19 @@ class ZeroEncoder : public ZeroEnDecoder
   bool process( bool finish )
   {
     toCopy = ( left > size ) ? size : left;
-    dPrintf( "size: %d, toCopy: %d\n", size, toCopy );
 
     memcpy( data, payload + offset, toCopy );
     //dPrintf( "data:\n|%s|\n", payload + offset );
 
     offset += toCopy;
     left -= toCopy;
-    dPrintf( "offset: %d, left: %d\n", offset, left );
 
     if ( 0 >= left )
+    {
+      if ( toCopy < size )
+        BackUp = size - toCopy;
       return true;
+    }
 
     return false;
   }
@@ -694,17 +701,19 @@ class ZeroDecoder : public ZeroEnDecoder
   bool process( bool finish )
   {
     toCopy = ( left > size ) ? size : left;
-    dPrintf( "size: %d, toCopy: %d\n", size, toCopy );
 
     memcpy( payload + offset, data, toCopy );
     //dPrintf( "data:\n|%s|\n", data );
 
     offset += toCopy;
     left -= toCopy;
-    dPrintf( "offset: %d, left: %d\n", offset, left );
 
     if ( 0 >= left )
+    {
+      if ( toCopy < size )
+        BackUp = size - toCopy;
       return true;
+    }
 
     return false;
   }
