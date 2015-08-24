@@ -128,8 +128,8 @@ void Config::prefillKeywords()
       Config::oRuntime_gcRepack,
       Config::Runtime,
       "Repack indexes and bundles during garbage collection.\n"
-      "Normally you would not need this.\n"
-      "Beware that this options causes very intensive IO!\n"
+      "Normally you would not need it.\n"
+      "Beware that this option causes very intensive IO!\n"
       "Not default, you should specify it explicitly."
     },
 
