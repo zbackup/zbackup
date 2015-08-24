@@ -213,7 +213,7 @@ Reader::Reader( string const & fileName, EncryptionKey const & key, bool keepStr
 
   decoder.reset();
 
-  is->checkAdler32();
+  //is->checkAdler32();
   if ( is.get() )
     is.reset();
 

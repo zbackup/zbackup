@@ -6,6 +6,7 @@
 #include "compression.hh"
 #include "check.hh"
 #include "endian.hh"
+#include "debug.hh"
 
 namespace Compression {
 
@@ -607,6 +608,129 @@ bool LZO1X_1_Encoder::doProcessNoSize( const char* dataIn, size_t availIn,
 
 #endif  // HAVE_LIBLZO
 
+// Zero compression
+
+class ZeroEnDecoder : public EnDecoder
+{
+protected:
+  size_t size, offset, toCopy, left;
+
+public:
+  size_t getAvailableInput()
+  {
+    return 0;
+  }
+
+  size_t getAvailableOutput()
+  {
+    return 0;
+  }
+};
+
+class ZeroEncoder : public ZeroEnDecoder
+{
+  const void * payload;
+  void * data;
+
+  void setInput( const void * data, size_t size )
+  {
+    payload = data;
+    offset = toCopy = 0;
+    left = size;
+  }
+
+  void setOutput( void * data, size_t size )
+  {
+    this->data = data;
+    this->size = size;
+  }
+
+  bool process( bool finish )
+  {
+    toCopy = ( left > size ) ? size : left;
+    dPrintf( "size: %d, toCopy: %d\n", size, toCopy );
+
+    memcpy( data, payload + offset, toCopy );
+    //dPrintf( "data:\n|%s|\n", payload + offset );
+
+    offset += toCopy;
+    left -= toCopy;
+    dPrintf( "offset: %d, left: %d\n", offset, left );
+
+    if ( 0 >= left )
+      return true;
+
+    return false;
+  }
+
+public:
+  ZeroEncoder()
+  {
+  }
+
+  ZeroEncoder( Config const & config )
+  {
+  }
+};
+
+class ZeroDecoder : public ZeroEnDecoder
+{
+  void * payload;
+  const void * data;
+
+  void setInput( const void * data, size_t size )
+  {
+    this->data = data;
+    this->size = size;
+  }
+
+  void setOutput( void * data, size_t size )
+  {
+    payload = data;
+    offset = toCopy = 0;
+    left = size;
+  }
+
+  bool process( bool finish )
+  {
+    toCopy = ( left > size ) ? size : left;
+    dPrintf( "size: %d, toCopy: %d\n", size, toCopy );
+
+    memcpy( payload + offset, data, toCopy );
+    //dPrintf( "data:\n|%s|\n", data );
+
+    offset += toCopy;
+    left -= toCopy;
+    dPrintf( "offset: %d, left: %d\n", offset, left );
+
+    if ( 0 >= left )
+      return true;
+
+    return false;
+  }
+};
+
+class ZeroCompression : public CompressionMethod
+{
+public:
+  sptr<EnDecoder> createEncoder( Config const & config ) const
+  {
+    return new ZeroEncoder( config );
+  }
+
+  sptr<EnDecoder> createEncoder() const
+  {
+    return new ZeroEncoder();
+  }
+
+  sptr<EnDecoder> createDecoder() const
+  {
+    return new ZeroDecoder();
+  }
+
+  std::string getName() const { return "zero"; }
+};
+
 // register them
 
 const_sptr< CompressionMethod > const CompressionMethod::compressions[] = {
@@ -614,6 +738,7 @@ const_sptr< CompressionMethod > const CompressionMethod::compressions[] = {
 # ifdef HAVE_LIBLZO
   new LZO1X_1_Compression(),
 # endif
+  new ZeroCompression(),
   // NULL entry marks end of list. Don't remove it!
   NULL
 };
