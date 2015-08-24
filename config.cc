@@ -340,6 +340,14 @@ bool Config::parseOrValidate( const string & option, const OptionType type,
         Compression::CompressionMethod::selectedCompression = lzo;
       }
       else
+      if ( PARSE_OR_VALIDATE(
+            strcmp( optionValue, "zero" ) == 0,
+            GET_STORABLE( bundle, compression_method ) == "zero" ) )
+      {
+        Compression::CompressionMethod::selectedCompression =
+          Compression::CompressionMethod::findCompression( "zero" );
+      }
+      else
       {
         fprintf( stderr,
             "ZBackup doesn't support %s compression.\n"
