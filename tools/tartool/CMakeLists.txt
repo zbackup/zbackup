@@ -6,6 +6,6 @@ project( tartool )
 
 set( CMAKE_BUILD_TYPE Release )
 
-add_executable( tartool tartool.cc ../file.cc ../dir.cc )
+add_executable( tartool tartool.cc ../../file.cc ../../dir.cc )
 
 install( TARGETS tartool DESTINATION bin )

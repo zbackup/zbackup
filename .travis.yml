@@ -12,6 +12,12 @@ addons:
     - zlib1g-dev
     - liblzo2-dev
 script:
+  - cd tools/tartool
+  - mkdir objdir
+  - cd objdir
+  - cmake ../
+  - make
+  - cd ../../
   - mkdir objdir
   - cd objdir
   - cmake ../

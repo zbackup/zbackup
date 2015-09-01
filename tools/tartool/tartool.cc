@@ -7,8 +7,8 @@
 #include <vector>
 #include <map>
 
-#include "../dir.hh"
-#include "../file.hh"
+#include "../../dir.hh"
+#include "../../file.hh"
 
 using std::string;
 using std::vector;
