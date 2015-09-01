@@ -50,7 +50,7 @@ void Creator::write( std::string const & fileName, EncryptionKey const & key,
   void * bufPrev = NULL;
   const void * bufCurr = NULL;
   int sizePrev = 0, sizeCurr = 0;
-  bool readPrev = false, readCurr = false;
+  bool readPrev = false;
 
   for ( ; ; )
   {

@@ -261,17 +261,15 @@ invalid_option:
         return EXIT_FAILURE;
       }
 
-      int src, dst;
+      int src = 1, dst = 2;
       if ( strcmp( args[ 0 ], "export" ) == 0 )
       {
-        src = 1;
-        dst = 2;
+        src = 1, dst = 2;
       }
       else
       if ( strcmp( args[ 0 ], "import" ) == 0 )
       {
-        src = 2;
-        dst = 1;
+        src = 2, dst = 1;
       }
       dPrintf( "%s src: %s\n", args[ 0 ], args[ src ] );
       dPrintf( "%s dst: %s\n", args[ 0 ], args[ dst ] );
@@ -294,13 +292,11 @@ invalid_option:
         return EXIT_FAILURE;
       }
 
-      int fieldStorage = 1;
-      int fieldAction = 2;
+      int fieldStorage = 1, fieldAction = 2;
 
       if ( args.size() == 3 )
       {
-        fieldStorage = 2;
-        fieldAction = 1;
+        fieldStorage = 2, fieldAction = 1;
       }
 
       if ( args.size() > 2 && strcmp( args[ fieldAction ], "fast" ) == 0 )
@@ -374,13 +370,11 @@ invalid_option:
         return EXIT_FAILURE;
       }
 
-      int fieldStorage = 1;
-      int fieldAction = 2;
+      int fieldStorage = 1, fieldAction = 2;
 
       if ( args.size() == 3 )
       {
-        fieldStorage = 2;
-        fieldAction = 1;
+        fieldStorage = 2, fieldAction = 1;
       }
 
       if ( args.size() > 2 && strcmp( args[ fieldAction ], "edit" ) == 0 )
