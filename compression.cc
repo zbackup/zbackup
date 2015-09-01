@@ -654,7 +654,7 @@ class ZeroEncoder : public ZeroEnDecoder
   {
     toCopy = ( left > size ) ? size : left;
 
-    memcpy( data, payload + offset, toCopy );
+    memcpy( data, ( char * ) payload + offset, toCopy );
     //dPrintf( "data:\n|%s|\n", payload + offset );
 
     offset += toCopy;
@@ -702,7 +702,7 @@ class ZeroDecoder : public ZeroEnDecoder
   {
     toCopy = ( left > size ) ? size : left;
 
-    memcpy( payload + offset, data, toCopy );
+    memcpy( ( char * ) payload + offset, data, toCopy );
     //dPrintf( "data:\n|%s|\n", data );
 
     offset += toCopy;
