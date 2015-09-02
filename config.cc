@@ -515,19 +515,34 @@ bool Config::parseOrValidate( const string & option, const OptionType type,
 void Config::showHelp( const OptionType type )
 {
   fprintf( stderr,
-"Available %s options overview:\n\n"
-"== help ==\n"
-"show this message\n"
-"", ( type == Runtime ? "runtime" : ( type == Storable ? "storable" : "" ) ) );
+      "SYNOPSIS\n"
+      "--------\n"
+      "This flag allows user to override %s configuration.\n"
+      "\n"
+      "OPTIONS\n"
+      "-------\n"
+      "\n"
+      "* help:\n"
+      "  Show this message\n"
+      "", ( type == Runtime ? "runtime" : ( type == Storable ? "storable" : "" ) ) );
 
   for ( u_int i = 0; !keywords[ i ].name.empty(); i++ )
   {
     if ( keywords[ i ].type != type )
       continue;
 
-    fprintf( stderr, "\n== %s ==\n", keywords[ i ].name.c_str() );
-    fprintf( stderr, keywords[ i ].description.c_str(),
-       keywords[ i ].defaultValue.c_str() );
+    string description( keywords[ i ].description );
+
+    size_t pos = 0;
+    while( ( pos = description.find( "\n", pos ) ) != std::string::npos )
+    {
+      description.replace( pos, std::string( "\n" ).length(), "\n  " );
+      pos += std::string( "\n  ").length();
+    }
+    description.insert( 0, "  " );
+
+    fprintf( stderr, "\n* %s:\n", keywords[ i ].name.c_str() );
+    fprintf( stderr, description.c_str(), keywords[ i ].defaultValue.c_str() );
     fprintf( stderr, "\n" );
   }
 }
