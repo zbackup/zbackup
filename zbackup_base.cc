@@ -391,41 +391,35 @@ fatal:
   tmpDataFile->read( &newData[ 0 ], newData.size() );
   bool isChanged = false;
 
-  bool valid = validator( data, newData );
-
-  switch ( valid )
+  if ( !validator( data, newData ) )
   {
-    case true:
-      goto success;
-    case false:
-      for ( ; ; )
+    for ( ; ; )
+    {
+      fprintf( stderr, "Supplied data is not valid\n" );
+      fflush( stderr );
+      printf( "Do you want to retry the same edit? " );
+      fflush( stdout );
+
+      string input;
+      input.resize( 131072 ); // Should I choose another magic value?
+      if ( fgets( &input[ 0 ], input.size(), stdin ) == 0L )
+        continue;
+
+      switch ( input[ 0 ] )
       {
-        fprintf( stderr, "Supplied data is not valid\n" );
-        fflush( stderr );
-        printf( "Do you want to retry the same edit? " );
-        fflush( stdout );
-
-        string input;
-        input.resize( 131072 ); // Should I choose another magic value?
-        if ( fgets( &input[ 0 ], input.size(), stdin ) == 0L )
-          continue;
-
-        switch ( input[ 0 ] )
-        {
-          case 'y':
-          case 'Y':
-            goto again;
-          case 'n':
-          case 'N':
-            verbosePrintf( "Data is kept intact\n" );
-            goto end;
-          default:
-            fprintf( stderr, "Enter Y or N\n" );
-        }
+        case 'y':
+        case 'Y':
+          goto again;
+        case 'n':
+        case 'N':
+          verbosePrintf( "Data is kept intact\n" );
+          goto end;
+        default:
+          fprintf( stderr, "Enter Y or N\n" );
       }
+    }
   }
 
-success:
   isChanged = true;
   data.assign( newData );
 
