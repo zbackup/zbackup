@@ -42,6 +42,9 @@ string getRealPath( string const & );
 /// Returns the directory part of the given path
 string getDirName( string const & );
 
+/// Returns the final path component part of the given path
+string getBaseName( string const & );
+
 /// Checkes whether directory is empty
 bool isDirEmpty( string const & );
 
