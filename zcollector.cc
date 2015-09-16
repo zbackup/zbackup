@@ -5,10 +5,12 @@
 
 #include "backup_restorer.hh"
 #include "backup_file.hh"
+#include "backup_exchanger.hh"
 
 #include "debug.hh"
 
 using std::string;
+using std::iterator;
 
 namespace {
 
@@ -189,11 +191,10 @@ void ZCollector::gc( bool gcDeep )
                       getBundlesPath(), getIndexPath(), threads );
 
   string fileName;
-  string backupsPath = getBackupsPath();
-
-  Dir::Listing lst( backupsPath );
 
   Dir::Entry entry;
+
+  string backupsPath = getBackupsPath();
 
   BundleCollector collector;
   collector.bundlesPath = getBundlesPath();
@@ -204,13 +205,18 @@ void ZCollector::gc( bool gcDeep )
 
   verbosePrintf( "Performing garbage collection...\n" );
 
-  while( lst.getNext( entry ) )
+  verbosePrintf( "Searching for backups...\n" );
+  vector< string > backups = BackupExchanger::findOrRebuild( getBackupsPath() );
+
+  for ( std::vector< string >::iterator it = backups.begin(); it != backups.end(); ++it )
   {
-    verbosePrintf( "Checking backup %s...\n", entry.getFileName().c_str() );
+    string backup( Dir::addPath( getBackupsPath(), *it ) );
+
+    verbosePrintf( "Checking backup %s...\n", backup.c_str() );
 
     BackupInfo backupInfo;
 
-    BackupFile::load( Dir::addPath( backupsPath, entry.getFileName() ), encryptionkey, backupInfo );
+    BackupFile::load( backup , encryptionkey, backupInfo );
 
     string backupData;
 
@@ -232,7 +238,8 @@ void ZCollector::gc( bool gcDeep )
   while( bundleLst.getNext( entry ) )
   {
     const string dirPath = Dir::addPath( bundlesPath, entry.getFileName());
-    if (entry.isDir() && Dir::isDirEmpty(dirPath)) {
+    if ( entry.isDir() && Dir::isDirEmpty( dirPath ) )
+    {
       Dir::remove(dirPath);
     }
   }

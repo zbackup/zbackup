@@ -23,7 +23,9 @@ enum {
 };
 
 /// Recreate source directory structure in destination
-vector< string > recreateDirectories( string const & src, string const & dst, string const & relativePath = std::string() );
+vector< string > findOrRebuild( string const & src,
+    string const & dst = std::string(),
+    string const & relativePath = std::string() );
 typedef pair< sptr< TemporaryFile >, string > PendingExchangeRename;
 }
 
