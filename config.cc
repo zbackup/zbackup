@@ -8,15 +8,6 @@
 #include "utils.hh"
 #include "compression.hh"
 
-#define VALID_SUFFIXES "Valid suffixes:\n" \
-                       "B - multiply by 1 (bytes)\n" \
-                       "KiB - multiply by 1024 (kibibytes)\n" \
-                       "MiB - multiply by 1024*1024 (mebibytes)\n" \
-                       "GiB - multiply by 1024*1024*1024 (gibibytes)\n" \
-                       "KB - multiply by 1000 (kilobytes)\n" \
-                       "MB - multiply by 1000*1000 (megabytes)\n" \
-                       "GB - multiply by 1000*1000*1000 (gigabytes)\n" \
-
 #define SKIP_ON_VALIDATION \
 { \
   if ( validate ) \
@@ -117,9 +108,9 @@ void Config::prefillKeywords()
       "Data to exchange between repositories in import/export process.\n"
       "Can be specified multiple times.\n"
       "Valid values:\n"
-      "backups - exchange backup instructions (files in backups/ directory)\n"
-      "bundles - exchange bundles with data (files in bunles/ directory)\n"
-      "indexes - exchange indexes of chunks (files in index/ directory)\n"
+      "backups - backup instructions (files in backups/ directory)\n"
+      "bundles - bundles with data (files in bunles/ directory)\n"
+      "indexes - indexes of chunks (files in index/ directory)\n"
       "No default value, you should specify it explicitly."
     },
 
@@ -140,6 +131,17 @@ void Config::prefillKeywords()
       "ZBackup will use TMPDIR environment variable\n"
       "for temporary files if set.\n"
       "Not default, you should specify it explicitly."
+    },
+
+    {
+      "backup.minimalSize",
+      Config::oRuntime_backupMinimalSize,
+      Config::Runtime,
+      "Minimal size of files that will be processed\n"
+      "in directory backup mode.\n"
+      VALID_SUFFIXES
+      "Default is %sMiB",
+      Utils::numberToString( runtime.backupMinimalSize / 1024 / 1024 )
     },
 
     { "", Config::oBadOption, Config::None }
@@ -246,7 +248,6 @@ bool Config::parseOrValidate( const string & option, const OptionType type,
   size_t sizeValue;
   char suffix[ 16 ];
   int n;
-  unsigned int scale, scaleBase = 1;
   uint32_t uint32Value;
 
   switch ( opcode )
@@ -396,58 +397,9 @@ bool Config::parseOrValidate( const string & option, const OptionType type,
       if ( sscanf( optionValue, "%zu %15s %n",
                    &sizeValue, suffix, &n ) == 2 && !optionValue[ n ] )
       {
-        // Check the suffix
-        for ( char * c = suffix; *c; ++c )
-          *c = tolower( *c );
-
-        if ( strcmp( suffix, "b" ) == 0 )
-        {
-          scale = 1;
-        }
-        else
-        if ( strcmp( suffix, "kib" ) == 0 )
-        {
-          scaleBase = 1024;
-          scale = scaleBase;
-        }
-        else
-        if ( strcmp( suffix, "mib" ) == 0 )
-        {
-          scaleBase = 1024;
-          scale = scaleBase * scaleBase;
-        }
-        else
-        if ( strcmp( suffix, "gib" ) == 0 )
-        {
-          scaleBase = 1024;
-          scale = scaleBase * scaleBase * scaleBase;
-        }
-        else
-        if ( strcmp( suffix, "kb" ) == 0 )
-        {
-          scaleBase = 1000;
-          scale = scaleBase;
-        }
-        else
-        if ( strcmp( suffix, "mb" ) == 0 )
-        {
-          scaleBase = 1000;
-          scale = scaleBase * scaleBase;
-        }
-        else
-        if ( strcmp( suffix, "gb" ) == 0 )
-        {
-          scaleBase = 1000;
-          scale = scaleBase * scaleBase * scaleBase;
-        }
-        else
-        {
-          // SI or IEC
-          fprintf( stderr, "Invalid suffix specified in cache size (%s): %s.\n"
-                   VALID_SUFFIXES, optionValue, suffix );
+        runtime.cacheSize = sizeValue * Utils::getScale( suffix );
+        if ( 0 == runtime.cacheSize )
           return false;
-        }
-        runtime.cacheSize = sizeValue * scale;
 
         dPrintf( "runtime[cacheSize] = %zu\n", runtime.cacheSize );
 
@@ -498,6 +450,25 @@ bool Config::parseOrValidate( const string & option, const OptionType type,
       dPrintf( "runtime[pathsRespectTmp] = true\n" );
 
       return true;
+      /* NOTREACHED */
+      break;
+
+    case oRuntime_backupMinimalSize:
+      REQUIRE_VALUE;
+
+      sizeValue = runtime.backupMinimalSize;
+      if ( sscanf( optionValue, "%zu %15s %n",
+                   &sizeValue, suffix, &n ) == 2 && !optionValue[ n ] )
+      {
+        runtime.backupMinimalSize = sizeValue * Utils::getScale( suffix );
+        if ( 0 == runtime.backupMinimalSize )
+          return false;
+
+        dPrintf( "runtime[backupMinimalSize] = %zu\n", runtime.backupMinimalSize );
+
+        return true;
+      }
+      return false;
       /* NOTREACHED */
       break;
 

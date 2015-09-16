@@ -5,6 +5,7 @@
 #include "backup_creator.hh"
 #include "sha256.hh"
 #include "backup_collector.hh"
+#include "utils.hh"
 #include <unistd.h>
 
 using std::vector;
@@ -27,10 +28,15 @@ void ZBackup::backupFromStdin( string const & outputFileName )
 }
 
 /// Backs up the data from a file
-void ZBackup::backupFromFile( string const & inputFileName, string const & outputFileName )
+void ZBackup::backupFromFile( string const & inputFileName, string const & outputFileName,
+                              bool checkFileSize )
 {
   File inputFile( inputFileName, File::ReadOnly );
-  backupFromFileHandle( inputFileName, inputFile.file(), outputFileName );
+  if ( checkFileSize && inputFile.size() < config.runtime.backupMinimalSize )
+    fprintf( stderr, "WARNING: skipping file %s because its size (use -O backup.minimalSize to adjust)\n",
+        inputFileName.c_str() );
+  else
+    backupFromFileHandle( inputFileName, inputFile.file(), outputFileName );
 }
 
 /// Backs up the data from a directory
@@ -73,7 +79,7 @@ void ZBackup::backupFromDirectory( string const & inputDirectoryName, string con
       else if ( File::special( srcPath ) )
         fprintf( stderr, "WARNING: ignoring special file: %s\n", srcPath.c_str() );
       else 
-        backupFromFile( srcPath, outputPath );
+        backupFromFile( srcPath, outputPath, true );
     }
   }
 }
@@ -275,7 +281,7 @@ void ZExchange::exchange()
   {
     verbosePrintf( "Searching for bundles...\n" );
 
-    vector< string > bundles = BackupExchanger::findOrRebuild(
+    vector< string > bundles = Utils::findOrRebuild(
         srcZBackupBase.getBundlesPath(), dstZBackupBase.getBundlesPath() );
 
     for ( std::vector< string >::iterator it = bundles.begin(); it != bundles.end(); ++it )
@@ -311,7 +317,7 @@ void ZExchange::exchange()
   if ( config.runtime.exchange.test( BackupExchanger::indexes ) )
   {
     verbosePrintf( "Searching for indexes...\n" );
-    vector< string > indexes = BackupExchanger::findOrRebuild(
+    vector< string > indexes = Utils::findOrRebuild(
         srcZBackupBase.getIndexPath(), dstZBackupBase.getIndexPath() );
 
     for ( std::vector< string >::iterator it = indexes.begin(); it != indexes.end(); ++it )
@@ -356,7 +362,7 @@ void ZExchange::exchange()
     BackupInfo backupInfo;
 
     verbosePrintf( "Searching for backups...\n" );
-    vector< string > backups = BackupExchanger::findOrRebuild(
+    vector< string > backups = Utils::findOrRebuild(
         srcZBackupBase.getBackupsPath(), dstZBackupBase.getBackupsPath() );
 
     for ( std::vector< string >::iterator it = backups.begin(); it != backups.end(); ++it )
@@ -427,7 +433,7 @@ void ZCollector::gc( bool gcDeep )
   verbosePrintf( "Performing garbage collection...\n" );
 
   verbosePrintf( "Searching for backups...\n" );
-  vector< string > backups = BackupExchanger::findOrRebuild( getBackupsPath() );
+  vector< string > backups = Utils::findOrRebuild( getBackupsPath() );
 
   for ( std::vector< string >::iterator it = backups.begin(); it != backups.end(); ++it )
   {

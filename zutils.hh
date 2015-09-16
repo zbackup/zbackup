@@ -19,13 +19,17 @@ public:
   void backupFromStdin( string const & outputFileName );
 
   /// Backs up the data from a file
-  void backupFromFile( string const & inputFileName, string const & outputFileName );
+  void backupFromFile( string const & inputFileName,
+      string const & outputFileName,
+      bool checkFileSize = false );
 
   /// Backs up the data from a directory
-  void backupFromDirectory( string const & inputDirectoryName, string const & outputDirectoryName );
+  void backupFromDirectory( string const & inputDirectoryName,
+      string const & outputDirectoryName );
 
   /// Backs up the data from a stdio FILE handle
-  void backupFromFileHandle( string const & inputName, FILE* inputFileHandle, string const & outputFileName );
+  void backupFromFileHandle( string const & inputName, FILE* inputFileHandle,
+      string const & outputFileName );
 };
 
 class ZRestore: public ZBackupBase

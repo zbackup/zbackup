@@ -5,11 +5,35 @@
 #define UTILS_HH_INCLUDED
 
 #include <sstream>
+#include <string>
+#include <vector>
+
+#define VALID_SUFFIXES "Valid suffixes:\n" \
+"|--------|----------------|----------|\n" \
+"| suffix | multiplier     | name     |\n" \
+"|--------|----------------|----------|\n" \
+"| B      | 1              | byte     |\n" \
+"| KiB    | 1024           | kibibyte |\n" \
+"| MiB    | 1024*1024      | mebibyte |\n" \
+"| GiB    | 1024*1024*1024 | gibibyte |\n" \
+"| KB     | 1000           | kilobyte |\n" \
+"| MB     | 1000*1000      | megabyte |\n" \
+"| GB     | 1000*1000*1000 | gigabyte |\n" \
+"|--------|----------------|----------|\n"
 
 namespace Utils {
+using std::string;
+using std::vector;
+
+/// Recreate source directory structure in destination
+vector< string > findOrRebuild( string const & src,
+    string const & dst = std::string(),
+    string const & relativePath = std::string() );
+
+unsigned int getScale( char * );
 
 template <typename T>
-std::string numberToString( T pNumber )
+string numberToString( T pNumber )
 {
   std::ostringstream oOStrStream;
   oOStrStream << pNumber;

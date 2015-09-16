@@ -31,13 +31,15 @@ public:
     bitset< BackupExchanger::Flags > exchange;
     bool gcRepack;
     bool pathsRespectTmp;
+    size_t backupMinimalSize;
 
     // Default runtime config
     RuntimeConfig():
       threads( getNumberOfCpus() ),
       cacheSize( 40 * 1024 * 1024 ), // 40 MB
       gcRepack ( false ),
-      pathsRespectTmp( false )
+      pathsRespectTmp( false ),
+      backupMinimalSize( 10 * 1024 * 1024) // 10 MB
     {
     }
   };
@@ -64,6 +66,7 @@ public:
     oRuntime_exchange,
     oRuntime_gcRepack,
     oRuntime_pathsRespectTmp,
+    oRuntime_backupMinimalSize,
 
     oDeprecated, oUnsupported
   } OpCodes;

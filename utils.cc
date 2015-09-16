@@ -1,11 +1,13 @@
 // Copyright (c) 2012-2014 Konstantin Isakov <ikm@zbackup.org> and ZBackup contributors, see CONTRIBUTORS
 // Part of ZBackup. Licensed under GNU GPLv2 or later + OpenSSL, see LICENSE
 
-#include "backup_exchanger.hh"
+#include <string.h>
+
+#include "utils.hh"
 #include "dir.hh"
 #include "debug.hh"
 
-namespace BackupExchanger {
+namespace Utils {
 
 vector< string > findOrRebuild( string const & src, string const & dst, string const & relativePath )
 {
@@ -46,4 +48,64 @@ vector< string > findOrRebuild( string const & src, string const & dst, string c
 
   return files;
 }
+
+unsigned int getScale( char * suffix )
+{
+  unsigned int scale, scaleBase = 1;
+
+  // Check the suffix
+  for ( char * c = suffix; *c; ++c )
+    *c = tolower( *c );
+
+  if ( strcmp( suffix, "b" ) == 0 )
+  {
+    scale = 1;
+  }
+  else
+  if ( strcmp( suffix, "kib" ) == 0 )
+  {
+    scaleBase = 1024;
+    scale = scaleBase;
+  }
+  else
+  if ( strcmp( suffix, "mib" ) == 0 )
+  {
+    scaleBase = 1024;
+    scale = scaleBase * scaleBase;
+  }
+  else
+  if ( strcmp( suffix, "gib" ) == 0 )
+  {
+    scaleBase = 1024;
+    scale = scaleBase * scaleBase * scaleBase;
+  }
+  else
+  if ( strcmp( suffix, "kb" ) == 0 )
+  {
+    scaleBase = 1000;
+    scale = scaleBase;
+  }
+  else
+  if ( strcmp( suffix, "mb" ) == 0 )
+  {
+    scaleBase = 1000;
+    scale = scaleBase * scaleBase;
+  }
+  else
+  if ( strcmp( suffix, "gb" ) == 0 )
+  {
+    scaleBase = 1000;
+    scale = scaleBase * scaleBase * scaleBase;
+  }
+  else
+  {
+    // SI or IEC
+    fprintf( stderr, "Invalid suffix specified: %s.\n"
+             VALID_SUFFIXES, suffix );
+    return 0;
+  }
+
+  return scale;
+}
+
 }
