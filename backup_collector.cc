@@ -5,6 +5,15 @@
 
 using std::string;
 
+BundleCollector::BundleCollector( string const & bundlesPath,
+    ChunkStorage::Reader * chunkStorageReader, ChunkStorage::Writer * chunkStorageWriter,
+    bool gcDeep, Config & config ):
+  config( config ), bundlesPath( bundlesPath ), gcDeep( gcDeep )
+{
+  this->chunkStorageReader = chunkStorageReader;
+  this->chunkStorageWriter = chunkStorageWriter;
+}
+
 void BundleCollector::startIndex( string const & indexFn )
 {
   indexModified = indexNecessary = false;
@@ -24,8 +33,9 @@ void BundleCollector::finishIndex( string const & indexFn )
   }
   else
   {
-    chunkStorageWriter->reset();
-    if ( gcDeep && !indexNecessary )
+    if ( !config.runtime.gcConcat )
+      chunkStorageWriter->reset();
+    if ( ( gcDeep && !indexNecessary ) || config.runtime.gcConcat )
       // this index was a complete copy so we don't need it
       filesToUnlink.push_back( indexFn );
   }
@@ -78,7 +88,7 @@ void BundleCollector::finishBundle( Bundle::Id const & bundleId, BundleInfo cons
   }
   else
   {
-    if ( gcRepack )
+    if ( config.runtime.gcRepack )
     {
       filesToUnlink.push_back( Dir::addPath( bundlesPath, i ) );
       indexModified = true;

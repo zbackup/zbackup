@@ -121,6 +121,17 @@ void Config::prefillKeywords()
       "Repack indexes and bundles during garbage collection.\n"
       "Normally you would not need it.\n"
       "Beware that this option causes very intensive IO!\n"
+      "Mutually exclusive with gc.concat.\n"
+      "Not default, you should specify it explicitly."
+    },
+
+    {
+      "gc.concat",
+      Config::oRuntime_gcConcat,
+      Config::Runtime,
+      "Concatenate all index files into single one\n"
+      "during garbage collection.\n"
+      "Mutually exclusive with gc.repack.\n"
       "Not default, you should specify it explicitly."
     },
 
@@ -436,9 +447,36 @@ bool Config::parseOrValidate( const string & option, const OptionType type,
       break;
 
     case oRuntime_gcRepack:
+      if ( runtime.gcConcat )
+      {
+        fprintf( stderr, "Option gc.repack is mutually exclusive with gc.concat "
+                 "and gc.concat is enabled,\n"
+                 "you should pick one of them.\n" );
+        return false;
+      }
+
       runtime.gcRepack = true;
 
       dPrintf( "runtime[gcRepack] = true\n" );
+
+      return true;
+      /* NOTREACHED */
+      break;
+
+    case oRuntime_gcConcat:
+      if ( runtime.gcRepack )
+      {
+        // In fact they are not mutually exclusive but concat is useless
+        // while repack is in action so no need wreak havoc in user's mind
+        fprintf( stderr, "Option gc.concat is mutually exclusive with gc.repack "
+                 "and gc.repack is enabled,\n"
+                 "you should pick one of them.\n" );
+        return false;
+      }
+
+      runtime.gcConcat = true;
+
+      dPrintf( "runtime[gcConcat] = true\n" );
 
       return true;
       /* NOTREACHED */

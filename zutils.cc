@@ -423,12 +423,8 @@ void ZCollector::gc( bool gcDeep )
 
   string fileName;
 
-  BundleCollector collector;
-  collector.bundlesPath = getBundlesPath();
-  collector.chunkStorageReader = &this->chunkStorageReader;
-  collector.chunkStorageWriter = &chunkStorageWriter;
-  collector.gcRepack = config.runtime.gcRepack;
-  collector.gcDeep = gcDeep;
+  BundleCollector collector( getBundlesPath(), &chunkStorageReader, &chunkStorageWriter,
+      gcDeep, config );
 
   verbosePrintf( "Performing garbage collection...\n" );
 

@@ -30,6 +30,7 @@ public:
     size_t cacheSize;
     bitset< BackupExchanger::Flags > exchange;
     bool gcRepack;
+    bool gcConcat;
     bool pathsRespectTmp;
     size_t backupMinimalSize;
 
@@ -38,6 +39,7 @@ public:
       threads( getNumberOfCpus() ),
       cacheSize( 40 * 1024 * 1024 ), // 40 MB
       gcRepack ( false ),
+      gcConcat ( false ),
       pathsRespectTmp( false ),
       backupMinimalSize( 10 * 1024 * 1024) // 10 MB
     {
@@ -65,6 +67,7 @@ public:
     oRuntime_cacheSize,
     oRuntime_exchange,
     oRuntime_gcRepack,
+    oRuntime_gcConcat,
     oRuntime_pathsRespectTmp,
     oRuntime_backupMinimalSize,
 

@@ -9,6 +9,7 @@
 
 #include "backup_restorer.hh"
 #include "backup_file.hh"
+#include "config.hh"
 
 #include "debug.hh"
 
@@ -17,6 +18,12 @@ using std::string;
 class BundleCollector: public IndexProcessor
 {
 private:
+  string bundlesPath;
+  ChunkStorage::Reader *chunkStorageReader;
+  ChunkStorage::Writer *chunkStorageWriter;
+  bool gcDeep;
+  Config config;
+
   Bundle::Id savedId;
   int totalChunks, usedChunks, indexTotalChunks, indexUsedChunks;
   int indexModifiedBundles, indexKeptBundles, indexRemovedBundles;
@@ -28,11 +35,10 @@ private:
   void copyUsedChunks( BundleInfo const & info );
 
 public:
-  string bundlesPath;
-  ChunkStorage::Reader *chunkStorageReader;
-  ChunkStorage::Writer *chunkStorageWriter;
+  BundleCollector( string const & bundlesPath, ChunkStorage::Reader *,
+      ChunkStorage::Writer *, bool gcDeep, Config & config );
+
   BackupRestorer::ChunkSet usedChunkSet;
-  bool gcRepack, gcDeep;
 
   void startIndex( string const & indexFn );
 
