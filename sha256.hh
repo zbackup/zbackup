@@ -32,6 +32,8 @@ public:
 
   /// Returns result as a string blob
   string finish();
+
+  static string getAsHex( string const & );
 };
 
 #endif

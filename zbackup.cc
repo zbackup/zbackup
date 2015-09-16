@@ -182,7 +182,7 @@ invalid_option:
 "    gc [fast|deep] <storage path> - performs garbage\n"
 "            collection (default is fast)\n"
 "    passwd <storage path> - changes repo info file passphrase\n"
-//"    info <storage path> - shows repo information\n"
+"    info <backup file name> - show info about backup\n"
 "    config [show|edit|set|reset] <storage path> - performs\n"
 "            configuration manipulations (default is show)\n"
 "", zbackup_version.c_str(), *argv );
@@ -230,7 +230,7 @@ invalid_option:
                  *argv, args[ 0 ], *argv, args[ 0 ], *argv, args[ 0 ]);
         return EXIT_FAILURE;
       }
-      
+
       string backupSource, backupsDest;
       bool dirBackupMode = false;
       if ( args.size() == 2 )
@@ -251,7 +251,7 @@ invalid_option:
                   passwords[ 0 ], config );
       if ( args.size() == 2 )
         zb.backupFromStdin( backupsDest );
-      else 
+      else
       {
         if ( dirBackupMode )
           zb.backupFromDirectory( args[ 1 ], backupsDest );
@@ -384,11 +384,9 @@ invalid_option:
         return EXIT_FAILURE;
       }
 
-      // TODO: implementation in ZBackupBase
-      ZBackupBase zbb( ZBackupBase::deriveStorageDirFromBackupsFile( args[ 1 ], true ),
-          passwords[ 0 ], true );
-      fprintf( stderr, "NOT IMPLEMENTED YET!\n" );
-      return EXIT_FAILURE;
+      ZInfo zi( ZRestore::deriveStorageDirFromBackupsFile( args[ 1 ] ),
+                   passwords[ 0 ], config );
+      zi.show( args[1] );
     }
     else
     if ( strcmp( args[ 0 ], "config" ) == 0 )

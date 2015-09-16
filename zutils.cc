@@ -84,7 +84,7 @@ void ZBackup::backupFromDirectory( string const & inputDirectoryName, string con
   }
 }
 
-/// Backs up the data from a stdio FILE handle
+/// Backs up the data from a FILE handle
 void ZBackup::backupFromFileHandle( string const & inputName, FILE* inputFileHandle, string const & outputFileName )
 {
   if ( File::exists( outputFileName ) )
@@ -469,4 +469,29 @@ void ZCollector::gc( bool gcDeep )
   }
 
   verbosePrintf( "Garbage collection complete\n" );
+}
+
+ZInfo::ZInfo( string const & storageDir, string const & password,
+    Config & configIn ):
+  ZBackupBase( storageDir, password, configIn, true )
+{
+}
+
+void ZInfo::show( string const & inputFileName )
+{
+  BackupInfo backupInfo;
+
+  BackupFile::load( inputFileName, encryptionkey, backupInfo );
+
+  fprintf( stderr,
+      "Backup file: %s\n"
+      "Restore iterations: %d\n"
+      "Original size: %lu\n"
+      "Time taken to backup (seconds): %ld\n"
+      "SHA256 sum of data: %s\n",
+      inputFileName.c_str(),
+      backupInfo.iterations(),
+      backupInfo.size(),
+      backupInfo.time(),
+      Sha256::getAsHex( backupInfo.sha256() ).c_str() );
 }

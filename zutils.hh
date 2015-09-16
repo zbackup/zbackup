@@ -74,4 +74,13 @@ public:
   void gc( bool );
 };
 
+class ZInfo : public ZBackupBase
+{
+public:
+  ZInfo( std::string const & storageDir, std::string const & password,
+              Config & configIn );
+
+  void show( string const & inputFileName );
+};
+
 #endif
