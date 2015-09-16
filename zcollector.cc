@@ -9,6 +9,7 @@
 #include "debug.hh"
 
 using std::string;
+using std::list;
 
 namespace {
 
@@ -190,11 +191,7 @@ void ZCollector::gc( bool gcDeep )
 
   string fileName;
   string backupsPath = getBackupsPath();
-
-  Dir::Listing lst( backupsPath );
-
-  Dir::Entry entry;
-
+  
   BundleCollector collector;
   collector.bundlesPath = getBundlesPath();
   collector.chunkStorageReader = &this->chunkStorageReader;
@@ -204,19 +201,41 @@ void ZCollector::gc( bool gcDeep )
 
   verbosePrintf( "Performing garbage collection...\n" );
 
-  while( lst.getNext( entry ) )
+  list< string > dirs;
+  dirs.push_back( backupsPath );
+  
+  Dir::Entry entry;
+  while ( ! dirs.empty() )
   {
-    verbosePrintf( "Checking backup %s...\n", entry.getFileName().c_str() );
+    std::string dir = dirs.front();
+    dirs.pop_front();
+    
+    Dir::Listing lst( dir );
 
-    BackupInfo backupInfo;
 
-    BackupFile::load( Dir::addPath( backupsPath, entry.getFileName() ), encryptionkey, backupInfo );
+    while( lst.getNext( entry ) )
+    {
+      string path = Dir::addPath( dir, entry.getFileName() );
+      if ( entry.isDir() )
+      {
+        if ( entry.getFileName() != "." && entry.getFileName() != ".." )
+          dirs.push_front( path );
+      }
+      else
+      {
+        verbosePrintf( "Checking backup %s...\n", path.c_str() );
 
-    string backupData;
+        BackupInfo backupInfo;
 
-    BackupRestorer::restoreIterations( chunkStorageReader, backupInfo, backupData, &collector.usedChunkSet );
+        BackupFile::load( path, encryptionkey, backupInfo );
 
-    BackupRestorer::restore( chunkStorageReader, backupData, NULL, &collector.usedChunkSet );
+        string backupData;
+
+        BackupRestorer::restoreIterations( chunkStorageReader, backupInfo, backupData, &collector.usedChunkSet );
+
+        BackupRestorer::restore( chunkStorageReader, backupData, NULL, &collector.usedChunkSet );
+      }
+    }
   }
 
   verbosePrintf( "Checking bundles...\n" );
