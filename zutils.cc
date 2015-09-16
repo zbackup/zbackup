@@ -73,10 +73,7 @@ void ZBackup::backupFromDirectory( string const & inputDirectoryName, string con
       else if ( File::special( srcPath ) )
         fprintf( stderr, "WARNING: ignoring special file: %s\n", srcPath.c_str() );
       else 
-      {
-        fprintf( stderr, "backing up %s\n", srcPath.c_str());
         backupFromFile( srcPath, outputPath );
-      }
     }
   }
 }
