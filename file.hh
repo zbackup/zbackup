@@ -131,6 +131,11 @@ public:
   static bool exists( std::string const & filename ) throw()
   { return exists( filename.c_str() ); }
 
+  /// Returns false when lstat returns stat::st_mode having 
+  /// S_IFREG (filename is a file, or softlink to a file, and
+  /// is not a socket, fifo, device node, etc.
+  static bool special( std::string const & filename ) throw();
+
   ~File() throw();
 
   /// Erases the given file

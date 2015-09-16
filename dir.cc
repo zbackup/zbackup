@@ -66,6 +66,14 @@ string getDirName( string const & path )
   return dirname( copy.data() );
 }
 
+string getBaseName( string const & path )
+{
+  char const * c = path.c_str();
+  std::vector< char > copy( c, c + path.size() + 1 );
+
+  return basename( copy.data() );
+}
+
 bool isDirEmpty( string const & path )
 {
   Listing lst(path);

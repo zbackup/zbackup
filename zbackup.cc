@@ -10,6 +10,7 @@ DEF_EX( exSpecifyTwoKeys, "Specify password flag (--non-encrypted or --password-
   " for import/export/passwd operation twice (first for source and second for destination)", std::exception )
 DEF_EX( exNonEncryptedWithKey, "--non-encrypted and --password-file are incompatible", std::exception )
 DEF_EX( exSpecifyEncryptionOptions, "Specify either --password-file or --non-encrypted", std::exception )
+DEF_EX( exSourceInaccessible, "Backup source file/directory is inaccessible", std::exception )
 
 int main( int argc, char *argv[] )
 {
@@ -167,6 +168,8 @@ invalid_option:
 "  Commands:\n"
 "    init <storage path> - initializes new storage\n"
 "    backup <backup file name> - performs a backup from stdin\n"
+"    backup <input_file> <backup file name> - performs a backup from file\n"
+"    backup <input_dir> <backup dir> - performs a backup from directory\n"
 "    restore <backup file name> - restores a backup to stdout\n"
 "    restore <backup file name> <output file name> - restores\n"
 "            a backup to file using two-pass \"cacheless\" process\n"
@@ -219,15 +222,42 @@ invalid_option:
     if ( strcmp( args[ 0 ], "backup" ) == 0 )
     {
       // Perform the backup
-      if ( args.size() != 2 )
+      if ( args.size() < 2 || args.size() > 3)
       {
-        fprintf( stderr, "Usage: %s %s <backup file name>\n",
-                 *argv, args[ 0 ] );
+        fprintf( stderr, "Usage 1: your_backup_command | %s %s <backup file name>\n"
+                         "Usage 2: %s %s <file> <backup file name>\n"
+                         "Usage 3: %s %s <directory> <backup subdirectory>\n",
+                 *argv, args[ 0 ], *argv, args[ 0 ], *argv, args[ 0 ]);
         return EXIT_FAILURE;
       }
-      ZBackup zb( ZBackup::deriveStorageDirFromBackupsFile( args[ 1 ] ),
+      
+      string backupSource, backupsDest;
+      bool dirBackupMode = false;
+      if ( args.size() == 2 )
+        backupsDest = args[ 1 ];
+      else
+      {
+        backupSource = args[ 1 ];
+        if ( Dir::exists( backupSource ) )
+        {
+          dirBackupMode = true;
+          backupsDest = Dir::addPath( args[ 2 ], Dir::getBaseName( Dir::getRealPath( backupSource ) ));
+        }
+        else
+          backupsDest = args[ 2 ];
+      }
+
+      ZBackup zb( ZBackup::deriveStorageDirFromBackupsFile( backupsDest ),
                   passwords[ 0 ], config );
-      zb.backupFromStdin( args[ 1 ] );
+      if ( args.size() == 2 )
+        zb.backupFromStdin( backupsDest );
+      else 
+      {
+        if ( dirBackupMode )
+          zb.backupFromDirectory( args[ 1 ], backupsDest );
+        else
+          zb.backupFromFile( args[ 1 ], backupsDest );
+      }
     }
     else
     if ( strcmp( args[ 0 ], "restore" ) == 0 )
