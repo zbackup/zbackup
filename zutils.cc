@@ -471,13 +471,13 @@ void ZCollector::gc( bool gcDeep )
   verbosePrintf( "Garbage collection complete\n" );
 }
 
-ZInfo::ZInfo( string const & storageDir, string const & password,
+ZInspect::ZInspect( string const & storageDir, string const & password,
     Config & configIn ):
   ZBackupBase( storageDir, password, configIn, true )
 {
 }
 
-void ZInfo::show( string const & inputFileName )
+void ZInspect::inspect( string const & inputFileName )
 {
   BackupInfo backupInfo;
 

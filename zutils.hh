@@ -74,13 +74,13 @@ public:
   void gc( bool );
 };
 
-class ZInfo : public ZBackupBase
+class ZInspect : public ZBackupBase
 {
 public:
-  ZInfo( std::string const & storageDir, std::string const & password,
+  ZInspect( std::string const & storageDir, std::string const & password,
               Config & configIn );
 
-  void show( string const & inputFileName );
+  void inspect( string const & inputFileName );
 };
 
 #endif

@@ -179,10 +179,10 @@ invalid_option:
 "            performs import from source to destination storage,\n"
 "            for export/import storage path must point to\n"
 "            a valid (initialized) storage\n"
+"    inspect <backup file name> - inspect backup\n"
 "    gc [fast|deep] <storage path> - performs garbage\n"
 "            collection (default is fast)\n"
 "    passwd <storage path> - changes repo info file passphrase\n"
-"    info <backup file name> - show info about backup\n"
 "    config [show|edit|set|reset] <storage path> - performs\n"
 "            configuration manipulations (default is show)\n"
 "", zbackup_version.c_str(), *argv );
@@ -374,9 +374,8 @@ invalid_option:
       zbb.setPassword( passwords[ 1 ] );
     }
     else
-    if ( strcmp( args[ 0 ], "info" ) == 0 )
+    if ( strcmp( args[ 0 ], "inspect" ) == 0 )
     {
-      // Show repo info
       if ( args.size() != 2 )
       {
         fprintf( stderr, "Usage: %s %s <storage path>\n",
@@ -384,9 +383,9 @@ invalid_option:
         return EXIT_FAILURE;
       }
 
-      ZInfo zi( ZRestore::deriveStorageDirFromBackupsFile( args[ 1 ] ),
+      ZInspect zi( ZRestore::deriveStorageDirFromBackupsFile( args[ 1 ] ),
                    passwords[ 0 ], config );
-      zi.show( args[1] );
+      zi.inspect( args[1] );
     }
     else
     if ( strcmp( args[ 0 ], "config" ) == 0 )
