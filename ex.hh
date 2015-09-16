@@ -32,6 +32,7 @@ virtual ~exName() throw() {} };
 class exName: public exParent { \
   std::string value; \
 public: \
+  exName( ): value( std::string( exDescription ) ) {} \
   exName( std::string const & value_ ): value( std::string( exDescription ) + " " + value_ ) {} \
   exName( char const * value_, unsigned size ): value( std::string( exDescription ) + " " + std::string( value_, size ) ) {} \
 virtual const char * what() const throw() { return value.c_str(); } \

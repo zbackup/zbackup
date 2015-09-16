@@ -35,7 +35,7 @@ public:
   DEF_EX( Ex, "ZBackup exception", std::exception )
   DEF_EX_STR( exWontOverwrite, "Won't overwrite existing file", Ex )
   DEF_EX_STR( exInputError, "Error reading from input:", Ex )
-  DEF_EX( exWontReadFromTerminal, "Won't read data from a terminal", Ex )
+  DEF_EX( exWontReadFromTerminal, "Won't read data from a terminal", exInputError )
   DEF_EX( exStdoutError, "Error writing to standard output", Ex )
   DEF_EX( exWontWriteToTerminal, "Won't write data to a terminal", exStdoutError )
   DEF_EX( exSerializeError, "Failed to serialize data", Ex )
