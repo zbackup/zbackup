@@ -7,7 +7,7 @@
 
 namespace BackupExchanger {
 
-vector< string > recreateDirectories( string const & src, string const & dst, string const & relativePath )
+vector< string > findOrRebuild( string const & src, string const & dst, string const & relativePath )
 {
   vector< string > files;
 
@@ -28,13 +28,13 @@ vector< string > recreateDirectories( string const & src, string const & dst, st
       verbosePrintf( "Found directory %s...\n", currentRelativePath.c_str() );
       string srcFullPath ( Dir::addPath( src, currentRelativePath ) );
       string dstFullPath ( Dir::addPath( dst, currentRelativePath ) );
-      if ( !Dir::exists( dstFullPath.c_str() ) )
+      if ( !dst.empty() && !Dir::exists( dstFullPath.c_str() ) )
       {
         verbosePrintf( "Directory %s not found in destination, creating...\n",
             currentRelativePath.c_str() );
         Dir::create( dstFullPath.c_str() );
       }
-      vector< string > subFiles ( recreateDirectories( src, dst, currentRelativePath ) );
+      vector< string > subFiles ( findOrRebuild( src, dst, currentRelativePath ) );
       files.insert( files.end(), subFiles.begin(), subFiles.end() );
     }
     else
