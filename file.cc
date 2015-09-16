@@ -37,6 +37,25 @@ bool File::exists( char const * filename ) throw()
 #endif
 }
 
+bool File::special( string const & filename ) throw()
+{
+  bool special = false;
+#ifndef __WIN32
+  struct stat buf;
+
+  if ( stat( filename.c_str(), &buf ) == 0 )
+  {
+    // For our purposes (deciding whether to back up a file),
+    // a file is "special" if it is a socket, or not a regular file.
+    // Softlinks are followed.
+    if ( ( S_IFSOCK == ( S_IFSOCK & buf.st_mode ) ) ||
+         ( S_IFREG != ( S_IFREG & buf.st_mode ) ) )
+      special = true;
+  }
+#endif
+  return special;
+}
+
 void File::erase( std::string const & filename ) throw( exCantErase )
 {
   if ( remove( filename.c_str() ) != 0 )

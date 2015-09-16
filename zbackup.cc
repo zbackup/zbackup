@@ -10,7 +10,7 @@ DEF_EX( exSpecifyTwoKeys, "Specify password flag (--non-encrypted or --password-
   " for import/export/passwd operation twice (first for source and second for destination)", std::exception )
 DEF_EX( exNonEncryptedWithKey, "--non-encrypted and --password-file are incompatible", std::exception )
 DEF_EX( exSpecifyEncryptionOptions, "Specify either --password-file or --non-encrypted", std::exception )
-DEF_EX( exSourceInaccessible, "Backup source file/directory is inaccesible", std::exception )
+DEF_EX( exSourceInaccessible, "Backup source file/directory is inaccessible", std::exception )
 
 int main( int argc, char *argv[] )
 {
@@ -241,12 +241,12 @@ invalid_option:
         if ( Dir::exists( backupSource ) )
         {
           dirBackupMode = true;
-          backupsDest = args[ 2 ] + string( "/" ) + Dir::getBaseName( Dir::getRealPath( backupSource ) );
+          backupsDest = Dir::addPath( args[ 2 ], Dir::getBaseName( Dir::getRealPath( backupSource ) ));
         }
         else
           backupsDest = args[ 2 ];
       }
-      
+
       ZBackup zb( ZBackup::deriveStorageDirFromBackupsFile( backupsDest ),
                   passwords[ 0 ], config );
       if ( args.size() == 2 )

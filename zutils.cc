@@ -29,11 +29,8 @@ void ZBackup::backupFromStdin( string const & outputFileName )
 /// Backs up the data from a file
 void ZBackup::backupFromFile( string const & inputFileName, string const & outputFileName )
 {
-  FILE* f = fopen( inputFileName.c_str(), "r" );
-  if ( NULL == f )
-    throw exInputError( inputFileName );
-  backupFromFileHandle( inputFileName, f, outputFileName );
-  fclose( f );
+  File inputFile( inputFileName, File::ReadOnly );
+  backupFromFileHandle( inputFileName, inputFile.file(), outputFileName );
 }
 
 /// Backs up the data from a directory
@@ -73,8 +70,13 @@ void ZBackup::backupFromDirectory( string const & inputDirectoryName, string con
           Dir::create( outputPath );
         dirs.push_front( srcPath );
       }
-      else
+      else if ( File::special( srcPath ) )
+        fprintf( stderr, "WARNING: ignoring special file: %s\n", srcPath.c_str() );
+      else 
+      {
+        fprintf( stderr, "backing up %s\n", srcPath.c_str());
         backupFromFile( srcPath, outputPath );
+      }
     }
   }
 }
