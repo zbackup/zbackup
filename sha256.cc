@@ -1,8 +1,6 @@
 // Copyright (c) 2012-2014 Konstantin Isakov <ikm@zbackup.org> and ZBackup contributors, see CONTRIBUTORS
 // Part of ZBackup. Licensed under GNU GPLv2 or later + OpenSSL, see LICENSE
 
-#include <iomanip>
-#include <sstream>
 #include "sha256.hh"
 
 using namespace std;
@@ -29,12 +27,3 @@ string Sha256::finish()
 
   return string( buf, buf + sizeof( buf ) );
 }
-
-string Sha256::getAsHex( string const & input )
-{
-    stringstream ss;
-    for( int i = 0; i < SHA256_DIGEST_LENGTH; i++ )
-        ss << hex << setw(2) << setfill('0') << ( unsigned )( unsigned char )input[ i ];
-    return ss.str();
-}
-

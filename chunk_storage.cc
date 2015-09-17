@@ -5,7 +5,7 @@
 #include "chunk_storage.hh"
 #include "debug.hh"
 #include "dir.hh"
-#include "hex.hh"
+#include "utils.hh"
 #include "random.hh"
 
 namespace ChunkStorage {
@@ -84,7 +84,7 @@ void Writer::commit()
     Random::generatePseudo( buf, sizeof( buf ) );
 
     indexTempFile->moveOverTo( Dir::addPath( indexDir,
-                                             toHex( buf, sizeof( buf ) ) ) );
+                                             Utils::toHex( buf, sizeof( buf ) ) ) );
     indexTempFile.reset();
   }
 }
@@ -222,7 +222,7 @@ Bundle::Id const * Reader::getBundleId( ChunkId const & chunkId, size_t & size )
   else
   {
     string blob = chunkId.toBlob();
-    throw exNoSuchChunk( toHex( ( unsigned char const * ) blob.data(),
+    throw exNoSuchChunk( Utils::toHex( ( unsigned char const * ) blob.data(),
                                 blob.size() ) );
   }
 }
@@ -237,7 +237,7 @@ void Reader::get( ChunkId const & chunkId, string & data, size_t & size )
   else
   {
     string blob = chunkId.toBlob();
-    throw exNoSuchChunk( toHex( ( unsigned char const * ) blob.data(),
+    throw exNoSuchChunk( Utils::toHex( ( unsigned char const * ) blob.data(),
                                 blob.size() ) );
   }
 }

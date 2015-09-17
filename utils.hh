@@ -32,6 +32,11 @@ vector< string > findOrRebuild( string const & src,
 
 unsigned int getScale( char * );
 
+/// Converts 'size' bytes pointed to by 'in' into a hex string
+std::string toHex( unsigned char const * in, unsigned size );
+
+std::string toHex( string const & );
+
 template <typename T>
 string numberToString( T pNumber )
 {

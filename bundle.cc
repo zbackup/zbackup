@@ -7,7 +7,7 @@
 #include "check.hh"
 #include "dir.hh"
 #include "encryption.hh"
-#include "hex.hh"
+#include "utils.hh"
 #include "message.hh"
 #include "adler32.hh"
 #include "compression.hh"
@@ -253,7 +253,7 @@ bool Reader::get( string const & chunkId, string & chunkData,
 string generateFileName( Id const & id, string const & bundlesDir,
                          bool createDirs )
 {
-  string hex( toHex( ( unsigned char * ) &id, sizeof( id ) ) );
+  string hex( Utils::toHex( ( unsigned char * ) &id, sizeof( id ) ) );
 
   // TODO: make this scheme more flexible and allow it to scale, or at least
   // be configurable

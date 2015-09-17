@@ -483,15 +483,21 @@ void ZInspect::inspect( string const & inputFileName )
 
   BackupFile::load( inputFileName, encryptionkey, backupInfo );
 
-  fprintf( stderr,
-      "Backup file: %s\n"
-      "Restore iterations: %d\n"
-      "Original size: %lu\n"
-      "Time taken to backup (seconds): %ld\n"
-      "SHA256 sum of data: %s\n",
-      inputFileName.c_str(),
-      backupInfo.iterations(),
-      backupInfo.size(),
-      backupInfo.time(),
-      Sha256::getAsHex( backupInfo.sha256() ).c_str() );
+  string out;
+  out += "Backup file: ";
+  out += inputFileName;
+
+  out += "\nRestore iterations: ";
+  out += Utils::numberToString( backupInfo.iterations() );
+
+  out += "\nOriginal size: ";
+  out += Utils::numberToString( backupInfo.size() );
+
+  out += "\nDuration (seconds): ";
+  out += Utils::numberToString( backupInfo.time() );
+
+  out += "\nSHA256 sum of data: ";
+  out += Utils::toHex( backupInfo.sha256() );
+
+  fprintf( stderr, "%s\n", out.c_str() );
 }
