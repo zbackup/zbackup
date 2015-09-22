@@ -1,7 +1,7 @@
 # Copyright (c) 2012-2014 Konstantin Isakov <ikm@zbackup.org> and ZBackup contributors, see CONTRIBUTORS
 # Part of ZBackup. Licensed under GNU GPLv2 or later + OpenSSL, see LICENSE
 
-cmake_minimum_required( VERSION 2.8.2 )
+cmake_minimum_required( VERSION 2.8.3 )
 project( zbackup )
 
 list( APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" )
