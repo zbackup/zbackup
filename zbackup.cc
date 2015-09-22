@@ -179,7 +179,8 @@ invalid_option:
 "            performs import from source to destination storage,\n"
 "            for export/import storage path must point to\n"
 "            a valid (initialized) storage\n"
-"    inspect <backup file name> - inspect backup\n"
+"    inspect [fast|deep] <backup file name> - inspect backup (default\n"
+"            is fast)\n"
 "    gc [fast|deep] <storage path> - performs garbage\n"
 "            collection (default is fast)\n"
 "    passwd <storage path> - changes repo info file passphrase\n"
@@ -376,16 +377,32 @@ invalid_option:
     else
     if ( strcmp( args[ 0 ], "inspect" ) == 0 )
     {
-      if ( args.size() != 2 )
+      if ( args.size() < 2 || args.size() > 3 )
       {
-        fprintf( stderr, "Usage: %s %s <storage path>\n",
+        fprintf( stderr, "Usage: %s %s [full] <storage path>\n",
                  *argv, args[ 0 ] );
         return EXIT_FAILURE;
       }
 
-      ZInspect zi( ZRestore::deriveStorageDirFromBackupsFile( args[ 1 ] ),
-                   passwords[ 0 ], config );
-      zi.inspect( args[1] );
+      int fieldStorage = 1, fieldAction = 2;
+
+      if ( args.size() == 3 )
+      {
+        fieldStorage = 2, fieldAction = 1;
+      }
+
+      if ( args.size() > 2 && strcmp( args[ fieldAction ], "deep" ) == 0 )
+      {
+        ZInspect zi( ZRestore::deriveStorageDirFromBackupsFile( args[ fieldStorage ] ),
+                     passwords[ 0 ], config, true );
+        zi.inspect( args[ fieldStorage ] );
+      }
+      else
+      {
+        ZInspect zi( ZRestore::deriveStorageDirFromBackupsFile( args[ fieldStorage ] ),
+                     passwords[ 0 ], config, false );
+        zi.inspect( args[ fieldStorage ] );
+      }
     }
     else
     if ( strcmp( args[ 0 ], "config" ) == 0 )
