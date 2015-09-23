@@ -78,6 +78,11 @@ void ChunkIndex::loadIndex( IndexProcessor & ip )
   verbosePrintf( "Index loaded.\n" );
 }
 
+size_t ChunkIndex::size()
+{
+  return hashTable.size();
+}
+
 void ChunkIndex::startIndex( string const & )
 {
 }

@@ -118,6 +118,8 @@ public:
 
   void loadIndex( IndexProcessor & );
 
+  size_t size();
+
 private:
   /// Inserts new chunk id into the in-memory hash table. Returns the created
   /// Chain if it was inserted, NULL if it existed before
