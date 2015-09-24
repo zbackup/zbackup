@@ -57,6 +57,12 @@ void readBackupItems(Backup *backup)
       std::cerr << "Error: unable to stat file " << path;
       continue;
     }
+    // skip  fifos and sockets we can't restore them anyway
+    if(statresult.st_mode & __S_IFIFO || statresult.st_mode & __S_IFSOCK)
+    {
+      std::cerr << "Skipped fifo or socket " << path << std::endl;
+      continue;
+    }
         
     Backup_Item *item = backup->add_item();
     item->set_path(path);
@@ -96,9 +102,6 @@ void readBackupItems(Backup *backup)
         currentPos += ALIGN_SIZE(statresult.st_size);
       }
         break;
-      case __S_IFIFO:
-        item->mutable_fifo();
-        break;
       case __S_IFLNK:
       {
         Backup_Item_Symlink *symlink = item->mutable_symlink();
@@ -113,9 +116,6 @@ void readBackupItems(Backup *backup)
         
         free(link);
       }
-        break;
-      case __S_IFSOCK:
-        item->mutable_socket();
         break;
     }
     

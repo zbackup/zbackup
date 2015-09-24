@@ -28,24 +28,16 @@ message Backup
       required bool block = 1;
       required uint32 deviceID = 2;
     }
-    message Fifo
-    {
-    }
     message Symlink
     {
       required bytes target = 1;
-    }
-    message Socket
-    {
     }
     oneof type
     {
       File file = 12;
       Directory directory = 13;
       Device device = 14;
-      Fifo fifo = 15;
-      Symlink symlink = 16;
-      Socket socket = 17;
+      Symlink symlink = 15;
     }
   }
   repeated Item item = 1;
