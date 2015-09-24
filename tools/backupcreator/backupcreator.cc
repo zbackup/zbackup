@@ -58,9 +58,9 @@ void readBackupItems(Backup *backup)
       continue;
     }
     // skip  fifos and sockets we can't restore them anyway
-    if(statresult.st_mode & __S_IFIFO || statresult.st_mode & __S_IFSOCK)
+    if((statresult.st_mode & __S_IFMT == __S_IFSOCK) || (statresult.st_mode & __S_IFMT == __S_IFIFO))
     {
-      std::cerr << "Skipped fifo or socket " << path << std::endl;
+      std::cerr << "Skipped fifo or socket " << path << " " << statresult.st_mode << std::endl;
       continue;
     }
         
@@ -166,12 +166,13 @@ void outputAlign(uint64_t written, std::ostream *stream)
 void outputData(Backup *backup, std::ostream *stream)
 {
   std::string backupString = backup->SerializeAsString();
-  
+ 
+  *stream << (uint64_t)backupString.length();
   *stream << backupString;
   
-  outputAlign(backupString.length(), stream);
+  outputAlign(backupString.length() * 8, stream);
   
-  uint64_t posAlign = ALIGN_SIZE(backupString.length());
+  uint64_t posAlign = ALIGN_SIZE(backupString.length() * 8);
   
   for(uint64_t i = 0; i < backup->item_size(); i++)
   {
@@ -190,6 +191,8 @@ void outputData(Backup *backup, std::ostream *stream)
     outputAlign(written, stream);
   }
 }
+
+
 
 int main()
 {
