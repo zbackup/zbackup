@@ -159,6 +159,8 @@ void outputAlign(uint64_t written, std::ostream *stream)
   }
   
   stream->write(alignmentBuffer, alignToWrite);
+  
+  free(alignmentBuffer);
 }
 
 void outputData(Backup *backup, std::ostream *stream)
@@ -197,4 +199,6 @@ int main()
   readBackupItems(&backup);
   
   outputData(&backup, &std::cout);
+  
+  google::protobuf::ShutdownProtobufLibrary();
 }
