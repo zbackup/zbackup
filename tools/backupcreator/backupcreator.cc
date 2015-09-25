@@ -1,6 +1,7 @@
 #include <iostream>
 #include <fstream>
 #include <ostream>
+#include <string>
 
 #include <sys/stat.h>
 #include <unistd.h>
@@ -10,7 +11,7 @@
 
 
 #define ALIGN (16*1024)
-#define ALIGN_SIZE(A) ((A % ALIGN == 0) ? (A / ALIGN) : (A / ALIGN + 1))
+#define ALIGN_SIZE(size, align) ((size % align == 0) ? (size / align) : (size / align + 1))
 
 char *readlink_malloc (const char *filename)
 {
@@ -35,7 +36,7 @@ char *readlink_malloc (const char *filename)
     }
 }
 
-void readBackupItems(Backup *backup)
+void readBackupItems(Backup *backup, uint64_t alignment)
 {
   uint64_t currentPos = 0;
   while(true)
@@ -99,7 +100,7 @@ void readBackupItems(Backup *backup)
         Backup_Item_File *file = item->mutable_file();
         file->set_position(currentPos);
         file->set_size(statresult.st_size);
-        currentPos += ALIGN_SIZE(statresult.st_size);
+        currentPos += ALIGN_SIZE(statresult.st_size, alignment);
       }
         break;
       case __S_IFLNK:
@@ -144,10 +145,10 @@ uint64_t outputFileData(const std::string *path, std::ostream *stream)
   return total;
 }
 
-void outputAlign(uint64_t written, std::ostream *stream)
+void outputAlign(uint64_t written, std::ostream *stream, uint64_t alignment)
 {
-  uint64_t alignToWrite = ALIGN - (written % ALIGN);
-  if(ALIGN == alignToWrite)
+  uint64_t alignToWrite = alignment - (written % alignment);
+  if(alignment == alignToWrite)
     return;
   
   char *alignmentBuffer = (char *)malloc(alignToWrite);
@@ -163,16 +164,17 @@ void outputAlign(uint64_t written, std::ostream *stream)
   free(alignmentBuffer);
 }
 
-void outputData(Backup *backup, std::ostream *stream)
+void outputData(Backup *backup, std::ostream *stream, uint64_t alignment)
 {
   std::string backupString = backup->SerializeAsString();
- 
-  *stream << (uint64_t)backupString.length();
+  uint64_t size = (uint64_t)backupString.length();
+  
+  stream->write(reinterpret_cast<const char *>(&size), sizeof(size));
   *stream << backupString;
   
-  outputAlign(backupString.length() * 8, stream);
+  outputAlign(backupString.length() + 8, stream, alignment);
   
-  uint64_t posAlign = ALIGN_SIZE(backupString.length() * 8);
+  uint64_t posAlign = ALIGN_SIZE(backupString.length() + 8, alignment);
   
   for(uint64_t i = 0; i < backup->item_size(); i++)
   {
@@ -187,21 +189,27 @@ void outputData(Backup *backup, std::ostream *stream)
       std::cerr << "File " << item.path() << " has changed size. Written " << written << " should be "<< item.file().size() << std::endl;
     }
     
-    posAlign += ALIGN_SIZE(written);
-    outputAlign(written, stream);
+    posAlign += ALIGN_SIZE(written, alignment);
+    outputAlign(written, stream, alignment);
   }
 }
 
 
 
-int main()
+int main(int argc, const char* argv[])
 {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
+  uint64_t align = ALIGN;
+  
+  if(argc == 2)
+  {
+    align = atoll(argv[1]);
+  }
   
   Backup backup;
-  readBackupItems(&backup);
+  readBackupItems(&backup, align);
   
-  outputData(&backup, &std::cout);
+  outputData(&backup, &std::cout, align);
   
   google::protobuf::ShutdownProtobufLibrary();
 }
