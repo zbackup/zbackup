@@ -4,7 +4,9 @@
 cmake_minimum_required( VERSION 2.6.0 )
 project( backupcreator )
 
-set( CMAKE_BUILD_TYPE Release )
+if( NOT CMAKE_BUILD_TYPE )
+  set( CMAKE_BUILD_TYPE Release )
+endif( NOT CMAKE_BUILD_TYPE )
 
 find_package( Protobuf REQUIRED )
 include_directories( ${PROTOBUF_INCLUDE_DIRS} )

@@ -2,6 +2,7 @@
 #include <fstream>
 #include <ostream>
 #include <string>
+#include <cstring>
 
 #include <sys/stat.h>
 #include <unistd.h>
@@ -204,7 +205,33 @@ int backup(uint32_t alignment)
   return 0;
 }
 
+Backup *readHeader(std::istream *stream)
+{
+  uint64_t size = 0;
+  
+  stream->read(reinterpret_cast<char *>(&size), sizeof(size));
+  
+  void *buffer = malloc(size);
+  if(buffer == NULL)
+    return NULL;
+  
+  stream->read(reinterpret_cast<char *>(buffer), size);
+  
+  Backup *backup = new Backup();
+  backup->ParseFromArray(buffer, size);
+  
+  uint32_t alignmentToSkip = backup->alignsize() - ALIGN_SIZE(size, backup->alignsize());
+  
+  
+  return backup;
+}
 
+int restore()
+{
+  Backup *backup = readHeader(&std::cin);
+  
+  std::cout << "Size: " << backup->item_size() << std::endl;
+}
 
 void printHelp()
 {
@@ -223,7 +250,7 @@ int main(int argc, const char* argv[])
     return 1;
   }
   
-  if(argv[1] == "backup")
+  if(strncmp("backup", argv[1], sizeof("backup")) == 0)
   {
     if(argc == 3)
     {
@@ -231,8 +258,9 @@ int main(int argc, const char* argv[])
     }
     return backup(align);
   }
-  else if(argv[1] == "restore")
+  else if(strncmp("restore", argv[1], sizeof("restore")) == 0)
   {
+    return restore();
   }
   else
   {
