@@ -1,5 +1,7 @@
 message Backup
 {
+  required uint32 alignSize = 1;
+
   message Item
   {
     required bytes path = 1;
@@ -40,5 +42,5 @@ message Backup
       Symlink symlink = 15;
     }
   }
-  repeated Item item = 1;
+  repeated Item item = 2;
 }

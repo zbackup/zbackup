@@ -36,7 +36,7 @@ char *readlink_malloc (const char *filename)
     }
 }
 
-void readBackupItems(Backup *backup, uint64_t alignment)
+void readFileTree(Backup *backup, uint32_t alignment)
 {
   uint64_t currentPos = 0;
   while(true)
@@ -145,9 +145,9 @@ uint64_t outputFileData(const std::string *path, std::ostream *stream)
   return total;
 }
 
-void outputAlign(uint64_t written, std::ostream *stream, uint64_t alignment)
+void outputAlign(uint64_t written, std::ostream *stream, uint32_t alignment)
 {
-  uint64_t alignToWrite = alignment - (written % alignment);
+  uint32_t alignToWrite = alignment - (written % alignment);
   if(alignment == alignToWrite)
     return;
   
@@ -164,7 +164,7 @@ void outputAlign(uint64_t written, std::ostream *stream, uint64_t alignment)
   free(alignmentBuffer);
 }
 
-void outputData(Backup *backup, std::ostream *stream, uint64_t alignment)
+void outputData(Backup *backup, std::ostream *stream, uint32_t alignment)
 {
   std::string backupString = backup->SerializeAsString();
   uint64_t size = (uint64_t)backupString.length();
@@ -194,22 +194,47 @@ void outputData(Backup *backup, std::ostream *stream, uint64_t alignment)
   }
 }
 
+int backup(uint32_t alignment)
+{
+  Backup backup;
+  backup.set_alignsize(alignment);
+  readFileTree(&backup, alignment);
+  
+  outputData(&backup, &std::cout, alignment);
+  
+}
+void printHelp()
+{
+  std::cout << "Use: backupcreator [backup | restore] [align size in bytes]" << std::endl;
+}
 
 
 int main(int argc, const char* argv[])
 {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
-  uint64_t align = ALIGN;
+  uint32_t align = ALIGN;
   
-  if(argc == 2)
+  if(argc < 2)
   {
-    align = atoll(argv[1]);
+    printHelp();
+    return 1;
   }
   
-  Backup backup;
-  readBackupItems(&backup, align);
-  
-  outputData(&backup, &std::cout, align);
+  if(argv[1] == "backup")
+  {
+    if(argc == 3)
+    {
+      align = atol(argv[2]);
+    }
+  }
+  else if(argv[1] == "restore")
+  {
+  }
+  else
+  {
+    printHelp();
+    return 1;
+  }
   
   google::protobuf::ShutdownProtobufLibrary();
 }
