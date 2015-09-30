@@ -201,8 +201,11 @@ int backup(uint32_t alignment)
   readFileTree(&backup, alignment);
   
   outputData(&backup, &std::cout, alignment);
-  
+  return 0;
 }
+
+
+
 void printHelp()
 {
   std::cout << "Use: backupcreator [backup | restore] [align size in bytes]" << std::endl;
@@ -226,6 +229,7 @@ int main(int argc, const char* argv[])
     {
       align = atol(argv[2]);
     }
+    return backup(align);
   }
   else if(argv[1] == "restore")
   {
