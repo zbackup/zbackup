@@ -12,6 +12,10 @@ find_package( Protobuf REQUIRED )
 include_directories( ${PROTOBUF_INCLUDE_DIRS} )
 include_directories( ${CMAKE_CURRENT_BINARY_DIR} )
 
+find_package( ZLIB REQUIRED )
+include_directories( ${ZLIB_INCLUDE_DIRS} )
+
+
 find_program( PROTOBUF_PROTOC_CHECK NAMES protoc DOC "Protobuf compiler binary" )
 
 IF( ${PROTOBUF_PROTOC_CHECK} STREQUAL "PROTOBUF_PROTOC_CHECK-NOTFOUND" )
@@ -25,6 +29,7 @@ add_executable( backupcreator ${sourceFiles} ${protoSrcs} ${protoHdrs} )
 
 target_link_libraries( backupcreator
   ${PROTOBUF_LIBRARIES}
+  ${ZLIB_LIBRARIES}
 )
 
 install( TARGETS backupcreator DESTINATION bin )

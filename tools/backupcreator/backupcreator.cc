@@ -5,8 +5,12 @@
 #include <cstring>
 
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <fcntl.h>
+
+#include <zlib.h>
 
 #include "backupcreator.pb.h"
 
@@ -35,6 +39,30 @@ char *readlink_malloc (const char *filename)
       return buffer;
     size *= 2;
     }
+}
+void outputAlign(uint64_t written, std::ostream *stream, uint32_t alignment)
+{
+  uint32_t alignToWrite = alignment - (written % alignment);
+  if(alignment == alignToWrite)
+    return;
+  
+  char *alignmentBuffer = (char *)malloc(alignToWrite);
+  memset(alignmentBuffer, '\0', alignToWrite);
+  if(alignmentBuffer == NULL)
+  {
+    std::cerr << "Unable to allocate alignmentBuffer" << std::endl;
+    return;
+  }
+  
+  stream->write(alignmentBuffer, alignToWrite);
+  
+  free(alignmentBuffer);
+}
+void skipBytes(std::istream *stream, uint64_t skip)
+{
+  char *buffer = (char *)malloc(skip);
+  stream->read(buffer, skip);
+  free(buffer);
 }
 
 void readFileTree(Backup *backup, uint32_t alignment)
@@ -72,8 +100,6 @@ void readFileTree(Backup *backup, uint32_t alignment)
     item->set_group(statresult.st_gid);
     item->set_atime((uint64_t)statresult.st_atim.tv_sec);
     item->set_atimenano((uint64_t)statresult.st_atim.tv_nsec);
-    item->set_ctime((uint64_t)statresult.st_ctim.tv_sec);
-    item->set_ctimenano((uint64_t)statresult.st_ctim.tv_nsec);
     item->set_mtime((uint64_t)statresult.st_mtim.tv_sec);
     item->set_mtimenano((uint64_t)statresult.st_mtim.tv_nsec);
     item->set_accessrights(statresult.st_mode & ~__S_IFMT);
@@ -125,11 +151,13 @@ void readFileTree(Backup *backup, uint32_t alignment)
   
 }
 
-uint64_t outputFileData(const std::string *path, std::ostream *stream)
+uint64_t outputFileData(const std::string *path, std::ostream *stream, uint32_t &checksum)
 {
   std::fstream file(path->c_str(), std::fstream::in | std::fstream::binary);
   
   uint64_t total = 0;
+  
+  checksum = crc32(0L, Z_NULL, 0);
   
   char buffer[4096];
   while(true) {
@@ -141,28 +169,14 @@ uint64_t outputFileData(const std::string *path, std::ostream *stream)
       
     stream->write(buffer, readed);
     total += readed;
+    
+    checksum = crc32(checksum, buffer, readed);
+    
+    if(stream->bad())
+      std::cerr << "Write File Data, Badbit on stream" << std::endl;
   }
   file.close();
   return total;
-}
-
-void outputAlign(uint64_t written, std::ostream *stream, uint32_t alignment)
-{
-  uint32_t alignToWrite = alignment - (written % alignment);
-  if(alignment == alignToWrite)
-    return;
-  
-  char *alignmentBuffer = (char *)malloc(alignToWrite);
-  memset(alignmentBuffer, '\0', alignToWrite);
-  if(alignmentBuffer == NULL)
-  {
-    std::cerr << "Unable to allocate alignmentBuffer" << std::endl;
-    return;
-  }
-  
-  stream->write(alignmentBuffer, alignToWrite);
-  
-  free(alignmentBuffer);
 }
 
 void outputData(Backup *backup, std::ostream *stream, uint32_t alignment)
@@ -220,22 +234,161 @@ Backup *readHeader(std::istream *stream)
   Backup *backup = new Backup();
   backup->ParseFromArray(buffer, size);
   
-  uint32_t alignmentToSkip = backup->alignsize() - ALIGN_SIZE(size, backup->alignsize());
+  uint32_t alignToSkip = backup->alignsize() - ((size + 8) % backup->alignsize());
+  if(backup->alignsize() == alignToSkip)
+    return backup;
   
+  std::cerr << "Align to skip: " << alignToSkip << std::endl;
+  skipBytes(stream, alignToSkip);
   
   return backup;
+}
+
+void setAttributes(Backup_Item *item)
+{
+  int err = chown(item->path().c_str(), item->owner(), item->group());
+  if(err)
+  {
+    std::cerr << "Can't set owner/group path " << item->path() << " error: " << err << std::endl;
+  }
+
+  timespec times[2];
+  times[0].tv_nsec = item->atimenano();
+  times[0].tv_sec = item->atime();
+  times[1].tv_nsec = item->mtimenano();
+  times[1].tv_sec = item->mtime();
+  err = utimensat(AT_FDCWD, item->path().c_str(), times, AT_SYMLINK_NOFOLLOW);
+  if(err)
+  {
+    std::cerr << "Can't set access/modify times path " << item->path() << " error: " << err << std::endl;
+  }
+}
+
+void createFileTree(Backup *backup)
+{
+  for(uint64_t i = 0; i < backup->item_size(); i++)
+  {
+    Backup_Item item = backup->item(i);
+    if(!item.has_directory())
+      continue;
+    
+    std::string path = item.path();
+    struct stat64 statresult;
+    
+    if(!lstat64(path.c_str(), &statresult))
+    {
+      std::cerr << path << " already exists, skipping." << std::endl;
+    }
+    else
+    {
+      int err = mkdir(path.c_str(), item.accessrights());
+      if(err)
+      {
+        std::cerr << "Can't create path " << path << " error: " << err << std::endl;
+      }
+      else
+      {
+        setAttributes(&item);
+      }
+    }
+  }
+}
+
+void writeFileData(Backup_Item *item, std::istream *stream, uint32_t alignsize, uint64_t startOffset)
+{
+  std::fstream file(item->path().c_str(), std::fstream::out | std::fstream::binary);
+  
+  int64_t posDiff = (item->file().position() * alignsize) - (stream->tellg() - (int64_t)startOffset);
+  
+  if(posDiff < 0)
+  {
+    std::cerr << "Error posDiff: " << posDiff << std::endl;
+  }
+  else if(posDiff > 0)
+  {
+    std::cerr << "Skip posDiff: " << posDiff << std::endl;
+    skipBytes(stream, posDiff);
+  }
+  
+  uint64_t missing = item->file().size();
+  
+  char buffer[4096];
+  while(true) {
+    stream->read(buffer, ((missing > 4096) ? 4096 : missing));
+  
+    uint64_t readed = stream->gcount();
+    if(readed == 0)
+      break;
+      
+    file.write(buffer, readed);
+    missing -= readed;
+  }
+  if(missing != 0)
+    std::cerr << "Unable to write " << missing << " bytes in file: " << item->path() << std::endl;
+  file.close();
+  
+  uint32_t alignToSkip = alignsize - (item->file().size() % alignsize);
+  
+  std::cerr << "File: " << item->path() << " pos: " << item->file().position() << " written: "<< item->file().size() << " Align to skip: " << alignToSkip << std::endl;
+  
+  if(alignsize == alignToSkip)
+    return;
+  
+  skipBytes(stream, alignToSkip);
+}
+
+void createFiles(Backup *backup, std::istream *stream)
+{
+  uint64_t startoffset = stream->tellg();
+  
+  for(uint64_t i = 0; i < backup->item_size(); i++)
+  {
+    Backup_Item item = backup->item(i);
+    if(item.has_directory())
+      continue;
+    
+    std::string path = item.path();
+    struct stat64 statresult;
+    
+    
+    if(!lstat64(path.c_str(), &statresult))
+    {
+      std::cerr << path << " already exists, skipping." << std::endl;
+    }
+    else
+    {
+      if(item.has_file())
+      {
+        writeFileData(&item, stream, backup->alignsize(), startoffset);
+      }
+      else if(item.has_device())
+      {
+        std::cerr << "Create device unimplemented" << std::endl;
+      }
+      else if(item.has_symlink())
+      {
+        std::cerr << "Create symlink unimplemented" << std::endl;
+      }
+    }
+  }
 }
 
 int restore()
 {
   Backup *backup = readHeader(&std::cin);
   
-  std::cout << "Size: " << backup->item_size() << std::endl;
+  std::cerr << "Size: " << backup->item_size() << std::endl;
+  
+  // stage 1 create path tree
+  createFileTree(backup);
+  
+  createFiles(backup, &std::cin);
+  
 }
 
 void printHelp()
 {
-  std::cout << "Use: backupcreator [backup | restore] [align size in bytes]" << std::endl;
+  std::cerr << "Use: backupcreator [backup | restore] [align size in bytes]" << std::endl;
 }
 
 

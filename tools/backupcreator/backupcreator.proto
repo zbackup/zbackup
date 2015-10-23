@@ -14,8 +14,6 @@ message Backup
     required uint64 atimeNano = 7;
     required uint64 mtime = 8;
     required uint64 mtimeNano = 9;
-    required uint64 ctime = 10;
-    required uint64 ctimeNano = 11;
     
     message File
     {
@@ -36,11 +34,22 @@ message Backup
     }
     oneof type
     {
-      File file = 12;
-      Directory directory = 13;
-      Device device = 14;
-      Symlink symlink = 15;
+      File file = 10;
+      Directory directory = 11;
+      Device device = 12;
+      Symlink symlink = 13;
     }
   }
   repeated Item item = 2;
+}
+
+message ChecksumBlock
+{
+  message Checksum
+  {
+    required uint64 id = 1;
+    required fixed32 sum = 2;
+  }
+
+  repeated Checksum checksum = 1;
 }
