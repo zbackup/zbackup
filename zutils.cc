@@ -477,6 +477,12 @@ ZInspect::ZInspect( string const & storageDir, string const & password,
 {
 }
 
+ZInspect::ZInspect( string const & storageDir, string const & password,
+    Config & configIn, bool deep ):
+  ZBackupBase( storageDir, password, configIn, !deep )
+{
+}
+
 void ZInspect::inspect( string const & inputFileName )
 {
   BackupInfo backupInfo;
@@ -499,5 +505,25 @@ void ZInspect::inspect( string const & inputFileName )
   out += "\nSHA256 sum of data: ";
   out += Utils::toHex( backupInfo.sha256() );
 
-  fprintf( stderr, "%s\n", out.c_str() );
+  // Index is loaded so mode is "deep", let's get chunk map
+  if ( chunkIndex.size() )
+  {
+    out += "\nBundles containing backup chunks:\n";
+    ChunkStorage::Reader chunkStorageReader( config, encryptionkey, chunkIndex, getBundlesPath(),
+         config.runtime.cacheSize );
+    string backupData;
+    BackupRestorer::restoreIterations( chunkStorageReader, backupInfo, backupData, NULL );
+    BackupRestorer::ChunkMap map;
+    BackupRestorer::restore( chunkStorageReader, backupData, NULL, NULL, &map, NULL );
+
+    for ( BackupRestorer::ChunkMap::const_iterator it = map.begin(); it != map.end(); it++ )
+    {
+      out += Utils::toHex( string( (*it).first.blob, Bundle::IdSize ) );
+      out += "\n";
+    }
+  }
+  else
+    out += "\n";
+
+  fprintf( stderr, "%s", out.c_str() );
 }

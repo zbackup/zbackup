@@ -79,6 +79,8 @@ class ZInspect : public ZBackupBase
 public:
   ZInspect( std::string const & storageDir, std::string const & password,
               Config & configIn );
+  ZInspect( std::string const & storageDir, std::string const & password,
+              Config & configIn, bool deep );
 
   void inspect( string const & inputFileName );
 };
