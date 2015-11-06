@@ -41,6 +41,8 @@ message Backup
     }
   }
   repeated Item item = 2;
+  
+  required uint64 checksumBlockPos = 3;
 }
 
 message ChecksumBlock

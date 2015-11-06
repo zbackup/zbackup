@@ -149,6 +149,8 @@ void readFileTree(Backup *backup, uint32_t alignment)
     
   }
   
+  // now we are on the end of the filelist here starts the checksums
+  backup->set_checksumblockpos(currentPos);
 }
 
 uint64_t outputFileData(const std::string *path, std::ostream *stream, uint32_t &checksum)
@@ -157,7 +159,7 @@ uint64_t outputFileData(const std::string *path, std::ostream *stream, uint32_t 
   
   uint64_t total = 0;
   
-  checksum = crc32(0L, Z_NULL, 0);
+  checksum = 0;
   
   char buffer[4096];
   while(true) {
@@ -170,7 +172,7 @@ uint64_t outputFileData(const std::string *path, std::ostream *stream, uint32_t 
     stream->write(buffer, readed);
     total += readed;
     
-    checksum = crc32(checksum, buffer, readed);
+    checksum = crc32(checksum, (Bytef const *)buffer, readed);
     
     if(stream->bad())
       std::cerr << "Write File Data, Badbit on stream" << std::endl;
@@ -181,15 +183,24 @@ uint64_t outputFileData(const std::string *path, std::ostream *stream, uint32_t 
 
 void outputData(Backup *backup, std::ostream *stream, uint32_t alignment)
 {
-  std::string backupString = backup->SerializeAsString();
-  uint64_t size = (uint64_t)backupString.length();
+  uint64_t headerSize = (uint64_t)backup->ByteSize();
+  void *backupHeader = malloc(headerSize);
+  backup->SerializeToArray(backupHeader, headerSize);
   
-  stream->write(reinterpret_cast<const char *>(&size), sizeof(size));
-  *stream << backupString;
+  stream->write(reinterpret_cast<const char *>(&headerSize), sizeof(headerSize));
+  stream->write(reinterpret_cast<const char *>(backupHeader), headerSize);
+
+  uint32_t headerChecksum = crc32(0, (Bytef const *) backupHeader, headerSize);
+  stream->write(reinterpret_cast<const char *>(&headerChecksum), sizeof(headerChecksum));
   
-  outputAlign(backupString.length() + 8, stream, alignment);
+  free(backupHeader);
   
-  uint64_t posAlign = ALIGN_SIZE(backupString.length() + 8, alignment);
+  // header length + 8 byte header length field & 4 byte header checksum size 
+  outputAlign(headerSize + 8 + 4, stream, alignment);
+  
+  uint64_t posAlign = ALIGN_SIZE(headerSize + 8 + 4, alignment);
+  
+  ChecksumBlock checksumBlock;
   
   for(uint64_t i = 0; i < backup->item_size(); i++)
   {
@@ -197,7 +208,15 @@ void outputData(Backup *backup, std::ostream *stream, uint32_t alignment)
     if(!item.has_file())
       continue;
     
-    uint64_t written = outputFileData(&item.path(), stream);
+    uint32_t sum = 0;
+    
+    uint64_t written = outputFileData(&item.path(), stream, sum);
+    
+    std::cerr << "File: " << item.path() << " checksum: " << sum << std::endl;
+    
+    ChecksumBlock_Checksum *checksum = checksumBlock.add_checksum();
+    checksum->set_id(i);
+    checksum->set_sum(sum);
     
     if(written != item.file().size())
     {
@@ -207,6 +226,14 @@ void outputData(Backup *backup, std::ostream *stream, uint32_t alignment)
     posAlign += ALIGN_SIZE(written, alignment);
     outputAlign(written, stream, alignment);
   }
+  
+  uint64_t checksumSize = (uint64_t)checksumBlock.ByteSize();
+  void *checksumBuffer = malloc(checksumSize);
+  backup->SerializeToArray(checksumBuffer, checksumSize);
+  
+  stream->write(reinterpret_cast<const char *>(checksumBuffer), checksumSize);
+  
+  free(checksumBuffer);
 }
 
 int backup(uint32_t alignment)
@@ -230,6 +257,15 @@ Backup *readHeader(std::istream *stream)
     return NULL;
   
   stream->read(reinterpret_cast<char *>(buffer), size);
+  
+  uint32_t checksum = 0;
+  stream->read(reinterpret_cast<char *>(&checksum), sizeof(checksum));
+  
+  if(checksum != crc32(0, reinterpret_cast<const Bytef*>(buffer), size))
+  {
+    std::cerr << "Header checksum invalid";
+    return NULL;
+  }
   
   Backup *backup = new Backup();
   backup->ParseFromArray(buffer, size);
@@ -294,7 +330,7 @@ void createFileTree(Backup *backup)
   }
 }
 
-void writeFileData(Backup_Item *item, std::istream *stream, uint32_t alignsize, uint64_t startOffset)
+void writeFileData(Backup_Item *item, std::istream *stream, uint32_t alignsize, uint64_t startOffset, uint32_t &checksum)
 {
   std::fstream file(item->path().c_str(), std::fstream::out | std::fstream::binary);
   
@@ -312,6 +348,8 @@ void writeFileData(Backup_Item *item, std::istream *stream, uint32_t alignsize, 
   
   uint64_t missing = item->file().size();
   
+  checksum = 0;
+  
   char buffer[4096];
   while(true) {
     stream->read(buffer, ((missing > 4096) ? 4096 : missing));
@@ -322,10 +360,14 @@ void writeFileData(Backup_Item *item, std::istream *stream, uint32_t alignsize, 
       
     file.write(buffer, readed);
     missing -= readed;
+    
+    checksum = crc32(checksum, reinterpret_cast<const Bytef*>(buffer), readed);
   }
   if(missing != 0)
     std::cerr << "Unable to write " << missing << " bytes in file: " << item->path() << std::endl;
   file.close();
+  
+  setAttributes(item);
   
   uint32_t alignToSkip = alignsize - (item->file().size() % alignsize);
   
@@ -350,6 +392,7 @@ void createFiles(Backup *backup, std::istream *stream)
     std::string path = item.path();
     struct stat64 statresult;
     
+    ChecksumBlock cb;
     
     if(!lstat64(path.c_str(), &statresult))
     {
@@ -359,7 +402,12 @@ void createFiles(Backup *backup, std::istream *stream)
     {
       if(item.has_file())
       {
-        writeFileData(&item, stream, backup->alignsize(), startoffset);
+        uint32_t checksum = 0;
+        writeFileData(&item, stream, backup->alignsize(), startoffset, checksum);
+        
+        ChecksumBlock_Checksum *c = cb.add_checksum();
+        c->set_id(i);
+        c->set_sum(checksum);
       }
       else if(item.has_device())
       {
