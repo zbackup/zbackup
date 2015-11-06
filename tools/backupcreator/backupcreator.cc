@@ -383,7 +383,7 @@ void writeFileData(Backup_Item *item, std::istream *stream, uint32_t alignsize, 
   skipBytes(stream, alignToSkip);
 }
 
-void createFiles(Backup *backup, std::istream *stream)
+void createFiles(Backup *backup, std::istream *stream, ChecksumBlock *cb)
 {
   uint64_t startoffset = stream->tellg();
   
@@ -396,7 +396,6 @@ void createFiles(Backup *backup, std::istream *stream)
     std::string path = item.path();
     struct stat64 statresult;
     
-    ChecksumBlock cb;
     
     if(!lstat64(path.c_str(), &statresult))
     {
@@ -409,7 +408,7 @@ void createFiles(Backup *backup, std::istream *stream)
         uint32_t checksum = 0;
         writeFileData(&item, stream, backup->alignsize(), startoffset, checksum);
         
-        ChecksumBlock_Checksum *c = cb.add_checksum();
+        ChecksumBlock_Checksum *c = cb->add_checksum();
         c->set_id(i);
         c->set_sum(checksum);
       }
@@ -434,7 +433,10 @@ int restore()
   // stage 1 create path tree
   createFileTree(backup);
   
-  createFiles(backup, &std::cin);
+  ChecksumBlock cb;
+  
+  createFiles(backup, &std::cin, cb);
+  
   
 }
 
