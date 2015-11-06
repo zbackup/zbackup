@@ -231,6 +231,10 @@ void outputData(Backup *backup, std::ostream *stream, uint32_t alignment)
   void *checksumBuffer = malloc(checksumSize);
   backup->SerializeToArray(checksumBuffer, checksumSize);
   
+  // write checksum Block size
+  stream->write(reinterpret_cast<const char *>(&checksumSize), sizeof(checksumSize));
+  
+  // write checksum Block
   stream->write(reinterpret_cast<const char *>(checksumBuffer), checksumSize);
   
   free(checksumBuffer);
