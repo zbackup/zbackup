@@ -435,7 +435,7 @@ int restore()
   
   ChecksumBlock cb;
   
-  createFiles(backup, &std::cin, cb);
+  createFiles(backup, &std::cin, &cb);
   
   
 }
