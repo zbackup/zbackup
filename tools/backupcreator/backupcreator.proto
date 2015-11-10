@@ -41,17 +41,4 @@ message Backup
     }
   }
   repeated Item item = 2;
-  
-  required uint64 checksumBlockPos = 3;
-}
-
-message ChecksumBlock
-{
-  message Checksum
-  {
-    required uint64 id = 1;
-    required fixed32 sum = 2;
-  }
-
-  repeated Checksum checksum = 1;
 }

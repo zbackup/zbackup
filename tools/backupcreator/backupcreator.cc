@@ -16,7 +16,7 @@
 
 
 #define ALIGN (16*1024)
-#define ALIGN_SIZE(size, align) ((size % align == 0) ? (size / align) : (size / align + 1))
+#define ALIGN_SIZE(size, align) (((size) % align == 0) ? ((size) / align) : (((size) / align) + 1))
 
 char *readlink_malloc (const char *filename)
 {
@@ -127,7 +127,8 @@ void readFileTree(Backup *backup, uint32_t alignment)
         Backup_Item_File *file = item->mutable_file();
         file->set_position(currentPos);
         file->set_size(statresult.st_size);
-        currentPos += ALIGN_SIZE(statresult.st_size, alignment);
+        //                                            checksum
+        currentPos += ALIGN_SIZE((statresult.st_size + 4), alignment);
       }
         break;
       case __S_IFLNK:
@@ -148,9 +149,6 @@ void readFileTree(Backup *backup, uint32_t alignment)
     }
     
   }
-  
-  // now we are on the end of the filelist here starts the checksums
-  backup->set_checksumblockpos(currentPos);
 }
 
 uint64_t outputFileData(const std::string *path, std::ostream *stream, uint32_t &checksum)
@@ -200,8 +198,6 @@ void outputData(Backup *backup, std::ostream *stream, uint32_t alignment)
   
   uint64_t posAlign = ALIGN_SIZE(headerSize + 8 + 4, alignment);
   
-  ChecksumBlock checksumBlock;
-  
   for(uint64_t i = 0; i < backup->item_size(); i++)
   {
     Backup_Item item = backup->item(i);
@@ -212,32 +208,19 @@ void outputData(Backup *backup, std::ostream *stream, uint32_t alignment)
     
     uint64_t written = outputFileData(&item.path(), stream, sum);
     
-    std::cerr << "File: " << item.path() << " checksum: " << sum << std::endl;
+    std::cerr << "File: " << item.path() << " size: " << item.file().size() << " checksum: " << sum << std::endl;
     
-    ChecksumBlock_Checksum *checksum = checksumBlock.add_checksum();
-    checksum->set_id(i);
-    checksum->set_sum(sum);
     
     if(written != item.file().size())
     {
       std::cerr << "File " << item.path() << " has changed size. Written " << written << " should be "<< item.file().size() << std::endl;
     }
     
-    posAlign += ALIGN_SIZE(written, alignment);
-    outputAlign(written, stream, alignment);
+    stream->write(reinterpret_cast<const char *>(&sum), sizeof(sum));
+    
+    posAlign += ALIGN_SIZE(written + 4, alignment);
+    outputAlign(written + 4, stream, alignment);
   }
-  
-  uint64_t checksumSize = (uint64_t)checksumBlock.ByteSize();
-  void *checksumBuffer = malloc(checksumSize);
-  backup->SerializeToArray(checksumBuffer, checksumSize);
-  
-  // write checksum Block size
-  stream->write(reinterpret_cast<const char *>(&checksumSize), sizeof(checksumSize));
-  
-  // write checksum Block
-  stream->write(reinterpret_cast<const char *>(checksumBuffer), checksumSize);
-  
-  free(checksumBuffer);
 }
 
 int backup(uint32_t alignment)
@@ -274,7 +257,7 @@ Backup *readHeader(std::istream *stream)
   Backup *backup = new Backup();
   backup->ParseFromArray(buffer, size);
   
-  uint32_t alignToSkip = backup->alignsize() - ((size + 8) % backup->alignsize());
+  uint32_t alignToSkip = backup->alignsize() - ((size + 8 + 4) % backup->alignsize());
   if(backup->alignsize() == alignToSkip)
     return backup;
   
@@ -334,7 +317,7 @@ void createFileTree(Backup *backup)
   }
 }
 
-void writeFileData(Backup_Item *item, std::istream *stream, uint32_t alignsize, uint64_t startOffset, uint32_t &checksum)
+void writeFileData(Backup_Item *item, std::istream *stream, uint32_t alignsize, uint64_t startOffset)
 {
   std::fstream file(item->path().c_str(), std::fstream::out | std::fstream::binary);
   
@@ -352,7 +335,7 @@ void writeFileData(Backup_Item *item, std::istream *stream, uint32_t alignsize, 
   
   uint64_t missing = item->file().size();
   
-  checksum = 0;
+  uint32_t checksum = 0;
   
   char buffer[4096];
   while(true) {
@@ -373,7 +356,15 @@ void writeFileData(Backup_Item *item, std::istream *stream, uint32_t alignsize, 
   
   setAttributes(item);
   
-  uint32_t alignToSkip = alignsize - (item->file().size() % alignsize);
+  uint32_t savedSum = 0;
+  stream->read(reinterpret_cast<char *>(&savedSum), sizeof(savedSum));
+  
+  if(savedSum != checksum)
+  {
+    std::cerr << "Checksum invalid" << std::endl;
+  }
+  
+  uint32_t alignToSkip = alignsize - ((item->file().size() + 4) % alignsize);
   
   std::cerr << "File: " << item->path() << " pos: " << item->file().position() << " written: "<< item->file().size() << " Align to skip: " << alignToSkip << std::endl;
   
@@ -383,7 +374,7 @@ void writeFileData(Backup_Item *item, std::istream *stream, uint32_t alignsize, 
   skipBytes(stream, alignToSkip);
 }
 
-void createFiles(Backup *backup, std::istream *stream, ChecksumBlock *cb)
+void createFiles(Backup *backup, std::istream *stream)
 {
   uint64_t startoffset = stream->tellg();
   
@@ -404,13 +395,8 @@ void createFiles(Backup *backup, std::istream *stream, ChecksumBlock *cb)
     else
     {
       if(item.has_file())
-      {
-        uint32_t checksum = 0;
-        writeFileData(&item, stream, backup->alignsize(), startoffset, checksum);
-        
-        ChecksumBlock_Checksum *c = cb->add_checksum();
-        c->set_id(i);
-        c->set_sum(checksum);
+      { 
+        writeFileData(&item, stream, backup->alignsize(), startoffset);
       }
       else if(item.has_device())
       {
@@ -428,15 +414,12 @@ int restore()
 {
   Backup *backup = readHeader(&std::cin);
   
-  std::cerr << "Size: " << backup->item_size() << std::endl;
+  std::cerr << "Backup item count: " << backup->item_size() << std::endl;
   
   // stage 1 create path tree
   createFileTree(backup);
   
-  ChecksumBlock cb;
-  
-  createFiles(backup, &std::cin, &cb);
-  
+  createFiles(backup, &std::cin);
   
 }
 
