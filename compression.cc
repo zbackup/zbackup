@@ -292,7 +292,7 @@ private:
   }
 };
 
-#include <endian.h>
+#include "endian.hh"
 
 // like NoStreamEnDecoder, but also adds the uncompressed size before the stream
 //NOTE You should make sure that the compression function doesn't overwrite any
