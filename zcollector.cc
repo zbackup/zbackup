@@ -2,6 +2,7 @@
 // Part of ZBackup. Licensed under GNU GPLv2 or later + OpenSSL, see LICENSE
 
 #include "zcollector.hh"
+#include "file.hh"
 
 #include "backup_restorer.hh"
 #include "backup_file.hh"
@@ -162,13 +163,16 @@ public:
 
   void commit()
   {
+    // Move updated chunk index from tmp
+    chunkStorageWriter->commit();
+
+    // Remove unnecessary bundles
     for ( int i = filesToUnlink.size(); i--; )
     {
       dPrintf( "Unlinking %s\n", filesToUnlink[i].c_str() );
-      unlink( filesToUnlink[i].c_str() );
+      File::erase( filesToUnlink[i].c_str() );
     }
     filesToUnlink.clear();
-    chunkStorageWriter->commit();
   }
 };
 
