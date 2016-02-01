@@ -59,7 +59,7 @@ if ( ZBACKUP_VERSION )
   MESSAGE("ZBackup version ${ZBACKUP_VERSION}")
 endif( ZBACKUP_VERSION )
 
-file( GLOB sourceFiles "*.cc" )
+file( GLOB sourceFiles "*.cc" "*.c" )
 add_executable( zbackup ${sourceFiles} ${protoSrcs} ${protoHdrs} )
 
 target_link_libraries( zbackup
