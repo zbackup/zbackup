@@ -6,6 +6,7 @@
 #include "sha256.hh"
 #include "backup_collector.hh"
 #include "utils.hh"
+#include "buse.h"
 #include <unistd.h>
 
 using std::vector;
@@ -262,6 +263,38 @@ void ZRestore::restoreToStdin( string const & inputFileName )
 
   if ( stdoutWriter.sha256.finish() != backupInfo.sha256() )
     throw exChecksumError();
+}
+
+static int buse_read(void *buf, u_int32_t len, u_int64_t offset, void *userdata)
+{
+  dPrintf( "NBD read offset=%lu, size=%u\n", offset, len );
+
+  BackupRestorer::IndexedRestorer & restorer = *(BackupRestorer::IndexedRestorer *)userdata;
+
+  restorer.saveData(offset, buf, len);
+
+  return 0;
+}
+
+void ZRestore::startNBDServer( string const & inputFileName, string const & nbdDevice )
+{
+  BackupInfo backupInfo;
+
+  BackupFile::load( inputFileName, encryptionkey, backupInfo );
+
+  string backupData;
+
+  // Perform the iterations needed to get to the actual user backup data
+  BackupRestorer::restoreIterations( chunkStorageReader, backupInfo, backupData, NULL );
+
+  BackupRestorer::IndexedRestorer restorer( chunkStorageReader, backupData );
+
+  static struct buse_operations aop;
+  memset(&aop, 0, sizeof(aop));
+  aop.read = buse_read;
+  aop.size = restorer.size();
+
+  buse_main(nbdDevice.c_str(), &aop, (void *)&restorer);
 }
 
 ZExchange::ZExchange( string const & srcStorageDir, string const & srcPassword,
