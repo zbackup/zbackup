@@ -17,7 +17,8 @@ extern "C" {
     int (*flush)(void *userdata);
     int (*trim)(u_int64_t from, u_int32_t len, void *userdata);
 
-    u_int64_t size;
+    u_int32_t block_size;
+    u_int64_t num_blocks;
   };
 
   int buse_main(const char* dev_file, const struct buse_operations *bop, void *userdata);

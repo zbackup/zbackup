@@ -112,7 +112,9 @@ int buse_main(const char* dev_file, const struct buse_operations *aop, void *use
     return 1;
   }
 
-  err = ioctl(nbd, NBD_SET_SIZE, aop->size);
+  err = ioctl(nbd, NBD_SET_BLKSIZE, aop->block_size);
+  assert(err != -1);
+  err = ioctl(nbd, NBD_SET_SIZE_BLOCKS, aop->num_blocks);
   assert(err != -1);
   err = ioctl(nbd, NBD_CLEAR_SOCK);
   assert(err != -1);
@@ -175,7 +177,7 @@ int buse_main(const char* dev_file, const struct buse_operations *aop, void *use
     case NBD_CMD_READ:
       debug_print("Request for read of size %d\n", len);
       /* Fill with zero in case actual read is not implemented */
-      chunk = malloc(len);
+      chunk = calloc(1, len);
       if (aop->read) {
         reply.error = aop->read(chunk, len, from, userdata);
       } else {

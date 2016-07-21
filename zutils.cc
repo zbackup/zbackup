@@ -271,7 +271,16 @@ static int buse_read(void *buf, u_int32_t len, u_int64_t offset, void *userdata)
 
   BackupRestorer::IndexedRestorer & restorer = *(BackupRestorer::IndexedRestorer *)userdata;
 
-  restorer.saveData(offset, buf, len);
+  if ( offset > restorer.size() )
+  {
+     // Reading behind data end (block padding).
+     return 0;
+  }
+
+  // Truncate read chunk by available data (for cases when reading data that is not padded to block size).
+  u_int32_t clippedLen = std::min( int64_t(offset) + len, restorer.size() ) - offset;
+
+  restorer.saveData( offset, buf, clippedLen );
 
   return 0;
 }
@@ -289,10 +298,25 @@ void ZRestore::startNBDServer( string const & inputFileName, string const & nbdD
 
   BackupRestorer::IndexedRestorer restorer( chunkStorageReader, backupData );
 
+  // TODO: should be configurable
+  size_t const block_size = 1024;
+  size_t num_blocks;
+  if ( restorer.size() % block_size != 0 )
+  {
+    num_blocks = restorer.size() / block_size + 1;
+    fprintf( stderr, "WARNING: data size %zi is not aligned with block size %zi, "
+                     "device will be padded with zeros\n", restorer.size(), block_size );
+  }
+  else
+  {
+    num_blocks = restorer.size() / block_size;
+  }
+
   static struct buse_operations aop;
   memset(&aop, 0, sizeof(aop));
   aop.read = buse_read;
-  aop.size = restorer.size();
+  aop.block_size = block_size;
+  aop.num_blocks = num_blocks;
 
   buse_main(nbdDevice.c_str(), &aop, (void *)&restorer);
 }
