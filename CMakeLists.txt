@@ -52,7 +52,7 @@ endif( LIBUNWIND_FOUND )
 add_custom_target( invalidate_files ALL
   COMMAND ${CMAKE_COMMAND} -E touch "${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt" )
 execute_process( OUTPUT_VARIABLE ZBACKUP_VERSION
-  COMMAND git describe --tags --always
+  COMMAND git -C "${PROJECT_SOURCE_DIR}" describe --tags --always
   OUTPUT_STRIP_TRAILING_WHITESPACE )
 if ( ZBACKUP_VERSION )
   ADD_DEFINITIONS( -DZBACKUP_VERSION="${ZBACKUP_VERSION}" )
