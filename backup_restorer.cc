@@ -315,4 +315,92 @@ void IndexedRestorer::saveData( int64_t offset, void * data, size_t size ) const
   }
 }
 
+void IndexedRestorer::restore( int64_t offset, DataSink * output, size_t size ) const
+{
+  if ( offset < 0 || offset + size > totalSize )
+    throw exOutOfRange();
+
+  // Find first instruction which generates output range that starts after offset
+  Instructions::const_iterator it =
+      std::upper_bound( instructions.begin(), instructions.end(),
+                        std::make_pair(offset, BackupInstruction()),
+                        PairFirstLess<InstructionAtPos>() );
+  assert(it != instructions.begin());
+  // Iterator will point on instruction, which range will include byte at offset
+  --it;
+
+  struct Outputer
+  {
+    Outputer( int64_t offset, DataSink * output, size_t size )
+      : offset(offset)
+      , output(output)
+      , size(size)
+    {
+    }
+
+    bool operator()( int64_t chunkOffset, char const * chunk, size_t chunkSize )
+    {
+      size_t start = 0;
+      if ( chunkOffset < offset )
+      {
+        // First chunk which begins before offset
+        start = offset - chunkOffset;
+      }
+
+      size_t end = chunkSize;
+      if ( chunkOffset + chunkSize > offset + size )
+      {
+        // Chunk ends beyond requested range
+        end = offset + size - chunkOffset;
+      }
+
+      size_t partSize = end - start;
+      output->saveData(chunk + start, partSize);
+
+      offset += partSize;
+
+      assert( size >= partSize );
+      size -= partSize;
+
+      return size != 0;
+    }
+
+    int64_t offset;
+    DataSink * output;
+    size_t size;
+  };
+
+  Outputer out( offset, output, size );
+  string chunk;
+
+  int64_t position = it->first;
+  for ( ; it != instructions.end(); ++it)
+  {
+    assert( position == it->first );
+    BackupInstruction const & instr = it->second;
+
+    if ( instr.has_chunk_to_emit() )
+    {
+      ChunkId id( instr.chunk_to_emit() );
+      size_t chunkSize;
+      chunkStorageReader.get( id, chunk, chunkSize );
+
+      if ( !out( position, chunk.data(), chunkSize ) )
+      {
+        break;
+      }
+      position += chunkSize;
+    }
+
+    if ( instr.has_bytes_to_emit() )
+    {
+      string const & bytes = instr.bytes_to_emit();
+      if ( !out( position, bytes.data(), bytes.size() ) )
+      {
+        break;
+      }
+      position += bytes.size();
+    }
+  }
+}
 }
