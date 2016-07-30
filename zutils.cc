@@ -8,6 +8,8 @@
 #include "utils.hh"
 #include "buse.h"
 #include <unistd.h>
+#include <iostream>
+#include <string>
 
 using std::vector;
 using std::bitset;
@@ -263,6 +265,45 @@ void ZRestore::restoreToStdin( string const & inputFileName )
 
   if ( stdoutWriter.sha256.finish() != backupInfo.sha256() )
     throw exChecksumError();
+}
+
+void ZRestore::restorePartialToStdout( string const & inputFileName )
+{
+  if ( isatty( fileno( stdout ) ) )
+    throw exWontWriteToTerminal();
+
+  BackupInfo backupInfo;
+
+  BackupFile::load( inputFileName, encryptionkey, backupInfo );
+
+  string backupData;
+
+  // Perform the iterations needed to get to the actual user backup data
+  BackupRestorer::restoreIterations( chunkStorageReader, backupInfo, backupData, NULL );
+
+  BackupRestorer::IndexedRestorer restorer( chunkStorageReader, backupData );
+  
+  struct StdoutWriter: public DataSink
+  {
+    virtual void saveData( void const * data, size_t size )
+    {
+      if ( fwrite( data, size, 1, stdout ) != 1 )
+        throw exStdoutError();
+    }
+  } stdoutWriter;
+  
+  
+  while(std::cin.good()) {
+    std::string offsetStr;
+    std::string sizeStr;
+    std::getline(std::cin, offsetStr);
+    if(!std::cin.good())
+      throw exInputError();
+    
+    std::getline(std::cin, sizeStr);
+    
+    restorer.restore(std::stoll(offsetStr, NULL, 0), &stdoutWriter, std::stoll(sizeStr, NULL, 0));
+  }
 }
 
 static int buse_read(void *buf, u_int32_t len, u_int64_t offset, void *userdata)

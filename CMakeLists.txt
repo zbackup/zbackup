@@ -6,9 +6,8 @@ project( zbackup )
 
 list( APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" )
 
-if( NOT CMAKE_BUILD_TYPE )
-  set( CMAKE_BUILD_TYPE Release )
-endif( NOT CMAKE_BUILD_TYPE )
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package( ZLIB REQUIRED )
 include_directories( ${ZLIB_INCLUDE_DIRS} )
@@ -48,6 +47,10 @@ if ( LIBUNWIND_FOUND )
 else ( LIBUNWIND_FOUND )
   set( LIBUNWIND_LIBRARIES )
 endif( LIBUNWIND_FOUND )
+
+if(CMAKE_COMPILER_IS_GNUCXX)
+    add_definitions(-std=gnu++0x)
+endif()
 
 add_custom_target( invalidate_files ALL
   COMMAND ${CMAKE_COMMAND} -E touch "${CMAKE_CURRENT_SOURCE_DIR}/CMakeLists.txt" )
