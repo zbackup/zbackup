@@ -297,8 +297,10 @@ void ZRestore::restorePartialToStdout( string const & inputFileName )
     std::string offsetStr;
     std::string sizeStr;
     std::getline(std::cin, offsetStr);
+    
     if(!std::cin.good())
-      throw exInputError();
+      return;
+    
     
     std::getline(std::cin, sizeStr);
     
