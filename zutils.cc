@@ -314,7 +314,27 @@ static int buse_read(void *buf, u_int32_t len, u_int64_t offset, void *userdata)
 
   BackupRestorer::IndexedRestorer & restorer = *(BackupRestorer::IndexedRestorer *)userdata;
 
-  restorer.saveData(offset, buf, len);
+  struct PointerWriter: public DataSink
+  {
+    PointerWriter(void * target, uint32_t len)
+      : target(target)
+      , len(len)
+    {
+    }
+    virtual void saveData( void const * data, size_t size )
+    {
+      uint32_t toCopy = size > len ? len : size;
+      memcpy(target, data, toCopy);
+      len -= toCopy;
+      target += toCopy;
+    }
+    uint32_t len;
+    void * target;
+  };
+  
+  PointerWriter writer(buf, len );
+  
+  restorer.restore(offset, &writer, len);
 
   return 0;
 }
