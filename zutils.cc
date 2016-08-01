@@ -304,7 +304,15 @@ void ZRestore::restorePartialToStdout( string const & inputFileName )
     
     std::getline(std::cin, sizeStr);
     
-    restorer.restore(std::stoll(offsetStr, NULL, 0), &stdoutWriter, std::stoll(sizeStr, NULL, 0));
+    uint64_t offset;
+    size_t size;
+    
+    std::stringstream offsetSStr(offsetStr);
+    std::stringstream sizeSStr(sizeStr);
+    offsetSStr >> offset;
+    sizeSStr >> size;
+    
+    restorer.restore(offset, &stdoutWriter, size);
   }
 }
 
