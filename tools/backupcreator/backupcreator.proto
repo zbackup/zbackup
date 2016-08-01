@@ -1,0 +1,44 @@
+message Backup
+{
+  required uint32 alignSize = 1;
+
+  message Item
+  {
+    required bytes path = 1;
+    
+    required uint32 accessRights = 3;
+    required uint32 owner = 4;
+    required uint32 group = 5;
+    
+    required uint64 atime = 6;
+    required uint64 atimeNano = 7;
+    required uint64 mtime = 8;
+    required uint64 mtimeNano = 9;
+    
+    message File
+    {
+      required uint64 size = 1;
+      required uint64 position = 2;
+    }
+    message Directory
+    {
+    }
+    message Device
+    {
+      required bool block = 1;
+      required uint32 deviceID = 2;
+    }
+    message Symlink
+    {
+      required bytes target = 1;
+    }
+    oneof type
+    {
+      File file = 10;
+      Directory directory = 11;
+      Device device = 12;
+      Symlink symlink = 13;
+    }
+  }
+  repeated Item item = 2;
+}
