@@ -45,6 +45,9 @@ public:
 
   /// Restores the data to stdout
   void restoreToStdin( string const & inputFileName );
+  
+  /// Restores only parts of the data to stdout
+  void restorePartialToStdout( string const & inputFileName );
 
   /// Starts NBD server that serves backup data as block device with random access
   void startNBDServer( string const & inputFileName, string const & nbdDevice );

@@ -225,7 +225,7 @@ public:
   }
 };
 
-void IndexedRestorer::saveData( int64_t offset, void * data, size_t size ) const
+void IndexedRestorer::restore( int64_t offset, DataSink * output, size_t size ) const
 {
   if ( offset < 0 || offset + size > totalSize )
     throw exOutOfRange();
@@ -241,9 +241,9 @@ void IndexedRestorer::saveData( int64_t offset, void * data, size_t size ) const
 
   struct Outputer
   {
-    Outputer( int64_t offset, char * data, size_t size )
+    Outputer( int64_t offset, DataSink * output, size_t size )
       : offset(offset)
-      , data(data)
+      , output(output)
       , size(size)
     {
     }
@@ -265,10 +265,9 @@ void IndexedRestorer::saveData( int64_t offset, void * data, size_t size ) const
       }
 
       size_t partSize = end - start;
-      memcpy( data, chunk + start, partSize );
+      output->saveData(chunk + start, partSize);
 
       offset += partSize;
-      data += partSize;
 
       assert( size >= partSize );
       size -= partSize;
@@ -277,11 +276,11 @@ void IndexedRestorer::saveData( int64_t offset, void * data, size_t size ) const
     }
 
     int64_t offset;
-    char * data;
+    DataSink * output;
     size_t size;
   };
 
-  Outputer out( offset, static_cast<char *>( data ), size );
+  Outputer out( offset, output, size );
   string chunk;
 
   int64_t position = it->first;
@@ -314,5 +313,4 @@ void IndexedRestorer::saveData( int64_t offset, void * data, size_t size ) const
     }
   }
 }
-
 }

@@ -173,6 +173,7 @@ invalid_option:
 "    restore <backup file name> - restores a backup to stdout\n"
 "    restore <backup file name> <output file name> - restores\n"
 "            a backup to file using two-pass \"cacheless\" process\n"
+"    restore-partial <backup file name> - restores a backup partial to stdout\n"
 "    nbd <backup file name> /dev/nbd0\n"
 "            start NBD server that will serve backup data as block device\n"
 "    export <source storage path> <destination storage path> -\n"
@@ -278,6 +279,20 @@ invalid_option:
         zr.restoreToFile( args[ 1 ], args[ 2 ] );
       else
         zr.restoreToStdin( args[ 1 ] );
+    }
+    else
+    if ( strcmp( args[ 0 ], "restore-partial" ) == 0 )
+    {
+      // Perform the restore
+      if ( args.size() != 2 )
+      {
+        fprintf( stderr, "Usage: %s %s <backup file name>\n",
+                 *argv , args[ 0 ] );
+        return EXIT_FAILURE;
+      }
+      ZRestore zr( ZRestore::deriveStorageDirFromBackupsFile( args[ 1 ] ),
+                   passwords[ 0 ], config );
+      zr.restorePartialToStdout( args[ 1 ] );
     }
     else
     if ( strcmp( args[ 0 ], "nbd" ) == 0 )
