@@ -287,15 +287,11 @@ void setAttributes(Backup_Item *item)
   }
 }
 
-void createFileTree(Backup *backup)
-{
-  for(uint64_t i = 0; i < backup->item_size(); i++)
-  {
-    Backup_Item item = backup->item(i);
-    if(!item.has_directory())
-      continue;
+void createDir(Backup_Item *item) {
+  if(!item->has_directory())
+      return;
     
-    std::string path = item.path();
+    std::string path = item->path();
     struct stat64 statresult;
     
     if(!lstat64(path.c_str(), &statresult))
@@ -304,18 +300,27 @@ void createFileTree(Backup *backup)
     }
     else
     {
-      int err = mkdir(path.c_str(), item.accessrights());
+      int err = mkdir(path.c_str(), item->accessrights());
       if(err)
       {
         std::cerr << "Can't create path " << path << " error: " << err << std::endl;
       }
       else
       {
-        setAttributes(&item);
+        setAttributes(item);
       }
     }
+}
+
+void createFileTree(Backup *backup)
+{
+  for(uint64_t i = 0; i < backup->item_size(); i++)
+  {
+    Backup_Item item = backup->item(i);
+    createDir(&item);
   }
 }
+
 
 void writeFileData(Backup_Item *item, std::istream *stream, uint32_t alignsize, uint64_t startOffset)
 {
@@ -374,6 +379,35 @@ void writeFileData(Backup_Item *item, std::istream *stream, uint32_t alignsize, 
   skipBytes(stream, alignToSkip);
 }
 
+void createFile(Backup_Item *item, std::istream *stream, uint32_t alignsize, uint64_t startOffset) {
+  if(item->has_directory())
+    return;
+  
+  std::string path = item->path();
+  struct stat64 statresult;
+  
+  
+  if(!lstat64(path.c_str(), &statresult))
+  {
+    std::cerr << path << " already exists, skipping." << std::endl;
+  }
+  else
+  {
+    if(item->has_file())
+    { 
+      writeFileData(item, stream, alignsize, startOffset);
+    }
+    else if(item->has_device())
+    {
+      std::cerr << "Create device unimplemented" << std::endl;
+    }
+    else if(item->has_symlink())
+    {
+      std::cerr << "Create symlink unimplemented" << std::endl;
+    }
+  }
+}
+
 void createFiles(Backup *backup, std::istream *stream)
 {
   uint64_t startoffset = stream->tellg();
@@ -381,34 +415,10 @@ void createFiles(Backup *backup, std::istream *stream)
   for(uint64_t i = 0; i < backup->item_size(); i++)
   {
     Backup_Item item = backup->item(i);
-    if(item.has_directory())
-      continue;
-    
-    std::string path = item.path();
-    struct stat64 statresult;
-    
-    
-    if(!lstat64(path.c_str(), &statresult))
-    {
-      std::cerr << path << " already exists, skipping." << std::endl;
-    }
-    else
-    {
-      if(item.has_file())
-      { 
-        writeFileData(&item, stream, backup->alignsize(), startoffset);
-      }
-      else if(item.has_device())
-      {
-        std::cerr << "Create device unimplemented" << std::endl;
-      }
-      else if(item.has_symlink())
-      {
-        std::cerr << "Create symlink unimplemented" << std::endl;
-      }
-    }
+    createFile(&item, stream, backup->alignsize(), startoffset);
   }
 }
+
 
 int restore()
 {
