@@ -433,6 +433,29 @@ int restore()
   
 }
 
+int list()
+{
+  Backup *backup = readHeader(&std::cin);
+  
+  std::cout << "Type\tPath\tSize" << std::endl;
+  
+  
+  for(uint64_t i = 0; i < backup->item_size(); i++)
+  {
+    Backup_Item item = backup->item(i);
+    if(item.has_directory()) {
+        std::cout << "Directory\t" << item.path() << std::endl;
+    } else if(item.has_file()) {
+        std::cout << "File\t" << item.path() << "\t" << item.file().size() << std::endl;
+    } else if(item.has_device()) {
+        std::cout << "Device\t" << item.path() << std::endl;
+    } else if(item.has_symlink()) {
+        std::cout << "Symlink\t" << item.path() << std::endl;
+    }
+    
+  }
+}
+
 void printHelp()
 {
   std::cerr << "Use: backupcreator [backup | restore] [align size in bytes]" << std::endl;
@@ -461,6 +484,10 @@ int main(int argc, const char* argv[])
   else if(strncmp("restore", argv[1], sizeof("restore")) == 0)
   {
     return restore();
+  }
+  else if(strncmp("list", argv[1], sizeof("list")) == 0)
+  {
+    return list();
   }
   else
   {
