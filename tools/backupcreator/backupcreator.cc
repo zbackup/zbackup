@@ -3,11 +3,13 @@
 #include <ostream>
 #include <string>
 #include <cstring>
+#include <ext/stdio_filebuf.h>
 
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <fcntl.h>
 
 #include <zlib.h>
@@ -233,9 +235,15 @@ int backup(uint32_t alignment)
   return 0;
 }
 
-Backup *readHeader(std::istream *stream)
+Backup *readHeader(std::istream *stream, std::ostream *requestStream)
 {
   uint64_t size = 0;
+  
+  if(requestStream) {
+    std::cerr << "Request" << std::endl;
+    (*requestStream) << "0\n" << sizeof(size) << "\n";
+    requestStream->flush();
+  }
   
   stream->read(reinterpret_cast<char *>(&size), sizeof(size));
   
@@ -243,9 +251,19 @@ Backup *readHeader(std::istream *stream)
   if(buffer == NULL)
     return NULL;
   
+  
+  if(requestStream) {
+    (*requestStream) << sizeof(size) << "\n" << size << "\n";
+    requestStream->flush();
+  }
   stream->read(reinterpret_cast<char *>(buffer), size);
   
   uint32_t checksum = 0;
+  
+  if(requestStream) {
+    (*requestStream) << sizeof(size) + size << "\n" << sizeof(checksum) << "\n";
+    requestStream->flush();
+  }
   stream->read(reinterpret_cast<char *>(&checksum), sizeof(checksum));
   
   if(checksum != crc32(0, reinterpret_cast<const Bytef*>(buffer), size))
@@ -257,17 +275,18 @@ Backup *readHeader(std::istream *stream)
   Backup *backup = new Backup();
   backup->ParseFromArray(buffer, size);
   
-  uint32_t alignToSkip = backup->alignsize() - ((size + 8 + 4) % backup->alignsize());
-  if(backup->alignsize() == alignToSkip)
-    return backup;
-  
-  std::cerr << "Align to skip: " << alignToSkip << std::endl;
-  skipBytes(stream, alignToSkip);
-  
+  if(!requestStream) {
+    uint32_t alignToSkip = backup->alignsize() - ((size + 8 + 4) % backup->alignsize());
+    if(backup->alignsize() == alignToSkip)
+      return backup;
+    
+    std::cerr << "Align to skip: " << alignToSkip << std::endl;
+    skipBytes(stream, alignToSkip);
+  }
   return backup;
 }
 
-void setAttributes(Backup_Item *item)
+void setAttributes(const Backup_Item *item)
 {
   int err = chown(item->path().c_str(), item->owner(), item->group());
   if(err)
@@ -322,20 +341,25 @@ void createFileTree(Backup *backup)
 }
 
 
-void writeFileData(Backup_Item *item, std::istream *stream, uint32_t alignsize, uint64_t startOffset)
+void writeFileData(const Backup_Item *item, std::istream *stream, uint32_t alignsize, uint64_t startOffset, std::ostream *requestStream)
 {
   std::fstream file(item->path().c_str(), std::fstream::out | std::fstream::binary);
   
-  int64_t posDiff = (item->file().position() * alignsize) - (stream->tellg() - (int64_t)startOffset);
-  
-  if(posDiff < 0)
-  {
-    std::cerr << "Error posDiff: " << posDiff << std::endl;
-  }
-  else if(posDiff > 0)
-  {
-    std::cerr << "Skip posDiff: " << posDiff << std::endl;
-    skipBytes(stream, posDiff);
+  if(!requestStream) {
+    int64_t posDiff = (item->file().position() * alignsize) - (stream->tellg() - (int64_t)startOffset);
+    
+    if(posDiff < 0)
+    {
+      std::cerr << "Error posDiff: " << posDiff << std::endl;
+    }
+    else if(posDiff > 0)
+    {
+      std::cerr << "Skip posDiff: " << posDiff << std::endl;
+      skipBytes(stream, posDiff);
+    }
+  } else {
+    (*requestStream) << (item->file().position() * alignsize) + startOffset << "\n" << item->file().size() + 4 << "\n";
+    requestStream->flush();
   }
   
   uint64_t missing = item->file().size();
@@ -369,17 +393,19 @@ void writeFileData(Backup_Item *item, std::istream *stream, uint32_t alignsize, 
     std::cerr << "Checksum invalid" << std::endl;
   }
   
-  uint32_t alignToSkip = alignsize - ((item->file().size() + 4) % alignsize);
-  
-  std::cerr << "File: " << item->path() << " pos: " << item->file().position() << " written: "<< item->file().size() << " Align to skip: " << alignToSkip << std::endl;
-  
-  if(alignsize == alignToSkip)
-    return;
-  
-  skipBytes(stream, alignToSkip);
+  if(!requestStream) {
+    uint32_t alignToSkip = alignsize - ((item->file().size() + 4) % alignsize);
+    
+    std::cerr << "File: " << item->path() << " pos: " << item->file().position() << " written: "<< item->file().size() << " Align to skip: " << alignToSkip << std::endl;
+    
+    if(alignsize == alignToSkip)
+      return;
+    
+    skipBytes(stream, alignToSkip);
+  }
 }
 
-void createFile(Backup_Item *item, std::istream *stream, uint32_t alignsize, uint64_t startOffset) {
+void createFile(const Backup_Item *item, std::istream *stream, uint32_t alignsize, uint64_t startOffset, std::ostream *requestStream) {
   if(item->has_directory())
     return;
   
@@ -395,7 +421,7 @@ void createFile(Backup_Item *item, std::istream *stream, uint32_t alignsize, uin
   {
     if(item->has_file())
     { 
-      writeFileData(item, stream, alignsize, startOffset);
+      writeFileData(item, stream, alignsize, startOffset, requestStream);
     }
     else if(item->has_device())
     {
@@ -415,14 +441,14 @@ void createFiles(Backup *backup, std::istream *stream)
   for(uint64_t i = 0; i < backup->item_size(); i++)
   {
     Backup_Item item = backup->item(i);
-    createFile(&item, stream, backup->alignsize(), startoffset);
+    createFile(&item, stream, backup->alignsize(), startoffset, NULL);
   }
 }
 
 
 int restore()
 {
-  Backup *backup = readHeader(&std::cin);
+  Backup *backup = readHeader(&std::cin, NULL);
   
   std::cerr << "Backup item count: " << backup->item_size() << std::endl;
   
@@ -435,7 +461,7 @@ int restore()
 
 int list()
 {
-  Backup *backup = readHeader(&std::cin);
+  Backup *backup = readHeader(&std::cin, NULL);
   
   std::cout << "Type\tPath\tSize" << std::endl;
   
@@ -456,13 +482,83 @@ int list()
   }
 }
 
+int restorePartial(char *argv[]) {
+  int requestPipes[2];
+  int responsePipes[2];
+  
+  if (pipe(requestPipes) == -1) {
+    std::cerr << "unable to create pipes" << std::endl;
+    return 1;
+  }
+  if (pipe(responsePipes) == -1) {
+    std::cerr << "unable to create pipes" << std::endl;
+    return 1;
+  }
+  
+  pid_t cpid;
+  cpid = fork();
+  if (cpid == -1) {
+    std::cerr << "unable to fork" << std::endl;
+    return 1;
+  }
+  
+  if (cpid == 0) {
+    close(requestPipes[1]);
+    close(responsePipes[0]);
+    dup2(requestPipes[0], STDIN_FILENO);
+    dup2(responsePipes[1], STDOUT_FILENO);
+    close(requestPipes[0]);
+    close(responsePipes[1]);
+    
+    return execv(argv[0], argv);
+  } else {
+    close(requestPipes[0]);
+    close(responsePipes[1]);
+  }
+  
+  __gnu_cxx::stdio_filebuf<char> requestFilebuf(requestPipes[1], std::ios::out); // 1
+  std::ostream requestStream(&requestFilebuf);
+  __gnu_cxx::stdio_filebuf<char> responseFilebuf(responsePipes[0], std::ios::in); // 1
+  std::istream responseStream(&responseFilebuf);
+  
+  Backup *backup = readHeader(&responseStream, &requestStream);
+  
+  std::cerr << "Backup item count: " << backup->item_size() << std::endl;
+  uint32_t startOffset = 8 + (uint64_t)backup->ByteSize() + 4;
+  if(startOffset % backup->alignsize() != 0)
+    startOffset = ((startOffset / backup->alignsize()) + 1) * backup->alignsize();
+  
+  while(true)
+  {
+    std::string path;
+    
+    std::getline(std::cin, path, '\0');
+    
+    if(std::cin.eof())
+      break;
+    
+    if(std::cin.fail())
+      break;
+    
+    uint32_t count = backup->item_size();
+    for(uint32_t i = 0; i < count; i++) {
+      Backup_Item item = backup->item(i);
+      if(item.path() == path) {
+        createFile(&item, &responseStream, backup->alignsize(), startOffset, &requestStream);
+        
+        break;
+      }
+    }
+  }
+}
+
 void printHelp()
 {
   std::cerr << "Use: backupcreator [backup | restore] [align size in bytes]" << std::endl;
 }
 
 
-int main(int argc, const char* argv[])
+int main(int argc, char* argv[])
 {
   GOOGLE_PROTOBUF_VERIFY_VERSION;
   uint32_t align = ALIGN;
@@ -488,6 +584,10 @@ int main(int argc, const char* argv[])
   else if(strncmp("list", argv[1], sizeof("list")) == 0)
   {
     return list();
+  }
+  else if(strncmp("restore-partial", argv[1], sizeof("restore-partial")) == 0)
+  {
+    return restorePartial(argv+2);
   }
   else
   {
