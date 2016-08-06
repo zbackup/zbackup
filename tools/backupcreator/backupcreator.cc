@@ -544,8 +544,11 @@ int restorePartial(char *argv[]) {
     for(uint32_t i = 0; i < count; i++) {
       Backup_Item item = backup->item(i);
       if(item.path() == path) {
-        createFile(&item, &responseStream, backup->alignsize(), startOffset, &requestStream);
-        
+        if(item.has_directory()) {
+          createDir(&item);
+        } else {
+          createFile(&item, &responseStream, backup->alignsize(), startOffset, &requestStream);
+        }
         break;
       }
     }
