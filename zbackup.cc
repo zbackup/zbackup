@@ -391,6 +391,19 @@ invalid_option:
       zbb.setPassword( passwords[ 1 ] );
     }
     else
+    if ( strcmp( args[ 0 ], "reindex" ) == 0 )
+    {
+      if ( args.size() != 2)
+      {
+        fprintf( stderr, "Usage: %s %s <storage path>\n",
+                 *argv, args[ 0 ] );
+        return EXIT_FAILURE;
+      }
+
+      ZIndexer zix( args[ 1 ], passwords[ 0 ], config );
+      zix.reindex();
+    }
+    else
     if ( strcmp( args[ 0 ], "inspect" ) == 0 )
     {
       if ( args.size() < 2 || args.size() > 3 )
