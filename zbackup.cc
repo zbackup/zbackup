@@ -183,6 +183,7 @@ invalid_option:
 "            a valid (initialized) storage\n"
 "    inspect [fast|deep] <backup file name> - inspect backup (default\n"
 "            is fast)\n"
+"    reindex <storage path> - rebuilds an index of all bundles in the repository\n"
 "    gc [fast|deep] <storage path> - performs garbage\n"
 "            collection (default is fast)\n"
 "    passwd <storage path> - changes repo info file passphrase\n"
