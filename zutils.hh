@@ -77,6 +77,16 @@ public:
   void gc( bool );
 };
 
+class ZIndexer : public ZBackupBase
+{
+public:
+  ZIndexer( string const & storageDir, string const & password,
+            Config & configIn );
+
+  /// Rebuilds a single index from the bundles in the repository
+  void reindex();
+};
+
 class ZInspect : public ZBackupBase
 {
 public:

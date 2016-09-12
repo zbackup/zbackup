@@ -134,4 +134,55 @@ string toHex( unsigned char const * in, unsigned size )
   return result;
 }
 
+// Converts hex input string to binary. Accepts upper or lower case.
+// For input with illegal or odd number of characters, returns empty string.
+string fromHex( string const & in )
+{
+  string result;
+
+  if ( in.length() % 2 != 0 )
+  {
+    return result;
+  }
+
+  result.reserve( in.length() / 2 );
+
+  for ( string::const_iterator it = in.begin() ; it != in.end() ; it += 2 )
+  {
+    char first = *it;
+    char second = *(it + 1);
+    char binval;
+
+    if ( first >= '0' && first <= '9' )
+      binval = (first - '0') << 4;
+    else if (first >= 'A' && first <= 'F' )
+      binval = (first - 'A' + 10) << 4;
+    else if (first >= 'a' && first <= 'f' )
+      binval = (first - 'a' + 10) << 4;
+    else
+    {
+      // Invalid hex digit
+      result.clear();
+      return result;
+    }
+
+    if ( second >= '0' && second <= '9' )
+      binval += second - '0';
+    else if (second >= 'A' && second <= 'F' )
+      binval += second - 'A' + 10;
+    else if (second >= 'a' && second <= 'f' )
+      binval += second - 'a' + 10;
+    else
+    {
+      // Invalid hex digit
+      result.clear();
+      return result;
+    }
+
+    result += binval;
+  }
+
+  return result;
+}
+
 }

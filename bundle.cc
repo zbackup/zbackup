@@ -264,4 +264,22 @@ string generateFileName( Id const & id, string const & bundlesDir,
 
   return string( Dir::addPath( level1, hex ) );
 }
+
+Id idFromFileName( string const & fileName )
+{
+  string baseName = Dir::getBaseName( fileName );
+
+  string bin = Utils::fromHex(baseName);
+
+  if ( bin.length() != IdSize )
+  {
+    throw exIllegalFileName();
+  }
+
+  Id id;
+  memcpy( id.blob, bin.data(), IdSize );
+
+  return id;
+}
+
 }

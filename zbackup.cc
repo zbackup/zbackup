@@ -183,6 +183,7 @@ invalid_option:
 "            a valid (initialized) storage\n"
 "    inspect [fast|deep] <backup file name> - inspect backup (default\n"
 "            is fast)\n"
+"    reindex <storage path> - rebuilds an index of all bundles in the repository\n"
 "    gc [fast|deep] <storage path> - performs garbage\n"
 "            collection (default is fast)\n"
 "    passwd <storage path> - changes repo info file passphrase\n"
@@ -389,6 +390,19 @@ invalid_option:
         return EXIT_FAILURE;
       }
       zbb.setPassword( passwords[ 1 ] );
+    }
+    else
+    if ( strcmp( args[ 0 ], "reindex" ) == 0 )
+    {
+      if ( args.size() != 2)
+      {
+        fprintf( stderr, "Usage: %s %s <storage path>\n",
+                 *argv, args[ 0 ] );
+        return EXIT_FAILURE;
+      }
+
+      ZIndexer zix( args[ 1 ], passwords[ 0 ], config );
+      zix.reindex();
     }
     else
     if ( strcmp( args[ 0 ], "inspect" ) == 0 )

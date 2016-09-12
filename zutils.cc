@@ -504,6 +504,56 @@ void ZCollector::gc( bool gcDeep )
   verbosePrintf( "Garbage collection complete\n" );
 }
 
+ZIndexer::ZIndexer( string const & storageDir, string const & password,
+                    Config & configIn ):
+  ZBackupBase( storageDir, password, configIn )
+{
+}
+
+void ZIndexer::reindex()
+{
+  ChunkStorage::Writer chunkStorageWriter( config, encryptionkey, tmpMgr, chunkIndex,
+                                           getBundlesPath(), getIndexPath(),
+                                           config.runtime.threads );
+
+  Dir::Listing lst( getIndexPath() );
+  Dir::Entry entry;
+  vector< string > oldIndexes;
+  while ( lst.getNext( entry ) )
+  {
+    oldIndexes.push_back( entry.getFileName() );
+  }
+
+  verbosePrintf( "Searching for bundles...\n" );
+
+  vector< string > bundles = Utils::findOrRebuild( getBundlesPath() );
+
+  verbosePrintf( "Indexing %lu bundles...\n", bundles.size() );
+
+  for ( vector< string >::const_iterator it = bundles.begin(); it != bundles.end(); ++it )
+  {
+    Bundle::Id id( Bundle::idFromFileName( *it ) );
+
+    // We only have a relative path from the bundles directory, get the full path
+    string fullFileName = Bundle::generateFileName( id, getBundlesPath(), false );
+
+    Bundle::Reader reader( fullFileName, encryptionkey, false );
+    BundleInfo info = reader.getBundleInfo();
+    chunkStorageWriter.addBundle( info, id );
+  }
+
+  chunkStorageWriter.commit();
+
+  verbosePrintf( "Deleting old indexes\n" );
+
+  for ( vector< string >::const_iterator it = oldIndexes.begin(); it != oldIndexes.end(); ++it )
+  {
+    string fullFileName = Dir::addPath( getIndexPath(), it->c_str() );
+    dPrintf( "Unlinking %s\n", fullFileName.c_str() );
+    unlink( fullFileName.c_str() );
+  }
+}
+
 ZInspect::ZInspect( string const & storageDir, string const & password,
     Config & configIn ):
   ZBackupBase( storageDir, password, configIn, true )

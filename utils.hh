@@ -37,6 +37,8 @@ std::string toHex( unsigned char const * in, unsigned size );
 
 std::string toHex( string const & );
 
+string fromHex( string const & in );
+
 template <typename T>
 string numberToString( T pNumber )
 {

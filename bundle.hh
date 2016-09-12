@@ -48,6 +48,9 @@ struct Id
 
 STATIC_ASSERT( sizeof( Id ) == IdSize );
 
+DEF_EX( Ex, "Bundle exception", std::exception )
+DEF_EX( exIllegalFileName, "Illegal bundle file name", Ex )
+
 /// Reads the bundle and allows accessing chunks
 class Reader: NoCopy
 {
@@ -118,6 +121,7 @@ public:
 /// already
 string generateFileName( Id const &, string const & bundlesDir,
                          bool createDirs );
+Id idFromFileName( string const & fileName );
 }
 
 #endif
