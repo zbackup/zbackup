@@ -17,6 +17,7 @@
 #include "backupcreator.pb.h"
 
 
+#define COPY_BUFFER_SIZE (4096*1024)
 #define ALIGN (16*1024)
 #define ALIGN_SIZE(size, align) (((size) % align == 0) ? ((size) / align) : (((size) / align) + 1))
 
@@ -161,9 +162,9 @@ uint64_t outputFileData(const std::string *path, std::ostream *stream, uint32_t 
   
   checksum = 0;
   
-  char buffer[4096];
+  char buffer[COPY_BUFFER_SIZE];
   while(true) {
-    file.read(buffer, 4096);
+    file.read(buffer, COPY_BUFFER_SIZE);
   
     uint64_t readed = file.gcount();
     if(readed == 0)
@@ -366,9 +367,9 @@ void writeFileData(const Backup_Item *item, std::istream *stream, uint32_t align
   
   uint32_t checksum = 0;
   
-  char buffer[4096];
+  char buffer[COPY_BUFFER_SIZE];
   while(true) {
-    stream->read(buffer, ((missing > 4096) ? 4096 : missing));
+    stream->read(buffer, ((missing > COPY_BUFFER_SIZE) ? COPY_BUFFER_SIZE : missing));
   
     uint64_t readed = stream->gcount();
     if(readed == 0)
