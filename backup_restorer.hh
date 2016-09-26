@@ -75,6 +75,8 @@ public:
 
   /// Restore "size" bytes of data from specified offset into "data" buffer
   void saveData( int64_t offset, void * data, size_t size ) const;
+  
+  void restore( int64_t offset, DataSink * output, size_t size ) const;
 
 private:
   ChunkStorage::Reader & chunkStorageReader;

@@ -8,6 +8,8 @@
 #include "utils.hh"
 #include "buse.h"
 #include <unistd.h>
+#include <iostream>
+#include <string>
 
 using std::vector;
 using std::bitset;
@@ -265,13 +267,82 @@ void ZRestore::restoreToStdin( string const & inputFileName )
     throw exChecksumError();
 }
 
+void ZRestore::restorePartialToStdout( string const & inputFileName )
+{
+  if ( isatty( fileno( stdout ) ) )
+    throw exWontWriteToTerminal();
+
+  BackupInfo backupInfo;
+
+  BackupFile::load( inputFileName, encryptionkey, backupInfo );
+
+  string backupData;
+
+  // Perform the iterations needed to get to the actual user backup data
+  BackupRestorer::restoreIterations( chunkStorageReader, backupInfo, backupData, NULL );
+
+  BackupRestorer::IndexedRestorer restorer( chunkStorageReader, backupData );
+  
+  struct StdoutWriter: public DataSink
+  {
+    virtual void saveData( void const * data, size_t size )
+    {
+      if ( fwrite( data, size, 1, stdout ) != 1 )
+        throw exStdoutError();
+    }
+  } stdoutWriter;
+  
+  
+  while(std::cin.good()) {
+    std::string offsetStr;
+    std::string sizeStr;
+    std::getline(std::cin, offsetStr);
+    
+    if(!std::cin.good())
+      return;
+    
+    
+    std::getline(std::cin, sizeStr);
+    
+    uint64_t offset;
+    size_t size;
+    
+    std::stringstream offsetSStr(offsetStr);
+    std::stringstream sizeSStr(sizeStr);
+    offsetSStr >> offset;
+    sizeSStr >> size;
+    
+    restorer.restore(offset, &stdoutWriter, size);
+  }
+}
+
 static int buse_read(void *buf, u_int32_t len, u_int64_t offset, void *userdata)
 {
   dPrintf( "NBD read offset=%lu, size=%u\n", offset, len );
 
   BackupRestorer::IndexedRestorer & restorer = *(BackupRestorer::IndexedRestorer *)userdata;
 
-  restorer.saveData(offset, buf, len);
+  struct PointerWriter: public DataSink
+  {
+    PointerWriter(void * target, uint32_t len)
+      : target(target)
+      , len(len)
+    {
+    }
+    virtual void saveData( void const * data, size_t size )
+    {
+      uint32_t toCopy = size > len ? len : size;
+      memcpy(target, data, toCopy);
+      len -= toCopy;
+      target += toCopy;
+    }
+    uint32_t len;
+    void * target;
+  };
+  
+  PointerWriter writer(buf, len );
+  
+  restorer.restore(offset, &writer, len);
 
   return 0;
 }
