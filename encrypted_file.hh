@@ -42,7 +42,7 @@ public:
   virtual bool Next( void const ** data, int * size );
   virtual void BackUp( int count );
   virtual bool Skip( int count );
-  virtual int64_t ByteCount() const;
+  virtual google::protobuf::int64 ByteCount() const;
 
 
   /// Returns adler32 of all data read so far. Calling this makes backing up
@@ -93,7 +93,7 @@ public:
   OutputStream( char const * fileName, EncryptionKey const &, void const * iv );
   virtual bool Next( void ** data, int * size );
   virtual void BackUp( int count );
-  virtual int64_t ByteCount() const;
+  virtual google::protobuf::int64 ByteCount() const;
 
   /// Returns adler32 of all data written so far. Calling this makes backing up
   /// for the previous Next() call impossible - the data has to be consumed

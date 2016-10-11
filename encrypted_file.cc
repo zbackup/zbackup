@@ -122,7 +122,7 @@ bool InputStream::Skip( int count )
   return true;
 }
 
-int64_t InputStream::ByteCount() const
+google::protobuf::int64 InputStream::ByteCount() const
 {
   return filePos;
 }
@@ -296,7 +296,7 @@ void OutputStream::BackUp( int count )
   }
 }
 
-int64_t OutputStream::ByteCount() const
+google::protobuf::int64 OutputStream::ByteCount() const
 {
   return filePos;
 }
