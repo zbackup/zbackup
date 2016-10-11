@@ -19,7 +19,7 @@ void const * encrypt( void const * iv, void const * keyData,
 {
   unsigned char block[ BlockSize ];
 
-  CHECK( !( size % BlockSize ), "size of data to encrypt is not a multiple of "
+  ZBACKUP_CHECK( !( size % BlockSize ), "size of data to encrypt is not a multiple of "
          "block size" );
 
   AES_KEY key;
@@ -55,7 +55,7 @@ void const * encrypt( void const * iv, void const * keyData,
 
 void const * getNextDecryptionIv( void const * in, size_t size )
 {
-  CHECK( !( size % BlockSize ), "size of data to decrypt is not a multiple of "
+  ZBACKUP_CHECK( !( size % BlockSize ), "size of data to decrypt is not a multiple of "
          "block size" );
   return ( char const * ) in + size - BlockSize;
 }
@@ -63,7 +63,7 @@ void const * getNextDecryptionIv( void const * in, size_t size )
 void decrypt( void const * iv, void const * keyData, void const * inData,
               void * outData, size_t size )
 {
-  CHECK( !( size % BlockSize ), "size of data to decrypt is not a multiple of "
+  ZBACKUP_CHECK( !( size % BlockSize ), "size of data to decrypt is not a multiple of "
          "block size" );
 
   AES_KEY key;
@@ -96,7 +96,7 @@ void decrypt( void const * iv, void const * keyData, void const * inData,
 
 void pad( void * data, size_t size )
 {
-  CHECK( size < BlockSize, "size to pad is too large: %zu bytes", size );
+  ZBACKUP_CHECK( size < BlockSize, "size to pad is too large: %zu bytes", size );
   unsigned char * p = ( unsigned char * ) data + size;
   unsigned char v = BlockSize - size;
   for ( size_t count = v; count--; )

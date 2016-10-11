@@ -181,7 +181,7 @@ void * Writer::Compressor::Compressor::threadFunction() throw()
 
   {
     Lock _( writer.runningCompressorsMutex );
-    CHECK( writer.runningCompressors, "no running compressors" );
+    ZBACKUP_CHECK( writer.runningCompressors, "no running compressors" );
     --writer.runningCompressors;
     writer.runningCompressorsCondition.signal();
   }

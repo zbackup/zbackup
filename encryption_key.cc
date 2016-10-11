@@ -15,7 +15,7 @@ namespace {
 void deriveKey( string const & password, EncryptionKeyInfo const & info,
                         void * key, unsigned keySize )
 {
-  CHECK( PKCS5_PBKDF2_HMAC_SHA1( password.data(), password.size(),
+  ZBACKUP_CHECK( PKCS5_PBKDF2_HMAC_SHA1( password.data(), password.size(),
                                  (unsigned char const *) info.salt().data(),
                                  info.salt().size(), info.rounds(), keySize,
                                  (unsigned char *) key ) == 1,
@@ -27,7 +27,7 @@ string calculateKeyHmac( void const * key, unsigned keySize,
 {
   char result[ EVP_MAX_MD_SIZE ];
   unsigned resultSize;
-  CHECK( HMAC( EVP_sha1(), (unsigned char const *) key, keySize,
+  ZBACKUP_CHECK( HMAC( EVP_sha1(), (unsigned char const *) key, keySize,
                (unsigned char const *) input.data(), input.size(),
                (unsigned char *) result, &resultSize ),
          "encryption key HMAC calcuation failed" );

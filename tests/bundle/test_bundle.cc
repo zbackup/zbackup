@@ -48,8 +48,8 @@ void testCompatibility()
       BundleFileHeader header;
       Message::parse( header, is );
 
-      CHECK( header.version()            == 42,     "version is wrong when reading old header with new program" );
-      CHECK( header.compression_method() == "lzma", "compression_method is wrong when reading old header with new program" );
+      ZBACKUP_CHECK( header.version()            == 42,     "version is wrong when reading old header with new program" );
+      ZBACKUP_CHECK( header.compression_method() == "lzma", "compression_method is wrong when reading old header with new program" );
     }
   }
 
@@ -71,7 +71,7 @@ void testCompatibility()
       FileHeader header;
       Message::parse( header, is );
 
-      CHECK( header.version() == 42,     "version is wrong when reading new header with old program" );
+      ZBACKUP_CHECK( header.version() == 42,     "version is wrong when reading new header with old program" );
       // cannot check compression_method because the field doesn't exist
     }
   }
@@ -123,9 +123,9 @@ void readAndWrite( EncryptionKey const & key,
       string data;
       size_t size;
       bool ret = bundle.get( chunkIds[i], data, size );
-      CHECK( ret, "bundle.get returned false for chunk %d (%s)", i, chunkIds[i].c_str() );
-      CHECK( size == chunkSize, "wrong chunk size for chunk %d (%s)", i, chunkIds[i].c_str() );
-      CHECK( memcmp(data.c_str(), chunks[i], chunkSize) == 0, "wrong chunk data for chunk %d (%s)", i, chunkIds[i].c_str() );
+      ZBACKUP_CHECK( ret, "bundle.get returned false for chunk %d (%s)", i, chunkIds[i].c_str() );
+      ZBACKUP_CHECK( size == chunkSize, "wrong chunk size for chunk %d (%s)", i, chunkIds[i].c_str() );
+      ZBACKUP_CHECK( memcmp(data.c_str(), chunks[i], chunkSize) == 0, "wrong chunk data for chunk %d (%s)", i, chunkIds[i].c_str() );
     }
   }
 

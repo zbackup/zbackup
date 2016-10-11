@@ -63,7 +63,7 @@ public:
   {
     lzma_ret ret = lzma_code( &strm, ( finish ? LZMA_FINISH : LZMA_RUN ) );
 
-    CHECK( ret == LZMA_OK || ret == LZMA_STREAM_END, "lzma_code error: %d", (int) ret );
+    ZBACKUP_CHECK( ret == LZMA_OK || ret == LZMA_STREAM_END, "lzma_code error: %d", (int) ret );
 
     return ( ret == LZMA_STREAM_END );
   }
@@ -82,7 +82,7 @@ public:
   {
     uint32_t preset = 6;
     lzma_ret ret = lzma_easy_encoder( &strm, preset, LZMA_CHECK_CRC64 );
-    CHECK( ret == LZMA_OK, "lzma_easy_encoder error: %d", (int) ret );
+    ZBACKUP_CHECK( ret == LZMA_OK, "lzma_easy_encoder error: %d", (int) ret );
   }
 
   LZMAEncoder( Config const & config )
@@ -92,7 +92,7 @@ public:
       ( compressionLevel - 10 ) | LZMA_PRESET_EXTREME :
       compressionLevel;
     lzma_ret ret = lzma_easy_encoder( &strm, preset, LZMA_CHECK_CRC64 );
-    CHECK( ret == LZMA_OK, "lzma_easy_encoder error: %d", (int) ret );
+    ZBACKUP_CHECK( ret == LZMA_OK, "lzma_easy_encoder error: %d", (int) ret );
   }
 };
 
@@ -102,7 +102,7 @@ public:
   LZMADecoder()
   {
     lzma_ret ret = lzma_stream_decoder( &strm, UINT64_MAX, 0 );
-    CHECK( ret == LZMA_OK,"lzma_stream_decoder error: %d", (int) ret );
+    ZBACKUP_CHECK( ret == LZMA_OK,"lzma_stream_decoder error: %d", (int) ret );
   }
 };
 
@@ -355,7 +355,7 @@ protected:
 
   size_t suggestOutputSize( const char* dataIn, size_t availIn )
   {
-    CHECK( availIn >= sizeof(uint64_t), "not enough input data" );
+    ZBACKUP_CHECK( availIn >= sizeof(uint64_t), "not enough input data" );
     // We're not using size_t because we need a type that has the same size on all
     // architectures. A 32-bit host won't be able to open files with more than
     // 4GB (actually much less), so 4 byte are enough. Even a 64-bit host would
@@ -395,7 +395,7 @@ protected:
     if ( !doProcessNoSize( dataIn, availIn, dataOut, availOut, reportedOutputSize ) )
       return false;
 
-    CHECK( reportedOutputSize == neededOutputSize,
+    ZBACKUP_CHECK( reportedOutputSize == neededOutputSize,
       "Size of decoded data is different than expected" );
 
     return true;
@@ -437,7 +437,7 @@ protected:
   bool doProcess( const char* dataIn, size_t availIn,
       char* dataOut, size_t availOut, size_t& outputSize )
   {
-    CHECK( availIn <= UINT32_MAX,
+    ZBACKUP_CHECK( availIn <= UINT32_MAX,
       "You want to compress more than 4GB of data?! Sorry, we don't support that, yet." );
 
     memcpy(dataOut, "ABCDEFGHIJKLMNOP", 16);
@@ -454,7 +454,7 @@ protected:
     if ( !doProcessNoSize( dataIn, availIn, dataOut, availOut, outputSize ) )
       return false;
 
-    CHECK( outputSize <= UINT32_MAX,
+    ZBACKUP_CHECK( outputSize <= UINT32_MAX,
       "The compressed data is more than 4GB?! Sorry, we don't support that, yet." );
     *compressedSize = htole32( (uint32_t) outputSize );
 
@@ -483,7 +483,7 @@ protected:
   if ( ret == LZO_E_OUTPUT_OVERRUN )
     return false;
 
-  CHECK( ret >= LZO_E_OK, "lzo1x_decompress_safe failed (code %d)", ret );
+  ZBACKUP_CHECK( ret >= LZO_E_OK, "lzo1x_decompress_safe failed (code %d)", ret );
 
   return true;
   }
@@ -514,7 +514,7 @@ class LZO1X_1_Compression : public CompressionMethod
     if (!initialized)
     {
       int ret = lzo_init();
-      CHECK( ret == LZO_E_OK, "lzo_init failed (%d)", ret );
+      ZBACKUP_CHECK( ret == LZO_E_OK, "lzo_init failed (%d)", ret );
       initialized = true;
     }
   }
@@ -601,7 +601,7 @@ bool LZO1X_1_Encoder::doProcessNoSize( const char* dataIn, size_t availIn,
   if ( ret == LZO_E_OUTPUT_OVERRUN )
     return false;
 
-  CHECK( ret >= LZO_E_OK, "lzo1x_1_compress failed (code %d)", ret );
+  ZBACKUP_CHECK( ret >= LZO_E_OK, "lzo1x_1_compress failed (code %d)", ret );
 
   return true;
 }
@@ -812,7 +812,7 @@ bool CompressionMethod::iterator::atEnd() const
 
 CompressionMethod::iterator& CompressionMethod::iterator::operator ++()
 {
-  CHECK( ptr && *ptr, "Cannot increment the end iterator" );
+  ZBACKUP_CHECK( ptr && *ptr, "Cannot increment the end iterator" );
 
   ++ptr;
 
@@ -821,7 +821,7 @@ CompressionMethod::iterator& CompressionMethod::iterator::operator ++()
 
 const_sptr<CompressionMethod> CompressionMethod::iterator::operator *()
 {
-  CHECK( ptr && *ptr, "Cannot dereference the end iterator" );
+  ZBACKUP_CHECK( ptr && *ptr, "Cannot dereference the end iterator" );
 
   return *ptr;
 }

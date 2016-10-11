@@ -10,12 +10,12 @@
 
 // Run-time assertion macro
 
-// Usage: CHECK( value == 16, "Value is not 16: %d", value );
+// Usage: ZBACKUP_CHECK( value == 16, "Value is not 16: %d", value );
 // This will abort() if the value is not 16 with the message stating so.
 
 // TODO: show the backtrace here, without using __FILE__ __LINE__
 
-#define CHECK( condition, message, ... ) ({if (!(condition)) \
+#define ZBACKUP_CHECK( condition, message, ... ) ({if (!(condition)) \
 { \
   fprintf( stderr, "Check failed: " ); \
   fprintf( stderr, message, ##__VA_ARGS__ ); \
@@ -23,7 +23,7 @@
   abort(); \
 }})
 
-#define FAIL( ... ) CHECK( false, __VA_ARGS__ )
+#define FAIL( ... ) ZBACKUP_CHECK( false, __VA_ARGS__ )
 
 
 // Debug-only versions. Only instantiated in debug builds

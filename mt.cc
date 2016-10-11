@@ -58,13 +58,13 @@ void * Thread::__thread_routine( void * param )
 
 void Thread::start()
 {
-  CHECK( pthread_create( &thread, 0, &__thread_routine, this ) == 0,
+  ZBACKUP_CHECK( pthread_create( &thread, 0, &__thread_routine, this ) == 0,
          "pthread_create() failed" );
 }
 
 void Thread::detach()
 {
-  CHECK( pthread_detach( thread ) == 0, "pthread_detach() failed" );
+  ZBACKUP_CHECK( pthread_detach( thread ) == 0, "pthread_detach() failed" );
 }
 
 void * Thread::join()

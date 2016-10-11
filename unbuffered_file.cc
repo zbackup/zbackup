@@ -49,7 +49,7 @@ size_t UnbufferedFile::read( void * buf, size_t size )
     else
     if ( rd > 0 )
     {
-      CHECK( ( size_t ) rd <= left, "read too many bytes from a file" );
+      ZBACKUP_CHECK( ( size_t ) rd <= left, "read too many bytes from a file" );
       next += rd;
       left -= rd;
     }
@@ -76,7 +76,7 @@ void UnbufferedFile::write( void const * buf, size_t size )
     }
     else
     {
-      CHECK( ( size_t ) written <= left, "wrote too many bytes to a file" );
+      ZBACKUP_CHECK( ( size_t ) written <= left, "wrote too many bytes to a file" );
       next += written;
       left -= written;
     }
