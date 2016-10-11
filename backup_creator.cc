@@ -109,7 +109,7 @@ void BackupCreator::handleMoreData( unsigned added )
 
 void BackupCreator::saveChunkToSave()
 {
-  CHECK( chunkToSaveFill > 0, "chunk to save is empty" );
+  ZBACKUP_CHECK( chunkToSaveFill > 0, "chunk to save is empty" );
 
   if ( chunkToSaveFill < 128 ) // TODO: make this value configurable
   {
@@ -162,7 +162,7 @@ void BackupCreator::finish()
 
   // Concatenate the rest of data and save it too
 
-  CHECK( chunkToSaveFill + ringBufferFill <= chunkMaxSize, "had more than two "
+  ZBACKUP_CHECK( chunkToSaveFill + ringBufferFill <= chunkMaxSize, "had more than two "
          "full chunks at backup finish" );
 
   moveFromRingBufferToChunkToSave( ringBufferFill );
@@ -274,7 +274,7 @@ void BackupCreator::outputInstruction( BackupInstruction const & instr )
 
 void BackupCreator::getBackupData( string & str )
 {
-  CHECK( backupDataStream.get(), "getBackupData() called twice" );
+  ZBACKUP_CHECK( backupDataStream.get(), "getBackupData() called twice" );
   backupDataStream.reset();
   str.swap( backupData );
 }

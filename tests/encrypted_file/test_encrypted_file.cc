@@ -47,11 +47,11 @@ void readAndWrite( EncryptionKey const & key, bool writeBackups,
     int avail = 0;
     for ( int left = fileSize; left; )
     {
-      CHECK( out.ByteCount() == fileSize - left, "Incorrect bytecount in the "
+      ZBACKUP_CHECK( out.ByteCount() == fileSize - left, "Incorrect bytecount in the "
              "middle of writing" );
       void * data;
-      CHECK( out.Next( &data, &avail ), "out.Next() returned false" );
-      CHECK( avail > 0, "out.Next() returned zero size" );
+      ZBACKUP_CHECK( out.Next( &data, &avail ), "out.Next() returned false" );
+      ZBACKUP_CHECK( avail > 0, "out.Next() returned zero size" );
 
       bool doBackup = writeBackups && ( rand() & 1 );
       int backup;
@@ -77,7 +77,7 @@ void readAndWrite( EncryptionKey const & key, bool writeBackups,
 
       if ( !avail && ( rand() & 1 ) )
       {
-        CHECK( adler( next - rnd ) == out.getAdler32(),
+        ZBACKUP_CHECK( adler( next - rnd ) == out.getAdler32(),
                "bad adler32 in the middle of writing" );
       }
     }
@@ -85,11 +85,11 @@ void readAndWrite( EncryptionKey const & key, bool writeBackups,
     if ( avail || ( rand() & 1 ) )
       out.BackUp( avail );
 
-    CHECK( out.ByteCount() == fileSize, "Incorrect bytecount after writing" );
+    ZBACKUP_CHECK( out.ByteCount() == fileSize, "Incorrect bytecount after writing" );
 
     if ( rand() & 1 )
     {
-      CHECK( adler( fileSize ) == out.getAdler32(),
+      ZBACKUP_CHECK( adler( fileSize ) == out.getAdler32(),
              "bad adler32 of the written file" );
     }
   }
@@ -114,11 +114,11 @@ void readAndWrite( EncryptionKey const & key, bool writeBackups,
         continue;
       }
 
-      CHECK( in.ByteCount() == fileSize - left, "Incorrect bytecount in the "
+      ZBACKUP_CHECK( in.ByteCount() == fileSize - left, "Incorrect bytecount in the "
              "middle of reading" );
-      CHECK( in.Next( &data, &avail ), "file ended while %d were still left",
+      ZBACKUP_CHECK( in.Next( &data, &avail ), "file ended while %d were still left",
              left );
-      CHECK( avail > 0, "in.Next() returned zero size" );
+      ZBACKUP_CHECK( avail > 0, "in.Next() returned zero size" );
 
       bool doBackup = readBackups && ( rand() & 1 );
       int backup;
@@ -130,7 +130,7 @@ void readAndWrite( EncryptionKey const & key, bool writeBackups,
 
       int toRead = avail > left ? left : avail;
 
-      CHECK( memcmp( next, data, toRead ) == 0, "Different bytes read than "
+      ZBACKUP_CHECK( memcmp( next, data, toRead ) == 0, "Different bytes read than "
              "expected at offset %d", int( next - rnd ) );
 
       if ( doBackup )
@@ -142,19 +142,19 @@ void readAndWrite( EncryptionKey const & key, bool writeBackups,
 
       if ( !avail && ( rand() & 1 ) )
       {
-        CHECK( adler( next - rnd ) == in.getAdler32(),
+        ZBACKUP_CHECK( adler( next - rnd ) == in.getAdler32(),
                "bad adler32 in the middle of the reading" );
       }
     }
 
-    CHECK( in.ByteCount() == fileSize, "Incorrect bytecount after reading" );
+    ZBACKUP_CHECK( in.ByteCount() == fileSize, "Incorrect bytecount after reading" );
 
-    CHECK( !avail, "at least %d bytes still available", avail );
-    CHECK( !in.Next( &data, &avail ), "file should have ended but resulted in "
+    ZBACKUP_CHECK( !avail, "at least %d bytes still available", avail );
+    ZBACKUP_CHECK( !in.Next( &data, &avail ), "file should have ended but resulted in "
            "%d more bytes", avail );
     if ( rand() & 1 )
     {
-      CHECK( adler( fileSize ) == in.getAdler32(),
+      ZBACKUP_CHECK( adler( fileSize ) == in.getAdler32(),
              "bad adler32 of the read file" );
     }
   }

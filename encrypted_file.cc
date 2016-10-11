@@ -81,10 +81,10 @@ bool InputStream::Next( void const ** data, int * size )
 
 void InputStream::BackUp( int count )
 {
-  CHECK( count >= 0, "count is negative" );
+  ZBACKUP_CHECK( count >= 0, "count is negative" );
   if ( !backedUp )
   {
-    CHECK( (size_t) count <= fill, "Backing up too much" );
+    ZBACKUP_CHECK( (size_t) count <= fill, "Backing up too much" );
     size_t consumed = fill - count;
     adler32.add( start, consumed );
     start += consumed;
@@ -94,13 +94,13 @@ void InputStream::BackUp( int count )
   }
   else
   {
-    CHECK( count == 0, "backing up after being backed up already" );
+    ZBACKUP_CHECK( count == 0, "backing up after being backed up already" );
   }
 }
 
 bool InputStream::Skip( int count )
 {
-  CHECK( count >= 0, "count is negative" );
+  ZBACKUP_CHECK( count >= 0, "count is negative" );
 
   // We always need to read and decrypt data, as otherwise both the state of
   // CBC and adler32 would be incorrect
@@ -122,7 +122,7 @@ bool InputStream::Skip( int count )
   return true;
 }
 
-int64_t InputStream::ByteCount() const
+google::protobuf::int64 InputStream::ByteCount() const
 {
   return filePos;
 }
@@ -221,7 +221,7 @@ void InputStream::doDecrypt()
 
   // We don't throw an exception here as the interface we implement doesn't
   // support them
-  CHECK( fill > 0 && !( fill % BlockSize ), "incorrect size of the encrypted "
+  ZBACKUP_CHECK( fill > 0 && !( fill % BlockSize ), "incorrect size of the encrypted "
          "file - must be non-zero and in multiples of %u",
          ( unsigned ) BlockSize );
 
@@ -279,10 +279,10 @@ bool OutputStream::Next( void ** data, int * size )
 
 void OutputStream::BackUp( int count )
 {
-  CHECK( count >= 0, "count is negative" );
+  ZBACKUP_CHECK( count >= 0, "count is negative" );
   if ( !backedUp )
   {
-    CHECK( (size_t) count <= avail, "Backing up too much" );
+    ZBACKUP_CHECK( (size_t) count <= avail, "Backing up too much" );
     size_t consumed = avail - count;
     adler32.add( start, consumed );
     start += consumed;
@@ -292,11 +292,11 @@ void OutputStream::BackUp( int count )
   }
   else
   {
-    CHECK( count == 0, "backing up after being backed up already" );
+    ZBACKUP_CHECK( count == 0, "backing up after being backed up already" );
   }
 }
 
-int64_t OutputStream::ByteCount() const
+google::protobuf::int64 OutputStream::ByteCount() const
 {
   return filePos;
 }
@@ -353,7 +353,7 @@ void OutputStream::encryptAndWrite( size_t bytes )
 {
   if ( key.hasKey() )
   {
-    CHECK( bytes > 0 && !( bytes % BlockSize ), "incorrect number of bytes to "
+    ZBACKUP_CHECK( bytes > 0 && !( bytes % BlockSize ), "incorrect number of bytes to "
            "encrypt and write - must be non-zero and in multiples of %u",
            ( unsigned ) BlockSize );
 
