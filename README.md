@@ -150,6 +150,7 @@ want your backup process to be cpu-bound, you should consider using LZO. However
 * LZO is so fast that other parts of `zbackup` consume significant portions of the CPU. In fact, it is only using one core on my machine because compression is the only thing that can run in parallel.
 * I've hacked the LZO support in a day. You shouldn't trust it. Please make sure that restore works before you assume that your data is safe. That may still be faster than a backup with LZMA ;-)
 * LZMA is still the default, so make sure that you use the `-o bundle.compression_method=lzo` argument when you init the repo or whenever you do a backup.
+* In case you want to use filesystem-level compression (think ZFS), there's `-o bundle.compression_method=zero` argument which disables compression.
 
 You can mix LZMA and LZO in a repository. Each bundle file has a field that says how it was compressed, so
 `zbackup` will use the right method to decompress it. You could use an old `zbackup` respository with only LZMA
