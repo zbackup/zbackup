@@ -27,6 +27,7 @@ The program has the following features:
  * `liblzma-dev` for compression
  * `liblzo2-dev` for compression (optional)
  * `zlib1g-dev` for adler32 calculation
+ * `libunwind-dev` 
 
 # Quickstart
 
