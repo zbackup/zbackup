@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import sys, argparse, os, time, datetime, subprocess, io, re, argparse, random
+import Logger
 
 
 EMPTY_BYTES = bytearray ()
@@ -23,7 +24,7 @@ class ZBackupExecutor:
 
     def executeZBackup (self, arguments, bytesToSTDIN):
         cCmd = self.zbackup + " " + self.encryptionArgument + " --silent " + arguments
-        print ("        executeZBackup:" + cCmd)
+        Logger.log (3, "        executeZBackup:" + cCmd)
 
         proc = subprocess.Popen(cCmd, shell = True, stdin = subprocess.PIPE, stdout = subprocess.PIPE)
         (stdout_data, stderr_data) = proc.communicate(input = bytesToSTDIN)
@@ -40,28 +41,34 @@ class ZBackupExecutor:
         return int(size) * 1024
 
 
+    def getFileExists (self, fileName):
+        fullFileName = self.directory + "/backups/" + fileName
+
+        return os.path.exists(fullFileName)
+
+
     def getFilePath (self, fileName):
         fullFileName = self.directory + "/backups/" + fileName
         dirName = os.path.dirname(fullFileName)
 
         if not os.path.exists(dirName):
-            print ("mkdir " + dirName)
-            os.mkdir(dirName)
+            Logger.log (3, "mkdir " + dirName)
+            os.makedirs(dirName, exist_ok=True)
 
         return fullFileName     
 
 
-    def writeZBackupFile (self, randomBytes, fileName):
-        theBytes = randomBytes.getRandomBytes ()
+    def writeZBackupFile (self, bytesource, fileName):
+        theBytes = bytesource.getBytes ()
         
-        self.executeZBackup ("backup " + self.getFilePath (fileName), theBytes)
+        self.executeZBackup ("backup '" + self.getFilePath (fileName) + "'", theBytes)
 
 
 
-    def readZBackupFile (self, randomBytes, fileName):
-        restoredBytes = self.executeZBackup ("restore " + self.getFilePath (fileName), EMPTY_BYTES)
+    def readZBackupFile (self, bytesource, fileName):
+        restoredBytes = self.executeZBackup ("restore '" + self.getFilePath (fileName) + "'", EMPTY_BYTES)
 
-        if not restoredBytes == randomBytes.getRandomBytes ():
+        if not restoredBytes == bytesource.getBytes ():
             raise Exception("Bytes don't match")   
 
 
@@ -70,17 +77,17 @@ class ZBackupExecutor:
 
 
     def compactZBackupIndex (self):
-        print ("Compact the zbackup index")
+        Logger.log (1, "Compact the zbackup index")
         ignoreBytes = self.executeZBackup (" gc -O gc.concat " + self.directory, EMPTY_BYTES)
 
 
     def garbageCollectZBackup (self):
-        print ("Garbage collect zbackup")
+        Logger.log (1, "Garbage collect zbackup")
         ignoreBytes = self.executeZBackup ("gc " + self.directory, EMPTY_BYTES)
 
 
     def removeFile (self, fileName):
-        print ("Remove file " + fileName)
+        Logger.log (1, "Remove file " + fileName)
         
         fullFileName = self.getFilePath (fileName)
         os.remove (fullFileName)
