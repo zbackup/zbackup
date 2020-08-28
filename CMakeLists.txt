@@ -59,7 +59,42 @@ if ( ZBACKUP_VERSION )
   MESSAGE("ZBackup version ${ZBACKUP_VERSION}")
 endif( ZBACKUP_VERSION )
 
-file( GLOB sourceFiles "*.cc" "*.c" )
+set( sourceFiles
+  appendallocator.cc
+  backup_collector.cc
+  backup_creator.cc
+  backup_file.cc
+  backup_restorer.cc
+  bundle.cc
+  chunk_id.cc
+  chunk_index.cc
+  chunk_storage.cc
+  compression.cc
+  config.cc
+  debug.cc
+  dir.cc
+  encrypted_file.cc
+  encryption.cc
+  encryption_key.cc
+  file.cc
+  index_file.cc
+  message.cc
+  mt.cc
+  objectcache.cc
+  page_size.cc
+  random.cc
+  rolling_hash.cc
+  sha256.cc
+  storage_info_file.cc
+  tmp_mgr.cc
+  unbuffered_file.cc
+  utils.cc
+  version.cc
+  zbackup.cc
+  zbackup_base.cc
+  zutils.cc
+  buse.c
+)
 add_executable( zbackup ${sourceFiles} ${protoSrcs} ${protoHdrs} )
 
 target_link_libraries( zbackup
