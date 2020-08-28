@@ -6,7 +6,11 @@
 #include "sha256.hh"
 #include "backup_collector.hh"
 #include "utils.hh"
+
+#ifdef WITH_BUSE
 #include "buse.h"
+#endif
+
 #include <unistd.h>
 
 using std::vector;
@@ -265,6 +269,7 @@ void ZRestore::restoreToStdin( string const & inputFileName )
     throw exChecksumError();
 }
 
+#ifdef WITH_BUSE
 static int buse_read(void *buf, u_int32_t len, u_int64_t offset, void *userdata)
 {
   dPrintf( "NBD read offset=%lu, size=%u\n", offset, len );
@@ -296,6 +301,7 @@ void ZRestore::startNBDServer( string const & inputFileName, string const & nbdD
 
   buse_main(nbdDevice.c_str(), &aop, (void *)&restorer);
 }
+#endif
 
 ZExchange::ZExchange( string const & srcStorageDir, string const & srcPassword,
                       string const & dstStorageDir, string const & dstPassword,
