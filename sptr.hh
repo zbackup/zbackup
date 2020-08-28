@@ -25,9 +25,9 @@ class sptr_base
 
 public:
 
-  sptr_base(): p( 0 ), count( 0 ) {}
+  sptr_base(): p( nullptr ), count( nullptr ) {}
 
-  sptr_base( T * p_ ): p( p_ ), count( p ? new unsigned( 1 ) : 0 )
+  sptr_base( T * p_ ): p( p_ ), count( p ? new unsigned( 1 ) : nullptr )
   {
   }
 
@@ -48,21 +48,21 @@ public:
       {
         delete count;
 
-        count = 0;
+        count = nullptr;
 
         if ( p )
         {
           T * p_ = p;
   
-          p = 0;
+          p = nullptr;
   
           delete p_;
         }
       }
       else
       {
-        p = 0;
-        count = 0;
+        p = nullptr;
+        count = nullptr;
       }
     }
   }
