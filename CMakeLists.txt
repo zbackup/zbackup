@@ -4,6 +4,8 @@
 cmake_minimum_required( VERSION 2.8.3 )
 project( zbackup )
 
+option( WITH_BUSE "Enable userspace block devices" ON )
+
 list( APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake" )
 
 if( NOT CMAKE_BUILD_TYPE )
@@ -93,9 +95,16 @@ set( sourceFiles
   zbackup.cc
   zbackup_base.cc
   zutils.cc
-  buse.c
 )
+if ( WITH_BUSE )
+  list( APPEND sourceFiles
+    buse.c
+  )
+endif()
 add_executable( zbackup ${sourceFiles} ${protoSrcs} ${protoHdrs} )
+if ( WITH_BUSE )
+  target_compile_definitions( zbackup PRIVATE WITH_BUSE )
+endif()
 
 target_link_libraries( zbackup
   ${PROTOBUF_LIBRARIES}
