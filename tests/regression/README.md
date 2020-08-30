@@ -20,18 +20,23 @@ This is a more random test, aimed at throwing a variety of situations at zbackup
 
 #### Example Test
 ```
-mkdir /tmp/zbackuptest/
-rm -rfv /tmp/zbackuptest/* 
+SEED=123
+ZBACKUP_BINARY=/my/copy/of/zbackup
+TMP_DIR=/tmp/zbackuptest
+SAMPLE_DATA=/sample/data/
+mkdir $TMP_DIR/
+rm -rfv $TMP_DIR/* 
+
 python3 tests/regression/regression.py \
-	--zbackup /my/copy/of/zbackup \
-	--tmp /tmp/zbackuptest 
-	--samples /sample/data/ 
-	--seed 123 
-	--loops 80 
-	--add-per-loop 60 
-	--delete-per-loop 50 
-	--log-level 3 
-	--key /tmp/zkey
+	--zbackup $ZBACKUP_BINARY          \
+	--tmp $TMP_DIR                     \
+	--samples $SAMPLE_DATA             \
+	--seed $SEED                       \
+	--loops 80                         \
+	--add-per-loop 60                  \
+	--delete-per-loop 50               \
+	--log-level 3                      \
+#	--key /tmp/zkey
 ``` 
 #### Arguments
 The arguments you supply are:
