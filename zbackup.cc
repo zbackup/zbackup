@@ -173,8 +173,10 @@ invalid_option:
 "    restore <backup file name> - restores a backup to stdout\n"
 "    restore <backup file name> <output file name> - restores\n"
 "            a backup to file using two-pass \"cacheless\" process\n"
+#ifdef WITH_BUSE
 "    nbd <backup file name> /dev/nbd0\n"
 "            start NBD server that will serve backup data as block device\n"
+#endif
 "    export <source storage path> <destination storage path> -\n"
 "            performs export from source to destination storage\n"
 "    import <source storage path> <destination storage path> -\n"
@@ -280,6 +282,7 @@ invalid_option:
         zr.restoreToStdin( args[ 1 ] );
     }
     else
+#ifdef WITH_BUSE
     if ( strcmp( args[ 0 ], "nbd" ) == 0 )
     {
       // Start NBD server
@@ -294,6 +297,7 @@ invalid_option:
       zr.startNBDServer( args[ 1 ], args[ 2 ] );
     }
     else
+#endif
     if ( strcmp( args[ 0 ], "export" ) == 0 || strcmp( args[ 0 ], "import" ) == 0 )
     {
       if ( args.size() != 3 )

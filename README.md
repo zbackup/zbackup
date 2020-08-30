@@ -132,6 +132,8 @@ There are then two problems with the total number of chunks in the repository:
 
 All in all, as long as the amount of RAM permits, one can go up to several terabytes in deduplicated data, and start having some slowdown after having hundreds of terabytes, RAM-permitting.
 
+Every backup will store a (very small) file in `index/`.  If you are taking many backups at regular intervals, this can end up in the 10,000s or 100,000s and disk performance will drop.  Deleting unneeded backups and running a `zbackup gc` will remove bundles, but the index files remain.  1.5 offers a `zbackup gc -O gc.concat` which combines the index files which leads to dramatic performance improvements.
+
 # Design choices
 
   * We use a 64-bit modified Rabin-Karp rolling hash (see `rolling_hash.hh` for details), while most other programs use a 32-bit one. As noted previously, one problem with the hash size is its birthday bound, which with the 32-bit hash is met after having only `2^16` hashes. The choice of a 64-bit hash allows us to scale much better while having virtually the same calculation cost on a typical 64-bit machine.
@@ -170,6 +172,10 @@ There's a lot to be improved in the program. It was released with the minimum am
  * Support for other compression methods.
  * You name it!
 
+# Automated Testing
+
+You can run an automated test of the system, refer to `tests/regression/README.md`
+
 # Communication
 
  * The program's website is at <http://zbackup.org/>.
@@ -188,6 +194,7 @@ The author is reachable over email at <ikm@zbackup.org>. Please be constructive 
  * [duplicity](http://duplicity.nongnu.org/), which looks similar to `rdiff-backup` with regards to mode of operation.
  * Some filesystems (most notably [ZFS](http://en.wikipedia.org/wiki/ZFS) and [Btrfs](http://en.wikipedia.org/wiki/Btrfs)) provide deduplication features. They do so only at the block level though, without a sliding window, so they can not accommodate arbitrary byte insertion/deletion in the middle of data.
  * [Attic](https://attic-backup.org/), which looks very similar to `zbackup`.
+ * [Borg Backup](borgbackup.readthedocs.io/), The new version of attic with a very active development team and lots of features.  Would probably be a zbackuper killer, except restores can be incredibly slow (in this writer's experience) and the size taken up by the cache can be larger than the repository (issue 4740) YMMV.
 
 # Credits
 
