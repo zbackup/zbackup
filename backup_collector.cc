@@ -3,6 +3,8 @@
 
 #include "backup_collector.hh"
 
+#include <unistd.h>
+
 using std::string;
 
 BundleCollector::BundleCollector( string const & bundlesPath,
