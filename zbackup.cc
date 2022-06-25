@@ -1,6 +1,9 @@
 // Copyright (c) 2012-2014 Konstantin Isakov <ikm@zbackup.org> and ZBackup contributors, see CONTRIBUTORS
 // Part of ZBackup. Licensed under GNU GPLv2 or later + OpenSSL, see LICENSE
 
+#include <fstream>
+#include <streambuf>
+
 #include "zutils.hh"
 #include "debug.hh"
 #include "version.hh"
@@ -32,18 +35,20 @@ int main( int argc, char *argv[] )
       {
         // Read the password
         char const * passwordFile = argv[ x + 1 ];
-        string passwordData;
         if ( passwordFile )
         {
-          File f( passwordFile, File::ReadOnly );
-          passwordData.resize( f.size() );
-          f.read( &passwordData[ 0 ], passwordData.size() );
+          // Read password from file/descriptor
+          std::ifstream passwordFileStream(passwordFile);
+          std::string passwordData((std::istreambuf_iterator<char>(passwordFileStream)),
+               std::istreambuf_iterator<char>());
 
           // If the password ends with \n, remove that last \n. Many editors will
           // add \n there even if a user doesn't want them to
           if ( !passwordData.empty() &&
                passwordData[ passwordData.size() - 1 ] == '\n' )
             passwordData.resize( passwordData.size() - 1 );
+
+          // Store new password
           passwords.push_back( passwordData );
         }
         ++x;
